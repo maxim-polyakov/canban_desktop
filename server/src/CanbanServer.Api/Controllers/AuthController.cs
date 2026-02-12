@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -38,5 +39,16 @@ public class AuthController : ControllerBase
     {
         var response = await _authService.LoginAsync(request, ct);
         return response == null ? Unauthorized("Неверный email или пароль.") : Ok(response);
+    }
+
+    /// <summary>Обновить профиль текущего пользователя (имя и/или аватар). Требуется авторизация.</summary>
+    [HttpPatch("me")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var user = await _authService.UpdateProfileAsync(userId.Value, request, ct);
+        return user == null ? NotFound() : Ok(user);
     }
 }

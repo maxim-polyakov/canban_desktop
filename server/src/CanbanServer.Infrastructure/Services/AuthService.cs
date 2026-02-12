@@ -68,6 +68,18 @@ public class AuthService : IAuthService
         return new AuthResponse(token, "Bearer", expiresIn, userDto);
     }
 
+    public async Task<UserDto?> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FindAsync(new object[] { userId }, ct);
+        if (user == null) return null;
+        if (request.DisplayName != null) user.DisplayName = request.DisplayName.Trim();
+        if (request.AvatarUrl != null) user.AvatarUrl = request.AvatarUrl.Trim();
+        var character = await _db.Characters.FirstOrDefaultAsync(c => c.UserId == userId, ct);
+        if (character != null && request.DisplayName != null) character.Name = request.DisplayName.Trim();
+        await _db.SaveChangesAsync(ct);
+        return new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
+    }
+
     private string GenerateJwt(User user)
     {
         var key = _config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key не задан в конфигурации.");

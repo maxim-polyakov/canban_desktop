@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -15,8 +16,9 @@ public class CharactersController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<CharacterDto>> GetMy(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        var character = await _characterService.GetByUserIdAsync(userId, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var character = await _characterService.GetByUserIdAsync(userId.Value, ct);
         return character == null ? NotFound() : Ok(character);
     }
 
@@ -37,10 +39,10 @@ public class CharactersController : ControllerBase
     [HttpGet("me/xp-history")]
     public async Task<ActionResult<List<XpTransactionDto>>> GetMyXpHistory([FromQuery] int limit = 50, CancellationToken ct = default)
     {
-        var userId = GetCurrentUserId();
-        var list = await _characterService.GetXpHistoryAsync(userId, limit, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var list = await _characterService.GetXpHistoryAsync(userId.Value, limit, ct);
         return Ok(list);
     }
 
-    private static Guid GetCurrentUserId() => Guid.Empty;
 }

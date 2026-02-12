@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -29,8 +30,9 @@ public class QuestsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<QuestDto>> Create([FromBody] CreateQuestRequest request, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        var quest = await _questService.CreateAsync(request, userId, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var quest = await _questService.CreateAsync(request, userId.Value, ct);
         return CreatedAtAction(nameof(Get), new { id = quest.Id }, quest);
     }
 
@@ -45,8 +47,9 @@ public class QuestsController : ControllerBase
     [HttpPost("move")]
     public async Task<ActionResult<QuestDto>> Move([FromBody] MoveQuestRequest request, CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        var quest = await _questService.MoveAsync(request, userId, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var quest = await _questService.MoveAsync(request, userId.Value, ct);
         return quest == null ? NotFound() : Ok(quest);
     }
 
@@ -64,9 +67,4 @@ public class QuestsController : ControllerBase
         return deleted ? NoContent() : NotFound();
     }
 
-    private static Guid GetCurrentUserId()
-    {
-        // TODO: взять из JWT/Claims. Пока заглушка.
-        return Guid.Empty;
-    }
 }

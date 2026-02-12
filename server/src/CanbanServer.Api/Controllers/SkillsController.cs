@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -15,18 +16,18 @@ public class SkillsController : ControllerBase
     [HttpGet("tree")]
     public async Task<ActionResult<SkillTreeDto>> GetTree(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        var tree = await _skillTreeService.GetTreeForUserAsync(userId, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var tree = await _skillTreeService.GetTreeForUserAsync(userId.Value, ct);
         return Ok(tree);
     }
 
     [HttpGet("unlocked")]
     public async Task<ActionResult<List<SkillDto>>> GetUnlocked(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        var list = await _skillTreeService.GetUnlockedSkillsAsync(userId, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var list = await _skillTreeService.GetUnlockedSkillsAsync(userId.Value, ct);
         return Ok(list);
     }
-
-    private static Guid GetCurrentUserId() => Guid.Empty;
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -29,8 +30,9 @@ public class TeamsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<TeamDto>> Create([FromBody] CreateTeamRequest request, CancellationToken ct)
     {
-        var ownerId = GetCurrentUserId();
-        var team = await _teamService.CreateAsync(request, ownerId, ct);
+        var ownerId = User.GetUserId();
+        if (!ownerId.HasValue) return Unauthorized();
+        var team = await _teamService.CreateAsync(request, ownerId.Value, ct);
         return CreatedAtAction(nameof(Get), new { id = team.Id }, team);
     }
 
@@ -55,5 +57,4 @@ public class TeamsController : ControllerBase
         return removed ? NoContent() : NotFound();
     }
 
-    private static Guid GetCurrentUserId() => Guid.Empty;
 }

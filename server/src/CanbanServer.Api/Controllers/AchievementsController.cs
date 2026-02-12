@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -22,10 +23,9 @@ public class AchievementsController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<List<UserAchievementDto>>> GetMy(CancellationToken ct)
     {
-        var userId = GetCurrentUserId();
-        var list = await _achievementService.GetUserAchievementsAsync(userId, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var list = await _achievementService.GetUserAchievementsAsync(userId.Value, ct);
         return Ok(list);
     }
-
-    private static Guid GetCurrentUserId() => Guid.Empty;
 }

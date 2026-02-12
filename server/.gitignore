@@ -1,0 +1,12 @@
+# Build
+bin/
+obj/
+
+# .env — не коммитить пароли и локальные настройки
+.env
+
+# IDE / OS
+.idea/
+.vs/
+*.user
+.DS_Store

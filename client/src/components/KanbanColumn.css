@@ -1,0 +1,99 @@
+.kanban-column {
+  flex: 0 0 280px;
+  min-height: 200px;
+  padding: 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+
+.kanban-column-over {
+  border-color: var(--accent);
+  background: rgba(122, 162, 247, 0.08);
+}
+
+.kanban-column-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.kanban-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 40px;
+}
+
+.kanban-add-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+
+.kanban-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kanban-add-form {
+  margin-top: 0.5rem;
+}
+
+.kanban-add-form input {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.kanban-add-assignee {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.kanban-add-assignee select {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.kanban-add-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.kanban-add-actions button {
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+
+.kanban-add-actions button:first-child {
+  background: var(--accent);
+  border: none;
+  color: var(--bg);
+}
+
+.kanban-add-actions button:last-child {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}

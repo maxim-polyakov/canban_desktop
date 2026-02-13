@@ -43,6 +43,16 @@ public class BoardService : IBoardService
             CreatedAt = DateTime.UtcNow
         };
         _db.Boards.Add(board);
+
+        var now = DateTime.UtcNow;
+        var defaultColumns = new[]
+        {
+            new Column { Id = Guid.NewGuid(), BoardId = board.Id, Title = "К выполнению", Order = 0, Kind = ColumnKind.Backlog, CreatedAt = now },
+            new Column { Id = Guid.NewGuid(), BoardId = board.Id, Title = "В работе", Order = 1, Kind = ColumnKind.InProgress, CreatedAt = now },
+            new Column { Id = Guid.NewGuid(), BoardId = board.Id, Title = "Готово", Order = 2, Kind = ColumnKind.Done, CreatedAt = now },
+        };
+        _db.Columns.AddRange(defaultColumns);
+
         await _db.SaveChangesAsync(ct);
         return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt);
     }

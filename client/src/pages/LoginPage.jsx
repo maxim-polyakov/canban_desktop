@@ -1,0 +1,41 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
+import './AuthPages.css';
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    const user = await login(email, password);
+    if (user) navigate('/', { replace: true });
+    else setError('Неверный email или пароль.');
+  };
+
+  return (
+    <div className="auth-page">
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <h1>Вход</h1>
+        {error && <p className="auth-error">{error}</p>}
+        <label>
+          Email
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        </label>
+        <label>
+          Пароль
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+        </label>
+        <button type="submit">Войти</button>
+        <p className="auth-footer">
+          Нет аккаунта? <Link to="/register">Регистрация</Link>
+        </p>
+      </form>
+    </div>
+  );
+}

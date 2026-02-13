@@ -1,0 +1,43 @@
+.board-page {
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.board-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.board-desc {
+  margin: 0 0 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.board-meta {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.board-id {
+  padding: 0.15rem 0.4rem;
+  background: var(--surface);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
+}
+
+.board-copy-id {
+  padding: 0.2rem 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.board-copy-id:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}

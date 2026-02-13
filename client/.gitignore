@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Build
+build/
+
+
+# IDE / OS
+.idea
+.DS_Store
+*.log
+npm-debug.log*

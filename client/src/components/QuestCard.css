@@ -1,0 +1,61 @@
+.quest-card {
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.quest-card:active {
+  cursor: grabbing;
+}
+
+.quest-card-ghost {
+  opacity: 0.5;
+}
+
+.quest-card-title {
+  font-size: 0.9rem;
+}
+
+.quest-card-assignee-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.quest-card-assignee-label {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.quest-card-assignee-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.quest-card-assignee-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.quest-card-assignee {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.quest-card-xp {
+  font-size: 0.75rem;
+  color: var(--success);
+}

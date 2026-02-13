@@ -58,6 +58,15 @@ export const character = {
 
 export const teams = {
   get: (id) => apiJson(`/api/teams/${id}`),
+  getMyTeamsWithBoards: () => apiJson('/api/teams/my'),
   getMembers: (teamId) => apiJson(`/api/teams/${teamId}/members`),
   create: (data) => apiJson('/api/teams', { method: 'POST', body: JSON.stringify(data) }),
+  inviteByEmail: async (teamId, email) => {
+    const res = await api(`/api/teams/${teamId}/members/invite`, { method: 'POST', body: JSON.stringify({ email }) });
+    if (res.ok) return { ok: true };
+    const text = await res.text();
+    if (res.status === 404) return { ok: false, error: text || 'Пользователь с таким email не найден.' };
+    if (res.status === 400) return { ok: false, error: text || 'Пользователь уже в команде.' };
+    return { ok: false, error: text || 'Ошибка при добавлении.' };
+  },
 };

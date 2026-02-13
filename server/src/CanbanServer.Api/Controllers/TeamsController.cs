@@ -13,6 +13,15 @@ public class TeamsController : ControllerBase
 
     public TeamsController(ITeamService teamService) => _teamService = teamService;
 
+    [HttpGet("my")]
+    public async Task<ActionResult<List<TeamWithBoardsDto>>> GetMyTeamsWithBoards(CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var list = await _teamService.GetMyTeamsWithBoardsAsync(userId.Value, ct);
+        return Ok(list);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<TeamDto>> Get(Guid id, CancellationToken ct)
     {
@@ -48,6 +57,18 @@ public class TeamsController : ControllerBase
     {
         var added = await _teamService.AddMemberAsync(teamId, userId, ct);
         return added ? NoContent() : BadRequest();
+    }
+
+    /// <summary>Добавить участника в команду по email (пользователь должен быть зарегистрирован).</summary>
+    [HttpPost("{teamId:guid}/members/invite")]
+    public async Task<ActionResult> InviteByEmail(Guid teamId, [FromBody] InviteMemberRequest? request, CancellationToken ct)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest("Укажите email.");
+        var result = await _teamService.AddMemberByEmailAsync(teamId, request.Email.Trim(), ct);
+        if (result == null) return NotFound("Пользователь с таким email не найден.");
+        if (result == false) return BadRequest("Пользователь уже в команде.");
+        return NoContent();
     }
 
     [HttpDelete("{teamId:guid}/members/{userId:guid}")]

@@ -11,7 +11,14 @@ export async function api(url, options = {}) {
     ...options.headers,
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(API_BASE + url, { ...options, headers });
+  const fullUrl = API_BASE + url;
+  let res;
+  try {
+    res = await fetch(fullUrl, { ...options, headers });
+  } catch (err) {
+    console.error('API request failed:', fullUrl, err);
+    throw err;
+  }
   if (res.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

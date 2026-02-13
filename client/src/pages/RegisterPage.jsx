@@ -22,7 +22,11 @@ export default function RegisterPage() {
       const user = await register(email, password, displayName);
       if (user) navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message || 'Ошибка регистрации.');
+      let msg = err?.message || '';
+      if (typeof msg !== 'string' || msg.length > 200 || msg.trim().startsWith('<')) {
+        msg = 'Ошибка регистрации.';
+      }
+      setError(msg.trim() || 'Ошибка регистрации.');
     }
   };
 

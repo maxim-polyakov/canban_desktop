@@ -13,9 +13,17 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const user = await login(email, password);
-    if (user) navigate('/', { replace: true });
-    else setError('Неверный email или пароль.');
+    try {
+      const user = await login(email, password);
+      if (user) navigate('/', { replace: true });
+      else setError('Неверный email или пароль.');
+    } catch (err) {
+      let msg = err?.message || (err?.response?.data && String(err.response.data)) || '';
+      if (typeof msg !== 'string' || msg.length > 200 || msg.trim().startsWith('<')) {
+        msg = 'Неверный email или пароль.';
+      }
+      setError(msg.trim() || 'Неверный email или пароль.');
+    }
   };
 
   return (

@@ -1,19 +1,19 @@
-# Сборка
-ARG REACT_APP_API_URL=http://localhost:5000
-FROM node:18-alpine AS build
+FROM node:20-alpine
+
 WORKDIR /app
 
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-
+# Копируем package.json, package-lock.json и ставим зависимости
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 
+# Копируем весь код и собираем production-версию
 COPY . .
 RUN npm run build
 
-# Раздача статики
-FROM nginx:alpine AS runtime
-COPY --from=build /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Устанавливаем serve для отдачи статики
+RUN npm install -g serve
+
+EXPOSE 3000
+
+# Запуск production-бандла
+CMD ["serve", "-s", "build", "-l", "3000"]

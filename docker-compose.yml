@@ -17,8 +17,8 @@ services:
       context: ./client
       dockerfile: Dockerfile
     ports:
-      - "3177:80"
-    env_file: client/.env
+      - "3177:3000"
+    env_file: ./client/.env
     depends_on:
       - api
     networks:

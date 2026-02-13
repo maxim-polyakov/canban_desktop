@@ -162,47 +162,6 @@
   color: var(--text-muted);
 }
 
-.home-hint {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
-}
-
-.home-team-input {
-  width: 100%;
-  max-width: 400px;
-  padding: 0.5rem 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  margin-bottom: 1rem;
-}
-
-.board-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.board-list li {
-  margin-bottom: 0.5rem;
-}
-
-.board-list a {
-  display: inline-block;
-  padding: 0.5rem;
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.board-list a:hover {
-  border-color: var(--accent);
-  text-decoration: none;
-}
-
 .home-team-invite {
   margin-top: 0.75rem;
   padding-top: 0.75rem;

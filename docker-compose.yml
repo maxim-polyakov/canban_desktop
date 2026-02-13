@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5177:5000"
+    env_file: server/.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    # Строка подключения к БД из server/.env (для БД на хосте укажите Host=host.docker.internal вместо localhost)
+    networks:
+      - canban_net
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3177:3000"
+    env_file: client/.env
+    depends_on:
+      - api
+    networks:
+      - canban_net
+
+networks:
+  canban_net:
+    driver: bridge

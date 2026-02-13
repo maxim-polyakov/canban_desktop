@@ -5,8 +5,6 @@ import './HomePage.css';
 
 export default function HomePage() {
   const [myTeamsWithBoards, setMyTeamsWithBoards] = useState([]);
-  const [teamId, setTeamId] = useState('');
-  const [boardListByTeamId, setBoardListByTeamId] = useState([]);
   const [char, setChar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -55,18 +53,6 @@ export default function HomePage() {
     })();
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (!teamId) {
-      setBoardListByTeamId([]);
-      return;
-    }
-    let cancelled = false;
-    boards.getByTeam(teamId).then((list) => {
-      if (!cancelled) setBoardListByTeamId(Array.isArray(list) ? list : []);
-    }).catch(() => { if (!cancelled) setBoardListByTeamId([]); });
-    return () => { cancelled = true; };
-  }, [teamId]);
 
   const handleCreateBoard = async (e) => {
     e.preventDefault();
@@ -215,25 +201,6 @@ export default function HomePage() {
             </div>
           </form>
         )}
-        <p className="home-hint">Или укажите ID команды и загрузите список досок.</p>
-        <input
-          type="text"
-          placeholder="ID команды (UUID)"
-          value={teamId}
-          onChange={(e) => setTeamId(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && setTeamId(e.target.value)}
-          className="home-team-input"
-        />
-        {boardListByTeamId.length > 0 && (
-          <ul className="board-list">
-            {boardListByTeamId.map((b) => (
-              <li key={b.id}>
-                <Link to={`/board/${b.id}`}>{b.name}</Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        {boardListByTeamId.length === 0 && teamId && <p className="home-empty">Досок не найдено.</p>}
       </section>
     </div>
   );

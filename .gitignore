@@ -1,4 +1,0 @@
-# Env (секреты, не коммитить)
-.env
-server/.env
-client/.env

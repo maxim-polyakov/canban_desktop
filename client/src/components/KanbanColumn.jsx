@@ -23,6 +23,8 @@ export default function KanbanColumn({
   onNewQuestDescriptionChange,
   newQuestAssigneeId,
   onNewQuestAssigneeChange,
+  newQuestXpReward = 10,
+  onNewQuestXpRewardChange,
   onSubmitNewQuest,
   onCancelAdd,
   onAssignQuest,
@@ -123,6 +125,16 @@ export default function KanbanColumn({
               options={members || []}
               onChange={(v) => onNewQuestAssigneeChange(v != null ? v : '')}
               placeholder="— не назначен —"
+            />
+          </label>
+          <label className="kanban-add-xp">
+            Опыт (XP)
+            <input
+              type="number"
+              min={0}
+              max={9999}
+              value={newQuestXpReward}
+              onChange={(e) => onNewQuestXpRewardChange?.(e.target.value === '' ? 10 : Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)))}
             />
           </label>
           <div className="kanban-add-actions">

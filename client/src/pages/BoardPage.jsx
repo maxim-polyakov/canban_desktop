@@ -18,6 +18,7 @@ export default function BoardPage() {
   const [questDetail, setQuestDetail] = useState(null);
   const [editQuestTitle, setEditQuestTitle] = useState('');
   const [editQuestDescription, setEditQuestDescription] = useState('');
+  const [editQuestXpReward, setEditQuestXpReward] = useState(0);
   const [savingQuest, setSavingQuest] = useState(false);
 
   const loadBoard = useCallback(async () => {
@@ -192,6 +193,7 @@ export default function BoardPage() {
         setQuestDetail(q);
         setEditQuestTitle(q?.title ?? '');
         setEditQuestDescription(q?.description ?? '');
+        setEditQuestXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);
       }
     }).catch(() => { if (!cancelled) setQuestDetail(null); });
     return () => { cancelled = true; };
@@ -201,7 +203,8 @@ export default function BoardPage() {
     if (!questDetailId) return;
     setSavingQuest(true);
     try {
-      await quests.update(questDetailId, { title: editQuestTitle.trim(), description: editQuestDescription.trim() });
+      const xp = Math.max(0, Math.min(9999, Number(editQuestXpReward) || 0));
+      await quests.update(questDetailId, { title: editQuestTitle.trim(), description: editQuestDescription.trim(), xpReward: xp });
       const updated = await quests.get(questDetailId);
       setQuestDetail(updated);
       await loadBoard();
@@ -286,7 +289,16 @@ export default function BoardPage() {
                 </label>
                 {questDetail.assigneeName && <p>Исполнитель: {questDetail.assigneeName}</p>}
                 {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString()}</p>}
-                {questDetail.xpReward > 0 && <p>Награда: +{questDetail.xpReward} XP</p>}
+                <label className="board-quest-modal-field">
+                  Опыт (XP)
+                  <input
+                    type="number"
+                    min={0}
+                    max={9999}
+                    value={editQuestXpReward}
+                    onChange={(e) => setEditQuestXpReward(Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)))}
+                  />
+                </label>
                 <p className="board-quest-modal-meta">Создан: {questDetail.createdAt ? new Date(questDetail.createdAt).toLocaleString() : ''}</p>
                 <div className="board-quest-modal-actions">
                   <button type="button" onClick={handleSaveQuest} disabled={savingQuest || !editQuestTitle.trim()}>{savingQuest ? 'Сохранение…' : 'Сохранить'}</button>

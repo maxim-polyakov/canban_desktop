@@ -36,6 +36,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
   const [newQuestTitle, setNewQuestTitle] = useState('');
   const [newQuestDescription, setNewQuestDescription] = useState('');
   const [newQuestAssigneeId, setNewQuestAssigneeId] = useState('');
+  const [newQuestXpReward, setNewQuestXpReward] = useState(10);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [newColumnIsDone, setNewColumnIsDone] = useState(false);
@@ -86,18 +87,20 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
   const handleAddQuest = async (columnId) => {
     if (!newQuestTitle.trim()) return;
     try {
+      const xp = Math.max(0, Math.min(9999, Number(newQuestXpReward) || 0));
       await quests.create({
         title: newQuestTitle.trim(),
         description: newQuestDescription.trim() || null,
         columnId,
         assigneeId: newQuestAssigneeId || null,
         category: 0,
-        xpReward: 10,
+        xpReward: xp,
         isEpic: false,
       });
       setNewQuestTitle('');
       setNewQuestDescription('');
       setNewQuestAssigneeId('');
+      setNewQuestXpReward(10);
       setNewQuestColumnId(null);
       if (onRefreshColumnQuests) onRefreshColumnQuests(columnId);
       else onRefresh();
@@ -133,8 +136,10 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                     onNewQuestDescriptionChange={setNewQuestDescription}
                     newQuestAssigneeId={newQuestAssigneeId}
                     onNewQuestAssigneeChange={setNewQuestAssigneeId}
+                    newQuestXpReward={newQuestXpReward}
+                    onNewQuestXpRewardChange={setNewQuestXpReward}
                     onSubmitNewQuest={() => handleAddQuest(col.id)}
-                    onCancelAdd={() => { setNewQuestColumnId(null); setNewQuestTitle(''); setNewQuestDescription(''); setNewQuestAssigneeId(''); }}
+                    onCancelAdd={() => { setNewQuestColumnId(null); setNewQuestTitle(''); setNewQuestDescription(''); setNewQuestAssigneeId(''); setNewQuestXpReward(10); }}
                     onAssignQuest={onAssignQuest}
                     onUpdateColumn={onUpdateColumn}
                     onUpdateColumnKind={onUpdateColumnKind}

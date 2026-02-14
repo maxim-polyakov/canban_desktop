@@ -42,8 +42,27 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        var response = await _authService.LoginAsync(request, ct);
-        return response == null ? Unauthorized("Неверный email или пароль.") : Ok(response);
+        try
+        {
+            var response = await _authService.LoginAsync(request, ct);
+            return response == null ? Unauthorized("Неверный email или пароль.") : Ok(response);
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "EMAIL_NOT_CONFIRMED")
+        {
+            return StatusCode(403, "Подтвердите адрес почты. Введите код из 6 цифр, отправленный на вашу почту.");
+        }
+    }
+
+    /// <summary>Подтверждение email по коду из 6 цифр. При успехе возвращает токен и пользователя (автовход).</summary>
+    [HttpPost("confirm-email")]
+    public async Task<ActionResult<AuthResponse>> ConfirmEmail([FromBody] ConfirmEmailRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest("Укажите email.");
+        if (string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest("Введите код из письма.");
+        var response = await _authService.ConfirmEmailByCodeAsync(request.Email, request.Code, ct);
+        return response != null ? Ok(response) : BadRequest("Неверный или устаревший код. Проверьте код и попробуйте снова.");
     }
 
     /// <summary>Обновить профиль текущего пользователя (имя и/или аватар). Требуется авторизация.</summary>

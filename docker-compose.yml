@@ -8,7 +8,10 @@ services:
     env_file: ./server/.env
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-    # Строка подключения к БД из server/.env (для БД на хосте укажите Host=host.docker.internal вместо localhost)
+      Smtp__Host: smtp-service-canban
+      Smtp__Port: 1025
+    depends_on:
+      - smtp-service-canban
     networks:
       - canban_net
 
@@ -21,6 +24,29 @@ services:
     env_file: ./client/.env
     depends_on:
       - api
+    networks:
+      - canban_net
+  
+    # Добавляем новый сервис для отправки почты
+  smtp-service-canban:
+    image: maildev/maildev
+    container_name: smtp-service
+    restart: unless-stopped
+    environment:
+      - NODE_OPTIONS=--no-warnings=DeprecationWarning
+      - DEBUG=maildev*
+    env_file:
+      - ./server/.env
+    command:
+      --outgoing-host smtp.gmail.com
+      --outgoing-port 465
+      --outgoing-secure
+      --outgoing-user mailer7012@gmail.com
+      --outgoing-pass "ldxm ypzz ewvf mnwq"
+      --auto-relay
+      --verbose
+    ports:
+      - "8183:1080"
     networks:
       - canban_net
 

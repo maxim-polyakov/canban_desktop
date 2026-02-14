@@ -15,11 +15,13 @@ public class AuthService : IAuthService
 {
     private readonly CanbanDbContext _db;
     private readonly IConfiguration _config;
+    private readonly IEmailSender _emailSender;
 
-    public AuthService(CanbanDbContext db, IConfiguration config)
+    public AuthService(CanbanDbContext db, IConfiguration config, IEmailSender emailSender)
     {
         _db = db;
         _config = config;
+        _emailSender = emailSender;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
@@ -27,13 +29,19 @@ public class AuthService : IAuthService
         if (await _db.Users.AnyAsync(u => u.Email == request.Email, ct))
             throw new InvalidOperationException("Пользователь с таким email уже зарегистрирован.");
 
+        var confirmationCode = Random.Shared.Next(100000, 999999).ToString();
+        var codeExpiresAt = DateTime.UtcNow.AddMinutes(15);
+
         var user = new User
         {
             Id = Guid.NewGuid(),
             Email = request.Email.Trim().ToLowerInvariant(),
             DisplayName = request.DisplayName.Trim(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            EmailConfirmed = false,
+            EmailConfirmationToken = confirmationCode,
+            EmailConfirmationTokenExpiresAt = codeExpiresAt
         };
         _db.Users.Add(user);
 
@@ -50,10 +58,29 @@ public class AuthService : IAuthService
 
         await _db.SaveChangesAsync(ct);
 
+        _ = SendRegistrationConfirmationAsync(user.Email, user.DisplayName, confirmationCode, ct);
+
         var userDto = new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
-        var token = GenerateJwt(user);
-        var expiresIn = GetExpiresInSeconds();
-        return new AuthResponse(token, "Bearer", expiresIn, userDto);
+        return new AuthResponse("", "Bearer", 0, userDto);
+    }
+
+    private async Task SendRegistrationConfirmationAsync(string email, string displayName, string confirmationCode, CancellationToken ct)
+    {
+        var appName = _config["Smtp:AppName"]?.Trim() ?? "Canban";
+        var subject = $"Код подтверждения — {appName}";
+        var body = $@"
+<!DOCTYPE html>
+<html>
+<head><meta charset=""utf-8""></head>
+<body style=""font-family: sans-serif; line-height: 1.5;"">
+  <h2>Код подтверждения</h2>
+  <p>Здравствуйте, <strong>{System.Net.WebUtility.HtmlEncode(displayName)}</strong>.</p>
+  <p>Вы зарегистрировались в <strong>{System.Net.WebUtility.HtmlEncode(appName)}</strong>. Введите этот код в форме на сайте:</p>
+  <p style=""font-size: 1.5rem; letter-spacing: 0.2em; font-weight: 600;"">{System.Net.WebUtility.HtmlEncode(confirmationCode)}</p>
+  <p style=""color: #6b7280; font-size: 0.9em;"">Код действителен 15 минут. Это письмо отправлено автоматически, не отвечайте на него.</p>
+</body>
+</html>";
+        await _emailSender.SendAsync(email, displayName, subject, body.Trim(), ct);
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken ct = default)
@@ -61,7 +88,38 @@ public class AuthService : IAuthService
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLowerInvariant(), ct);
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return null;
+        if (!user.EmailConfirmed)
+        {
+            if (user.EmailConfirmationToken == null && user.EmailConfirmationTokenExpiresAt == null)
+            {
+                user.EmailConfirmed = true;
+                await _db.SaveChangesAsync(ct);
+            }
+            else
+                throw new InvalidOperationException("EMAIL_NOT_CONFIRMED");
+        }
 
+        var userDto = new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
+        var token = GenerateJwt(user);
+        var expiresIn = GetExpiresInSeconds();
+        return new AuthResponse(token, "Bearer", expiresIn, userDto);
+    }
+
+    public async Task<AuthResponse?> ConfirmEmailByCodeAsync(string email, string code, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code)) return null;
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var cleanCode = code.Trim();
+        if (cleanCode.Length != 6) return null;
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+        if (user == null) return null;
+        if (user.EmailConfirmationToken != cleanCode) return null;
+        if (user.EmailConfirmationTokenExpiresAt.HasValue && user.EmailConfirmationTokenExpiresAt.Value < DateTime.UtcNow)
+            return null;
+        user.EmailConfirmed = true;
+        user.EmailConfirmationToken = null;
+        user.EmailConfirmationTokenExpiresAt = null;
+        await _db.SaveChangesAsync(ct);
         var userDto = new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
         var token = GenerateJwt(user);
         var expiresIn = GetExpiresInSeconds();

@@ -36,7 +36,18 @@ export async function apiJson(url, options = {}) {
 
 export const auth = {
   register: (data) => apiJson('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-  login: (data) => apiJson('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  login: async (data) => {
+    const res = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(data) });
+    const text = await res.text();
+    if (res.status === 403) {
+      const e = new Error(text || 'Подтвердите адрес почты.');
+      e.status = 403;
+      throw e;
+    }
+    if (!res.ok) throw new Error(text || res.statusText);
+    return text ? JSON.parse(text) : null;
+  },
+  confirmEmail: (data) => apiJson('/api/auth/confirm-email', { method: 'POST', body: JSON.stringify(data) }),
   updateProfile: (data) => apiJson('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
   uploadAvatar: async (file) => {
     const formData = new FormData();

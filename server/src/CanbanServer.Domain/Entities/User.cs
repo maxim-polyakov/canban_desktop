@@ -8,6 +8,10 @@ public class User
     public string? AvatarUrl { get; set; }
     public string PasswordHash { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    /// <summary>Подтверждён ли email (иначе вход запрещён).</summary>
+    public bool EmailConfirmed { get; set; }
+    public string? EmailConfirmationToken { get; set; }
+    public DateTime? EmailConfirmationTokenExpiresAt { get; set; }
 
     public Character Character { get; set; } = null!;
     public ICollection<TeamMember> TeamMemberships { get; set; } = new List<TeamMember>();

@@ -20,7 +20,7 @@ export default function RegisterPage() {
     }
     try {
       const user = await register(email, password, displayName);
-      if (user) navigate('/', { replace: true });
+      if (user) navigate('/register/success', { replace: true, state: { email: email.trim() } });
     } catch (err) {
       let msg = err?.message || '';
       if (typeof msg !== 'string' || msg.length > 200 || msg.trim().startsWith('<')) {

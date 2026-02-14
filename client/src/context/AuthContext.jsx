@@ -32,10 +32,12 @@ export function AuthProvider({ children }) {
 
   const register = async (email, password, displayName) => {
     const res = await authApi.register({ email, password, displayName });
-    localStorage.setItem('token', res.accessToken);
-    localStorage.setItem('user', JSON.stringify(res.user));
-    setUser(res.user);
-    return res.user;
+    if (res?.accessToken) {
+      localStorage.setItem('token', res.accessToken);
+      localStorage.setItem('user', JSON.stringify(res.user));
+      setUser(res.user);
+    }
+    return res?.user ?? null;
   };
 
   const logout = () => {

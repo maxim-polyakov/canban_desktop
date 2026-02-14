@@ -18,8 +18,12 @@ export default function LoginPage() {
       if (user) navigate('/', { replace: true });
       else setError('Неверный email или пароль.');
     } catch (err) {
+      if (err?.status === 403) {
+        navigate('/register/success', { replace: true, state: { email: email.trim() } });
+        return;
+      }
       let msg = err?.message || (err?.response?.data && String(err.response.data)) || '';
-      if (typeof msg !== 'string' || msg.length > 200 || msg.trim().startsWith('<')) {
+      if (typeof msg !== 'string' || msg.length > 500 || msg.trim().startsWith('<')) {
         msg = 'Неверный email или пароль.';
       }
       setError(msg.trim() || 'Неверный email или пароль.');

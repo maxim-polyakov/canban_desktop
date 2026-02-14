@@ -10,6 +10,7 @@ public record QuestDto(
     string? Description,
     Guid? AssigneeId,
     string? AssigneeName,
+    string? AssigneeAvatarUrl,
     int Order,
     DateTime? DueDate,
     DateTime CreatedAt,
@@ -20,7 +21,8 @@ public record QuestDto(
     Guid? ParentEpicId
 );
 public record CreateQuestRequest(string Title, string? Description, Guid ColumnId, Guid? AssigneeId, DateTime? DueDate, QuestCategory Category, int XpReward, bool IsEpic, Guid? ParentEpicId);
-public record UpdateQuestRequest(string? Title, string? Description, Guid? AssigneeId, DateTime? DueDate, QuestCategory? Category, int? XpReward);
+/// <summary>Если true, поле AssigneeId обновляется (в т.ч. сбрасывается в null).</summary>
+public record UpdateQuestRequest(string? Title, string? Description, Guid? AssigneeId, bool AssigneeIdSet, DateTime? DueDate, QuestCategory? Category, int? XpReward);
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>
 public record MoveQuestRequest(Guid QuestId, Guid TargetColumnId, int NewOrder);
 public record ReorderQuestsRequest(Guid ColumnId, List<Guid> QuestIdsInOrder);

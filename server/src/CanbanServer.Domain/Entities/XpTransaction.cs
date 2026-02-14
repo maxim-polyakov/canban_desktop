@@ -23,5 +23,6 @@ public enum XpSource
     DeadlineMet = 1,
     PeerReview = 2,
     EpicClosed = 3,
-    Bonus = 4
+    Bonus = 4,
+    Achievement = 5
 }

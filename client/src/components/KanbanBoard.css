@@ -9,8 +9,121 @@
   padding-bottom: 1rem;
 }
 
+.kanban-column-sortable {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 180px;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.kanban-column-sortable-dragging {
+  cursor: grabbing;
+}
+
+.kanban-column-grip {
+  cursor: grab;
+  padding: 0.2rem 0.5rem;
+  color: var(--text-muted, #888);
+  font-size: 1rem;
+  line-height: 1;
+  user-select: none;
+  align-self: flex-start;
+  border-radius: 4px;
+}
+
+.kanban-column-grip:hover {
+  color: var(--accent);
+  background: rgba(100, 149, 237, 0.15);
+}
+
+.kanban-column-sortable .kanban-column {
+  flex: 1 1 auto;
+}
+
 .quest-card-dragging {
   cursor: grabbing;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   transform: rotate(2deg);
+}
+
+.kanban-column-add {
+  flex: 0 0 auto;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.kanban-add-column-btn {
+  width: 100%;
+  padding: 1rem;
+  background: var(--surface, #2a2a2a);
+  border: 2px dashed var(--border, #444);
+  border-radius: var(--radius, 8px);
+  color: var(--text-muted, #888);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.kanban-add-column-btn:hover {
+  border-color: var(--accent, #6495ed);
+  color: var(--accent);
+}
+
+.kanban-add-column-form {
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.kanban-add-column-input {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.kanban-add-column-done {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.kanban-add-column-done input {
+  margin-right: 0.35rem;
+}
+
+.kanban-add-column-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.kanban-add-column-submit {
+  padding: 0.4rem 0.75rem;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--bg);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kanban-add-column-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.kanban-add-column-cancel {
+  padding: 0.4rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
 }

@@ -10,4 +10,5 @@ public interface ICharacterXpService
     Task<(int XpGained, bool LevelUp, int NewLevel)> AwardQuestCompletedAsync(Guid userId, Quest quest, CancellationToken ct = default);
     Task<(int XpGained, bool LevelUp, int NewLevel)> AwardDeadlineMetAsync(Guid userId, Quest quest, int bonusXp, CancellationToken ct = default);
     Task<(int XpGained, bool LevelUp, int NewLevel)> AwardPeerReviewAsync(Guid assigneeUserId, int xpAmount, Guid? questId, CancellationToken ct = default);
+    Task<(int XpGained, bool LevelUp, int NewLevel)> AwardAchievementAsync(Guid userId, int amount, string achievementName, CancellationToken ct = default);
 }

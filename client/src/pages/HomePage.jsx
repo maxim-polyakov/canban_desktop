@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { boards, teams, character } from '../api.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { boards, teams, character, leaderboard, activity } from '../api.js';
 import './HomePage.css';
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [myTeamsWithBoards, setMyTeamsWithBoards] = useState([]);
   const [char, setChar] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,17 @@ export default function HomePage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [editTeamId, setEditTeamId] = useState(null);
+  const [editTeamName, setEditTeamName] = useState('');
+  const [editTeamDesc, setEditTeamDesc] = useState('');
+  const [expandedTeamId, setExpandedTeamId] = useState(null);
+  const [teamMembers, setTeamMembers] = useState({});
+  const [teamLeaderboard, setTeamLeaderboard] = useState({});
+  const [teamActivity, setTeamActivity] = useState({});
+  const [inviteUserId, setInviteUserId] = useState('');
+  const [inviteUserIdError, setInviteUserIdError] = useState('');
+  const [addingByUserId, setAddingByUserId] = useState(false);
+  const [userCharacter, setUserCharacter] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,6 +49,7 @@ export default function HomePage() {
               team: {
                 id: team.id ?? team.Id,
                 name: team.name ?? team.Name ?? 'Команда',
+                description: team.description ?? team.Description ?? '',
               },
               boards: boardsList.map((b) => ({
                 id: b.id ?? b.Id,
@@ -86,7 +100,7 @@ export default function HomePage() {
         const team = item.team ?? item.Team ?? {};
         const boardsList = item.boards ?? item.Boards ?? [];
         return {
-          team: { id: team.id ?? team.Id, name: team.name ?? team.Name ?? 'Команда' },
+          team: { id: team.id ?? team.Id, name: team.name ?? team.Name ?? 'Команда', description: team.description ?? team.Description ?? '' },
           boards: boardsList.map((b) => ({ id: b.id ?? b.Id, name: b.name ?? b.Name ?? 'Доска' })),
         };
       }));
@@ -105,6 +119,7 @@ export default function HomePage() {
         setInviteEmail('');
         setInviteTeamId(null);
         loadTeams();
+        loadTeamMembers(teamId);
       } else {
         setInviteError(result.error || 'Не удалось добавить.');
       }
@@ -113,6 +128,121 @@ export default function HomePage() {
     } finally {
       setInviting(false);
     }
+  };
+
+  const loadTeamMembers = async (teamId) => {
+    if (!teamId) return;
+    try {
+      const list = await teams.getMembers(teamId);
+      setTeamMembers((prev) => ({ ...prev, [teamId]: Array.isArray(list) ? list : [] }));
+    } catch (_) {
+      setTeamMembers((prev) => ({ ...prev, [teamId]: [] }));
+    }
+  };
+
+  const handleUpdateTeam = async (e) => {
+    e.preventDefault();
+    if (!editTeamId || !editTeamName.trim()) return;
+    try {
+      await teams.update(editTeamId, { name: editTeamName.trim(), description: editTeamDesc.trim() || undefined });
+      setEditTeamId(null);
+      loadTeams();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveMember = async (teamId, userId) => {
+    if (!window.confirm('Исключить участника из команды?')) return;
+    try {
+      const ok = await teams.removeMember(teamId, userId);
+      if (ok) loadTeamMembers(teamId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadLeaderboard = async (teamId) => {
+    if (!teamId) return;
+    try {
+      const list = await leaderboard.getTeam(teamId);
+      const arr = Array.isArray(list) ? list : [];
+      setTeamLeaderboard((prev) => ({ ...prev, [teamId]: arr }));
+      arr.forEach((entry) => loadUserCharacter(entry.userId));
+    } catch (_) {
+      setTeamLeaderboard((prev) => ({ ...prev, [teamId]: [] }));
+    }
+  };
+
+  const loadActivity = async (teamId) => {
+    if (!teamId) return;
+    try {
+      const list = await activity.getTeamFeed(teamId);
+      setTeamActivity((prev) => ({ ...prev, [teamId]: Array.isArray(list) ? list : [] }));
+    } catch (_) {
+      setTeamActivity((prev) => ({ ...prev, [teamId]: [] }));
+    }
+  };
+
+  const loadBoardsForTeam = async (teamId) => {
+    if (!teamId) return;
+    try {
+      const boardsList = await boards.getByTeam(teamId);
+      setMyTeamsWithBoards((prev) => prev.map((item) =>
+        item.team?.id === teamId
+          ? { ...item, boards: Array.isArray(boardsList) ? boardsList.map((b) => ({ id: b.id ?? b.Id, name: b.name ?? b.Name ?? 'Доска' })) : item.boards }
+          : item
+      ));
+    } catch (_) {}
+  };
+
+  const loadTeamDetails = async (teamId) => {
+    if (!teamId) return;
+    try {
+      const t = await teams.get(teamId);
+      setEditTeamName(t?.name ?? '');
+      setEditTeamDesc(t?.description ?? '');
+      setEditTeamId(teamId);
+    } catch (_) {
+      setEditTeamName(myTeamsWithBoards.find((i) => i.team?.id === teamId)?.team?.name ?? '');
+      setEditTeamDesc(myTeamsWithBoards.find((i) => i.team?.id === teamId)?.team?.description ?? '');
+      setEditTeamId(teamId);
+    }
+  };
+
+  const handleAddByUserId = async (e, teamId) => {
+    e.preventDefault();
+    const uid = inviteUserId.trim();
+    if (!uid) return;
+    setInviteUserIdError('');
+    setAddingByUserId(true);
+    try {
+      const ok = await teams.addMember(teamId, uid);
+      if (ok) {
+        setInviteUserId('');
+        loadTeamMembers(teamId);
+      } else {
+        setInviteUserIdError('Не удалось добавить.');
+      }
+    } catch (err) {
+      setInviteUserIdError(err.message || 'Ошибка.');
+    } finally {
+      setAddingByUserId(false);
+    }
+  };
+
+  const loadUserCharacter = (userId) => {
+    if (userCharacter[userId] !== undefined) return;
+    setUserCharacter((prev) => ({ ...prev, [userId]: null }));
+    character.getByUser(userId).then((c) => setUserCharacter((prev) => ({ ...prev, [userId]: c }))).catch(() => setUserCharacter((prev) => ({ ...prev, [userId]: null })));
+  };
+
+  const toggleExpand = (teamId) => {
+    const next = expandedTeamId === teamId ? null : teamId;
+    setExpandedTeamId(next);
+    if (next && !teamMembers[next]) loadTeamMembers(next);
+    if (next && teamLeaderboard[next] === undefined) loadLeaderboard(next);
+    if (next && teamActivity[next] === undefined) loadActivity(next);
   };
 
   if (loading) return <div className="page">Загрузка...</div>;
@@ -133,7 +263,24 @@ export default function HomePage() {
           <ul className="home-teams-list">
             {myTeamsWithBoards.map((item) => (
               <li key={item.team?.id} className="home-team-block">
-                <span className="home-team-name">{item.team?.name}</span>
+                <div className="home-team-header">
+                  {editTeamId === item.team?.id ? (
+                    <form className="home-team-edit-form" onSubmit={handleUpdateTeam}>
+                      <input value={editTeamName} onChange={(e) => setEditTeamName(e.target.value)} placeholder="Название команды" />
+                      <input value={editTeamDesc} onChange={(e) => setEditTeamDesc(e.target.value)} placeholder="Описание" />
+                      <div className="home-team-edit-actions">
+                        <button type="submit">Сохранить</button>
+                        <button type="button" onClick={() => { setEditTeamId(null); }}>Отмена</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <span className="home-team-name">{item.team?.name}</span>
+                      <button type="button" className="home-team-btn home-team-edit-btn" onClick={() => loadTeamDetails(item.team?.id)} title="Изменить команду">✎</button>
+                      <button type="button" className="home-team-btn home-team-refresh-boards" onClick={() => loadBoardsForTeam(item.team?.id)} title="Обновить список досок">↻</button>
+                    </>
+                  )}
+                </div>
                 <ul className="home-team-boards">
                   {(item.boards ?? []).map((b) => (
                     <li key={b.id}>
@@ -146,22 +293,81 @@ export default function HomePage() {
                   {inviteTeamId !== item.team?.id ? (
                     <button type="button" className="home-invite-btn" onClick={() => { setInviteTeamId(item.team?.id); setInviteError(''); }}>Добавить участника</button>
                   ) : (
-                    <form className="home-invite-form" onSubmit={(e) => handleInvite(e, item.team?.id)}>
-                      <input
-                        type="email"
-                        placeholder="Email участника"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        disabled={inviting}
-                      />
-                      <div className="home-invite-actions">
-                        <button type="submit" disabled={inviting}>{inviting ? '…' : 'Добавить'}</button>
-                        <button type="button" onClick={() => { setInviteTeamId(null); setInviteEmail(''); setInviteError(''); }} disabled={inviting}>Отмена</button>
-                      </div>
-                      {inviteError && <p className="home-invite-error">{inviteError}</p>}
-                    </form>
+                    <>
+                      <form className="home-invite-form" onSubmit={(e) => handleInvite(e, item.team?.id)}>
+                        <input
+                          type="email"
+                          placeholder="Email участника"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          disabled={inviting}
+                        />
+                        <div className="home-invite-actions">
+                          <button type="submit" disabled={inviting}>{inviting ? '…' : 'Добавить'}</button>
+                          <button type="button" onClick={() => { setInviteTeamId(null); setInviteEmail(''); setInviteError(''); }} disabled={inviting}>Отмена</button>
+                        </div>
+                        {inviteError && <p className="home-invite-error">{inviteError}</p>}
+                      </form>
+                      <form className="home-invite-form home-invite-by-id" onSubmit={(e) => handleAddByUserId(e, item.team?.id)}>
+                        <input type="text" placeholder="ID пользователя (GUID)" value={inviteUserId} onChange={(e) => setInviteUserId(e.target.value)} disabled={addingByUserId} />
+                        <div className="home-invite-actions">
+                          <button type="submit" disabled={addingByUserId || !inviteUserId.trim()}>{addingByUserId ? '…' : 'Добавить по ID'}</button>
+                        </div>
+                        {inviteUserIdError && <p className="home-invite-error">{inviteUserIdError}</p>}
+                      </form>
+                    </>
                   )}
                 </div>
+                <div className="home-team-expand">
+                  <button type="button" className="home-expand-btn" onClick={() => toggleExpand(item.team?.id)}>
+                    {expandedTeamId === item.team?.id ? '▼ Свернуть' : '▶ Участники, рейтинг, лента'}
+                  </button>
+                </div>
+                {expandedTeamId === item.team?.id && (
+                  <div className="home-team-details">
+                    <div className="home-detail-section">
+                      <h4>Участники</h4>
+                      <ul className="home-members-list">
+                        {(teamMembers[item.team?.id] ?? []).map((m) => (
+                          <li key={m.userId} className="home-member-item">
+                            {m.avatarUrl ? <img src={m.avatarUrl} alt="" className="home-member-avatar" /> : <span className="home-member-avatar-placeholder">{m.displayName?.charAt(0)}</span>}
+                            <span>{m.displayName}</span>
+                            <button type="button" className="home-member-level" onClick={() => loadUserCharacter(m.userId)} title="Показать уровень">
+                              {userCharacter[m.userId] !== undefined ? (userCharacter[m.userId] ? `Ур.${userCharacter[m.userId].levelNumber}` : '—') : '…'}
+                            </button>
+                            {m.userId !== user?.id && (
+                              <button type="button" className="home-member-remove" onClick={() => handleRemoveMember(item.team?.id, m.userId)} title="Исключить">✕</button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="home-detail-section">
+                      <h4>Рейтинг (неделя)</h4>
+                      <ol className="home-leaderboard-list">
+                        {(teamLeaderboard[item.team?.id] ?? []).map((entry) => (
+                          <li key={entry.userId}>
+                            #{entry.rank} {entry.userName} — {entry.totalXpGained} XP
+                            {userCharacter[entry.userId] != null && <span className="home-leaderboard-level"> (ур. {userCharacter[entry.userId].levelNumber})</span>}
+                          </li>
+                        ))}
+                      </ol>
+                      {(!teamLeaderboard[item.team?.id]?.length) && <p className="home-empty">Нет данных</p>}
+                    </div>
+                    <div className="home-detail-section">
+                      <h4>Лента активностей</h4>
+                      <ul className="home-activity-list">
+                        {(teamActivity[item.team?.id] ?? []).map((a) => (
+                          <li key={a.id} className="home-activity-item">
+                            <strong>{a.title}</strong>
+                            {a.description && <span> — {a.description}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                      {(!teamActivity[item.team?.id]?.length) && <p className="home-empty">Нет записей</p>}
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

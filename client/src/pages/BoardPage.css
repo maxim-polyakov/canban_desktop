@@ -3,6 +3,101 @@
   overflow-x: auto;
 }
 
+.board-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.board-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.board-btn {
+  padding: 0.25rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.board-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.board-btn-delete:hover {
+  border-color: var(--error, #c53030);
+  color: var(--error, #c53030);
+}
+
+.board-edit-form {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 400px;
+}
+
+.board-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.board-edit-form input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.board-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.board-edit-actions button {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.board-edit-actions button[type="submit"] {
+  background: var(--accent);
+  border: none;
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.board-edit-actions button[type="submit"]:hover {
+  filter: brightness(1.1);
+}
+
+.board-edit-actions button[type="button"] {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.board-edit-actions button[type="button"]:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .board-title {
   margin: 0 0 0.25rem;
   font-size: 1.5rem;
@@ -40,4 +135,133 @@
 .board-copy-id:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.board-quest-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.board-quest-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.board-quest-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.board-quest-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.board-quest-modal-close {
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.board-quest-modal-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.board-quest-modal-body {
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.board-quest-modal-body p {
+  margin: 0 0 0.5rem;
+}
+
+.board-quest-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.board-quest-modal-field input,
+.board-quest-modal-field textarea {
+  padding: 0.4rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.board-quest-modal-field textarea {
+  resize: vertical;
+  min-height: 4em;
+}
+
+.board-quest-modal-actions {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.board-quest-modal-actions button {
+  padding: 0.45rem 0.9rem;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.board-quest-modal-actions button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.board-quest-modal-desc {
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+
+.board-quest-modal-meta {
+  margin-top: 0.75rem !important;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.quest-card-info {
+  padding: 0.1rem 0.35rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.quest-card-info:hover {
+  background: var(--surface);
+  color: var(--accent);
 }

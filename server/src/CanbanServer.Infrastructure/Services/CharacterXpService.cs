@@ -38,6 +38,13 @@ public class CharacterXpService : ICharacterXpService
         return await AddXpAsync(character, xpAmount, XpSource.PeerReview, "Оценка коллег", questId, null, ct);
     }
 
+    public async Task<(int XpGained, bool LevelUp, int NewLevel)> AwardAchievementAsync(Guid userId, int amount, string achievementName, CancellationToken ct = default)
+    {
+        var character = await _db.Characters.Include(c => c.Level).FirstOrDefaultAsync(c => c.UserId == userId, ct);
+        if (character == null) return (0, false, 0);
+        return await AddXpAsync(character, amount, XpSource.Achievement, $"Достижение: {achievementName}", null, null, ct);
+    }
+
     private async Task<(int XpGained, bool LevelUp, int NewLevel)> AddXpAsync(Character character, int amount, XpSource source, string description, Guid? questId, Guid? reviewId, CancellationToken ct)
     {
         if (amount <= 0) return (0, false, character.Level?.LevelNumber ?? 1);

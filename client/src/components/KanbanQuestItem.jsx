@@ -1,9 +1,10 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import AssigneeSelect from './AssigneeSelect';
 import './QuestCard.css';
 
-export default function KanbanQuestItem({ quest, members, onAssignQuest }) {
+export default function KanbanQuestItem({ quest, members, onAssignQuest, onDeleteQuest, onQuestClick }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: quest.id,
     data: { type: 'quest', columnId: quest.columnId },
@@ -14,10 +15,8 @@ export default function KanbanQuestItem({ quest, members, onAssignQuest }) {
     transition,
   };
 
-  const handleAssigneeChange = (e) => {
-    e.stopPropagation();
-    const value = e.target.value;
-    onAssignQuest?.(quest.id, value || null);
+  const handleAssigneeChange = (userId) => {
+    onAssignQuest?.(quest.id, userId);
   };
 
   return (
@@ -28,20 +27,23 @@ export default function KanbanQuestItem({ quest, members, onAssignQuest }) {
       {...attributes}
       {...listeners}
     >
-      <span className="quest-card-title">{quest.title}</span>
+      <div className="quest-card-top">
+        <span className="quest-card-title">{quest.title}</span>
+        {onQuestClick && (
+          <button type="button" className="quest-card-info" onClick={(e) => { e.stopPropagation(); onQuestClick(quest.id); }} onPointerDown={(e) => e.stopPropagation()} title="Подробнее">ℹ</button>
+        )}
+        {onDeleteQuest && (
+          <button type="button" className="quest-card-delete" onClick={(e) => { e.stopPropagation(); onDeleteQuest(quest.id); }} onPointerDown={(e) => e.stopPropagation()} title="Удалить квест">✕</button>
+        )}
+      </div>
       <div className="quest-card-assignee-row" onPointerDown={(e) => e.stopPropagation()}>
         <span className="quest-card-assignee-label">Исполнитель:</span>
-        <select
-          className="quest-card-assignee-select"
+        <AssigneeSelect
           value={quest.assigneeId || ''}
+          options={members || []}
           onChange={handleAssigneeChange}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <option value="">— назначить —</option>
-          {(members || []).map((m) => (
-            <option key={m.userId} value={m.userId}>{m.displayName}</option>
-          ))}
-        </select>
+          placeholder="— назначить —"
+        />
       </div>
       {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}
     </div>

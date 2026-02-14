@@ -77,5 +77,5 @@ public class BoardService : IBoardService
         return true;
     }
 
-    private static QuestDto MapQuest(Quest q) => new(q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId, q.Assignee?.DisplayName, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt, q.Category, q.XpReward, q.IsEpic, q.ParentEpicId);
+    private static QuestDto MapQuest(Quest q) => new(q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId, q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt, q.Category, q.XpReward, q.IsEpic, q.ParentEpicId);
 }

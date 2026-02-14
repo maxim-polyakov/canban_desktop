@@ -87,6 +87,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<CanbanDbContext>();
     await db.Database.EnsureCreatedAsync();
     await SeedData.EnsureLevelsAsync(db);
+    await SeedData.EnsureAchievementsAsync(db);
+    await SeedData.EnsureSkillsAsync(db);
 }
 
 if (app.Environment.IsDevelopment())

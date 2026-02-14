@@ -18,6 +18,7 @@ export default function Layout() {
         <Link to="/" className="layout-logo">Канбан</Link>
         <nav className="layout-nav">
           <Link to="/">Доски</Link>
+          <Link to="/profile">Профиль</Link>
         </nav>
         <div className="layout-user">
           {user?.avatarUrl ? (

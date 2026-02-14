@@ -12,17 +12,20 @@ public class QuestService : IQuestService
     private readonly IActivityFeedService _activityFeed;
     private readonly IActivityHub _activityHub;
     private readonly ICharacterXpService _xpService;
+    private readonly IAchievementService _achievementService;
 
     public QuestService(
         CanbanDbContext db,
         IActivityFeedService activityFeed,
         IActivityHub activityHub,
-        ICharacterXpService xpService)
+        ICharacterXpService xpService,
+        IAchievementService achievementService)
     {
         _db = db;
         _activityFeed = activityFeed;
         _activityHub = activityHub;
         _xpService = xpService;
+        _achievementService = achievementService;
     }
 
     public async Task<QuestDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -75,7 +78,7 @@ public class QuestService : IQuestService
         if (q == null) return null;
         if (request.Title != null) q.Title = request.Title;
         if (request.Description != null) q.Description = request.Description;
-        if (request.AssigneeId != null) q.AssigneeId = request.AssigneeId;
+        if (request.AssigneeIdSet) q.AssigneeId = request.AssigneeId;
         if (request.DueDate != null) q.DueDate = request.DueDate;
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
@@ -101,9 +104,13 @@ public class QuestService : IQuestService
         quest.Order = request.NewOrder;
 
         var isMovedToDone = targetColumn.Kind == ColumnKind.Done;
+        var justCompleted = false;
         if (isMovedToDone && quest.CompletedAt == null)
         {
+            justCompleted = true;
             quest.CompletedAt = DateTime.UtcNow;
+            if (quest.AssigneeId == null)
+                quest.AssigneeId = userId;
             var assigneeId = quest.AssigneeId ?? userId;
             var (xpGained, levelUp, newLevel) = await _xpService.AwardQuestCompletedAsync(assigneeId, quest, ct);
             if (assigneeId != Guid.Empty)
@@ -131,6 +138,11 @@ public class QuestService : IQuestService
         }
 
         await _db.SaveChangesAsync(ct);
+        if (justCompleted)
+        {
+            var assigneeId = quest.AssigneeId ?? userId;
+            await _achievementService.TryGrantAchievementsForUserAsync(assigneeId, ct);
+        }
         return await GetByIdAsync(quest.Id, ct);
     }
 
@@ -156,7 +168,7 @@ public class QuestService : IQuestService
 
     private static QuestDto Map(Quest q) => new(
         q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId,
-        q.Assignee?.DisplayName, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt,
+        q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt,
         q.Category, q.XpReward, q.IsEpic, q.ParentEpicId
     );
 }

@@ -80,4 +80,13 @@ public class TeamsController : ControllerBase
         return removed ? NoContent() : NotFound();
     }
 
+    /// <summary>Удалить команду. Доступно только создателю команды.</summary>
+    [HttpDelete("{teamId:guid}")]
+    public async Task<ActionResult> Delete(Guid teamId, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var deleted = await _teamService.DeleteAsync(teamId, userId.Value, ct);
+        return deleted ? NoContent() : NotFound();
+    }
 }

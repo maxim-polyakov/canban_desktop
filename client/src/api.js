@@ -81,6 +81,7 @@ export const teams = {
   getMembers: (teamId) => apiJson(`/api/teams/${teamId}/members`),
   create: (data) => apiJson('/api/teams', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (teamId) => api(`/api/teams/${teamId}`, { method: 'DELETE' }).then((r) => r.ok),
   addMember: (teamId, userId) => api(`/api/teams/${teamId}/members/${userId}`, { method: 'POST' }).then((r) => r.ok),
   removeMember: (teamId, userId) => api(`/api/teams/${teamId}/members/${userId}`, { method: 'DELETE' }).then((r) => r.ok),
   inviteByEmail: async (teamId, email) => {

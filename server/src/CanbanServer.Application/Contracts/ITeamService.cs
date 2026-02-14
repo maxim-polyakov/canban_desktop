@@ -13,4 +13,6 @@ public interface ITeamService
     /// <returns>true — добавлен, false — уже в команде, null — пользователь с таким email не найден</returns>
     Task<bool?> AddMemberByEmailAsync(Guid teamId, string email, Guid inviterUserId, CancellationToken ct = default);
     Task<bool> RemoveMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default);
+    /// <summary>Удалить команду. Только создатель (OwnerId) может удалить.</summary>
+    Task<bool> DeleteAsync(Guid teamId, Guid userId, CancellationToken ct = default);
 }

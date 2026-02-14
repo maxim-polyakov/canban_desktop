@@ -72,6 +72,11 @@
   color: var(--accent);
 }
 
+.home-team-delete-btn:hover {
+  border-color: #c62828;
+  color: #c62828;
+}
+
 .home-team-edit-form {
   display: flex;
   flex-direction: column;
@@ -342,6 +347,63 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-muted);
+}
+
+.home-add-board {
+  margin-top: 0.5rem;
+}
+
+.home-add-board-btn {
+  padding: 0.35rem 0.6rem;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.home-add-board-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.home-add-board-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 260px;
+}
+
+.home-add-board-form input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.home-add-board-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.home-add-board-actions button {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.home-add-board-actions button[type="submit"] {
+  background: var(--accent);
+  border: none;
+  color: var(--bg);
+}
+
+.home-add-board-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #c62828;
 }
 
 .home-team-invite {

@@ -19,20 +19,32 @@ public class TeamService : ITeamService
 
     public async Task<TeamDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var t = await _db.Teams.FirstOrDefaultAsync(x => x.Id == id, ct);
-        return t == null ? null : new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt);
+        var t = await _db.Teams
+            .Include(x => x.Members.OrderBy(m => m.JoinedAt))
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (t == null) return null;
+        var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
+        return new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId);
     }
 
     public async Task<List<TeamWithBoardsDto>> GetMyTeamsWithBoardsAsync(Guid userId, CancellationToken ct = default)
     {
         var teamIds = await _db.TeamMembers.Where(m => m.UserId == userId).Select(m => m.TeamId).ToListAsync(ct);
-        var teams = await _db.Teams.Where(t => teamIds.Contains(t.Id)).OrderBy(t => t.Name).ToListAsync(ct);
+        var teams = await _db.Teams
+            .Include(t => t.Members.OrderBy(m => m.JoinedAt))
+            .Where(t => teamIds.Contains(t.Id))
+            .OrderBy(t => t.Name)
+            .ToListAsync(ct);
         var boardsByTeam = await _db.Boards.Where(b => teamIds.Contains(b.TeamId)).OrderBy(b => b.Order).ToListAsync(ct);
         var boardsGrouped = boardsByTeam.GroupBy(b => b.TeamId).ToDictionary(g => g.Key, g => g.ToList());
-        return teams.Select(t => new TeamWithBoardsDto(
-            new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt),
-            (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt)).OrderBy(b => b.Order).ToList()
-        )).ToList();
+        return teams.Select(t =>
+        {
+            var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
+            return new TeamWithBoardsDto(
+                new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId),
+                (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt)).OrderBy(b => b.Order).ToList()
+            );
+        }).ToList();
     }
 
     public async Task<List<TeamMemberDto>> GetMembersAsync(Guid teamId, CancellationToken ct = default)
@@ -48,7 +60,8 @@ public class TeamService : ITeamService
             Id = Guid.NewGuid(),
             Name = request.Name,
             Description = request.Description,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            OwnerId = ownerId
         };
         _db.Teams.Add(team);
         _db.TeamMembers.Add(new TeamMember
@@ -60,17 +73,18 @@ public class TeamService : ITeamService
             JoinedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync(ct);
-        return new TeamDto(team.Id, team.Name, team.Description, team.CreatedAt);
+        return new TeamDto(team.Id, team.Name, team.Description, team.CreatedAt, team.OwnerId);
     }
 
     public async Task<TeamDto?> UpdateAsync(Guid id, UpdateTeamRequest request, CancellationToken ct = default)
     {
-        var t = await _db.Teams.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var t = await _db.Teams.Include(x => x.Members.OrderBy(m => m.JoinedAt)).FirstOrDefaultAsync(x => x.Id == id, ct);
         if (t == null) return null;
         if (request.Name != null) t.Name = request.Name;
         if (request.Description != null) t.Description = request.Description;
         await _db.SaveChangesAsync(ct);
-        return new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt);
+        var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
+        return new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId);
     }
 
     public async Task<bool> AddMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default)
@@ -117,6 +131,24 @@ public class TeamService : ITeamService
         });
         await _db.SaveChangesAsync(ct);
         await _achievementService.TryGrantAchievementsForUserAsync(inviterUserId, ct);
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(Guid teamId, Guid userId, CancellationToken ct = default)
+    {
+        var team = await _db.Teams
+            .Include(t => t.Members.OrderBy(m => m.JoinedAt))
+            .FirstOrDefaultAsync(t => t.Id == teamId, ct);
+        if (team == null) return false;
+        var ownerId = team.OwnerId ?? team.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
+        if (ownerId != userId) return false;
+
+        var members = await _db.TeamMembers.Where(m => m.TeamId == teamId).ToListAsync(ct);
+        var teamBoards = await _db.Boards.Where(b => b.TeamId == teamId).ToListAsync(ct);
+        _db.TeamMembers.RemoveRange(members);
+        _db.Boards.RemoveRange(teamBoards);
+        _db.Teams.Remove(team);
+        await _db.SaveChangesAsync(ct);
         return true;
     }
 }

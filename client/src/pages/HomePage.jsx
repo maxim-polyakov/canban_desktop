@@ -30,6 +30,10 @@ export default function HomePage() {
   const [inviteUserIdError, setInviteUserIdError] = useState('');
   const [addingByUserId, setAddingByUserId] = useState(false);
   const [userCharacter, setUserCharacter] = useState({});
+  const [addBoardTeamId, setAddBoardTeamId] = useState(null);
+  const [addBoardName, setAddBoardName] = useState('');
+  const [addBoardError, setAddBoardError] = useState('');
+  const [addingBoard, setAddingBoard] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,6 +54,7 @@ export default function HomePage() {
                 id: team.id ?? team.Id,
                 name: team.name ?? team.Name ?? 'Команда',
                 description: team.description ?? team.Description ?? '',
+                ownerId: team.ownerId ?? team.OwnerId ?? null,
               },
               boards: boardsList.map((b) => ({
                 id: b.id ?? b.Id,
@@ -100,7 +105,7 @@ export default function HomePage() {
         const team = item.team ?? item.Team ?? {};
         const boardsList = item.boards ?? item.Boards ?? [];
         return {
-          team: { id: team.id ?? team.Id, name: team.name ?? team.Name ?? 'Команда', description: team.description ?? team.Description ?? '' },
+          team: { id: team.id ?? team.Id, name: team.name ?? team.Name ?? 'Команда', description: team.description ?? team.Description ?? '', ownerId: team.ownerId ?? team.OwnerId ?? null },
           boards: boardsList.map((b) => ({ id: b.id ?? b.Id, name: b.name ?? b.Name ?? 'Доска' })),
         };
       }));
@@ -159,6 +164,38 @@ export default function HomePage() {
       if (ok) loadTeamMembers(teamId);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleDeleteTeam = async (teamId) => {
+    if (!window.confirm('Удалить команду и все её доски? Это действие нельзя отменить.')) return;
+    try {
+      const ok = await teams.delete(teamId);
+      if (ok) loadTeams();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddBoardToTeam = async (e, teamId) => {
+    e.preventDefault();
+    const name = addBoardName.trim();
+    if (!name) {
+      setAddBoardError('Введите название доски.');
+      return;
+    }
+    setAddBoardError('');
+    setAddingBoard(true);
+    try {
+      const board = await boards.create({ name, description: '', teamId });
+      setAddBoardTeamId(null);
+      setAddBoardName('');
+      await loadBoardsForTeam(teamId);
+      navigate(`/board/${board.id}`);
+    } catch (err) {
+      setAddBoardError(err.message || 'Не удалось создать доску.');
+    } finally {
+      setAddingBoard(false);
     }
   };
 
@@ -278,6 +315,9 @@ export default function HomePage() {
                       <span className="home-team-name">{item.team?.name}</span>
                       <button type="button" className="home-team-btn home-team-edit-btn" onClick={() => loadTeamDetails(item.team?.id)} title="Изменить команду">✎</button>
                       <button type="button" className="home-team-btn home-team-refresh-boards" onClick={() => loadBoardsForTeam(item.team?.id)} title="Обновить список досок">↻</button>
+                      {item.team?.ownerId && user?.id && item.team.ownerId === user.id && (
+                        <button type="button" className="home-team-btn home-team-delete-btn" onClick={() => handleDeleteTeam(item.team?.id)} title="Удалить команду">🗑</button>
+                      )}
                     </>
                   )}
                 </div>
@@ -289,6 +329,29 @@ export default function HomePage() {
                   ))}
                 </ul>
                 {!(item.boards?.length) && <p className="home-empty">В команде пока нет досок.</p>}
+                <div className="home-add-board">
+                  {addBoardTeamId !== item.team?.id ? (
+                    <button type="button" className="home-add-board-btn" onClick={() => { setAddBoardTeamId(item.team?.id); setAddBoardName(''); setAddBoardError(''); }}>
+                      + Добавить доску
+                    </button>
+                  ) : (
+                    <form className="home-add-board-form" onSubmit={(e) => handleAddBoardToTeam(e, item.team?.id)}>
+                      <input
+                        type="text"
+                        placeholder="Название доски"
+                        value={addBoardName}
+                        onChange={(e) => setAddBoardName(e.target.value)}
+                        disabled={addingBoard}
+                        autoFocus
+                      />
+                      <div className="home-add-board-actions">
+                        <button type="submit" disabled={addingBoard || !addBoardName.trim()}>{addingBoard ? '…' : 'Создать'}</button>
+                        <button type="button" onClick={() => { setAddBoardTeamId(null); setAddBoardName(''); setAddBoardError(''); }} disabled={addingBoard}>Отмена</button>
+                      </div>
+                      {addBoardError && <p className="home-add-board-error">{addBoardError}</p>}
+                    </form>
+                  )}
+                </div>
                 <div className="home-team-invite">
                   {inviteTeamId !== item.team?.id ? (
                     <button type="button" className="home-invite-btn" onClick={() => { setInviteTeamId(item.team?.id); setInviteError(''); }}>Добавить участника</button>

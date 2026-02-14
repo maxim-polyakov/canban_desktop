@@ -30,6 +30,7 @@ services:
     # Добавляем новый сервис для отправки почты
   smtp-service-canban:
     image: maildev/maildev
+    container_name: smtp-service-canban
     restart: unless-stopped
     environment:
       - NODE_OPTIONS=--no-warnings=DeprecationWarning

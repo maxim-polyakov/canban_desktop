@@ -68,6 +68,12 @@ public class AuthService : IAuthService
         return new AuthResponse(token, "Bearer", expiresIn, userDto);
     }
 
+    public async Task<UserDto?> GetUserByIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FindAsync(new object[] { userId }, ct);
+        return user == null ? null : new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
+    }
+
     public async Task<UserDto?> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken ct = default)
     {
         var user = await _db.Users.FindAsync(new object[] { userId }, ct);

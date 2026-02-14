@@ -38,6 +38,43 @@ export const auth = {
   register: (data) => apiJson('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data) => apiJson('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   updateProfile: (data) => apiJson('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
+  uploadAvatar: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch((API_BASE || '') + '/api/auth/me/avatar', {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (res.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth-logout'));
+    }
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || res.statusText);
+    return text ? JSON.parse(text) : null;
+  },
+  deleteAvatar: async () => {
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch((API_BASE || '') + '/api/auth/me/avatar', {
+      method: 'DELETE',
+      headers,
+    });
+    if (res.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth-logout'));
+    }
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || res.statusText);
+    return text ? JSON.parse(text) : null;
+  },
 };
 
 export const boards = {

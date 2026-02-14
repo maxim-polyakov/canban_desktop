@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { character, achievements, skills } from '../api.js';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext.jsx';
+import { auth, character, achievements, skills } from '../api.js';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
+  const { user, setUserFromResponse } = useAuth();
+  const fileInputRef = useRef(null);
   const [char, setChar] = useState(null);
   const [xpHistory, setXpHistory] = useState([]);
   const [myAchievements, setMyAchievements] = useState([]);
@@ -12,6 +15,9 @@ export default function ProfilePage() {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarDeleting, setAvatarDeleting] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -49,9 +55,83 @@ export default function ProfilePage() {
 
   const myAchIds = new Set((myAchievements || []).map((a) => a.achievementId || a.achievementid));
 
+  const handleAvatarChange = async (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    setAvatarError('');
+    setAvatarUploading(true);
+    try {
+      const res = await auth.uploadAvatar(file);
+      if (res) setUserFromResponse(res);
+    } catch (err) {
+      setAvatarError(err.message || 'Ошибка загрузки');
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    if (!user?.avatarUrl) return;
+    if (!window.confirm('Удалить аватар?')) return;
+    setAvatarError('');
+    setAvatarDeleting(true);
+    try {
+      const res = await auth.deleteAvatar();
+      if (res) setUserFromResponse(res);
+    } catch (err) {
+      setAvatarError(err.message || 'Ошибка удаления');
+    } finally {
+      setAvatarDeleting(false);
+    }
+  };
+
   return (
     <div className="page profile-page">
       <h1>Профиль и прогресс</h1>
+
+      <section className="profile-section profile-avatar-section">
+        <h2>Аватар</h2>
+        <div className="profile-avatar-row">
+          <div className="profile-avatar-preview">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="profile-avatar-img" />
+            ) : (
+              <span className="profile-avatar-placeholder">{user?.displayName?.charAt(0) || '?'}</span>
+            )}
+          </div>
+          <div className="profile-avatar-actions">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleAvatarChange}
+              className="profile-avatar-input"
+              disabled={avatarUploading}
+            />
+            <button
+              type="button"
+              className="profile-avatar-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading || avatarDeleting}
+            >
+              {avatarUploading ? 'Загрузка…' : 'Загрузить аватар'}
+            </button>
+            {user?.avatarUrl && (
+              <button
+                type="button"
+                className="profile-avatar-btn profile-avatar-delete-btn"
+                onClick={handleDeleteAvatar}
+                disabled={avatarUploading || avatarDeleting}
+              >
+                {avatarDeleting ? 'Удаление…' : 'Удалить аватар'}
+              </button>
+            )}
+            <p className="profile-avatar-hint">JPEG, PNG, WebP или GIF, до 2 МБ</p>
+            {avatarError && <p className="profile-avatar-error">{avatarError}</p>}
+          </div>
+        </div>
+      </section>
 
       {char && (
         <section className="profile-section profile-character">

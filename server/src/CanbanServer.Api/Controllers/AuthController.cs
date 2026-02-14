@@ -12,8 +12,13 @@ namespace CanbanServer.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IAvatarStorageService _avatarStorage;
 
-    public AuthController(IAuthService authService) => _authService = authService;
+    public AuthController(IAuthService authService, IAvatarStorageService avatarStorage)
+    {
+        _authService = authService;
+        _avatarStorage = avatarStorage;
+    }
 
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request, CancellationToken ct)
@@ -50,5 +55,45 @@ public class AuthController : ControllerBase
         if (!userId.HasValue) return Unauthorized();
         var user = await _authService.UpdateProfileAsync(userId.Value, request, ct);
         return user == null ? NotFound() : Ok(user);
+    }
+
+    /// <summary>Загрузить аватар (файл уходит в S3, в профиле сохраняется URL). Требуется авторизация.</summary>
+    [HttpPost("me/avatar")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> UploadAvatar(IFormFile? file, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        if (file == null || file.Length == 0)
+            return BadRequest("Выберите файл изображения.");
+        if (file.Length > 2 * 1024 * 1024)
+            return BadRequest("Размер файла не должен превышать 2 МБ.");
+        var contentType = file.ContentType?.ToLowerInvariant() ?? "";
+        if (contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" && contentType != "image/gif")
+            return BadRequest("Допустимые форматы: JPEG, PNG, WebP, GIF.");
+
+        var url = await _avatarStorage.UploadAsync(userId.Value, file.OpenReadStream(), file.ContentType ?? "image/jpeg", file.FileName, ct);
+        if (string.IsNullOrEmpty(url))
+            return StatusCode(500, "Не удалось загрузить файл в хранилище. Проверьте настройки S3.");
+
+        var user = await _authService.UpdateProfileAsync(userId.Value, new UpdateProfileRequest(null, url), ct);
+        return user == null ? NotFound() : Ok(user);
+    }
+
+    /// <summary>Удалить аватар (из профиля и из S3). Требуется авторизация.</summary>
+    [HttpDelete("me/avatar")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> DeleteAvatar(CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var user = await _authService.GetUserByIdAsync(userId.Value, ct);
+        if (user == null) return NotFound();
+        var currentAvatarUrl = user.AvatarUrl;
+
+        await _avatarStorage.DeleteByUrlAsync(currentAvatarUrl, ct);
+        var updated = await _authService.UpdateProfileAsync(userId.Value, new UpdateProfileRequest(null, ""), ct);
+        return updated == null ? NotFound() : Ok(updated);
     }
 }

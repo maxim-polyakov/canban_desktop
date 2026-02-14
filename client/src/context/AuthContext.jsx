@@ -53,8 +53,15 @@ export function AuthProvider({ children }) {
     return updated;
   };
 
+  const setUserFromResponse = (userData) => {
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, setUserFromResponse }}>
       {children}
     </AuthContext.Provider>
   );

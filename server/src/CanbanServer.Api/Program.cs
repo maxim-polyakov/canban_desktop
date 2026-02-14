@@ -79,6 +79,7 @@ builder.Services.AddScoped<IActivityHub, SignalRActivityHub>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 
 var app = builder.Build();
 

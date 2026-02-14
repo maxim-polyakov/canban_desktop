@@ -4,6 +4,8 @@ node_modules/
 # Build
 build/
 
+# Env (секреты, не коммитить)
+.env
 
 # IDE / OS
 .idea

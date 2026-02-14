@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# Env (секреты, не коммитить)
+.env
+
 # IDE / OS
 .idea/
 .vs/

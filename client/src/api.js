@@ -48,6 +48,8 @@ export const auth = {
     return text ? JSON.parse(text) : null;
   },
   confirmEmail: (data) => apiJson('/api/auth/confirm-email', { method: 'POST', body: JSON.stringify(data) }),
+  forgotPassword: (data) => apiJson('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
+  resetPassword: (data) => apiJson('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
   updateProfile: (data) => apiJson('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
   uploadAvatar: async (file) => {
     const formData = new FormData();
@@ -93,7 +95,10 @@ export const boards = {
   getByTeam: (teamId) => apiJson(`/api/boards/team/${teamId}`),
   create: (data) => apiJson('/api/boards', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/boards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id) => api(`/api/boards/${id}`, { method: 'DELETE' }).then((r) => r.ok),
+  delete: async (id) => {
+    const r = await api(`/api/boards/${id}`, { method: 'DELETE' });
+    return r.ok ? true : { ok: false, status: r.status };
+  },
 };
 
 export const columns = {

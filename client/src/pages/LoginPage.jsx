@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import './AuthPages.css';
 
@@ -9,6 +9,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = location.state?.message;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,6 +36,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <form className="auth-form" onSubmit={handleSubmit}>
         <h1>Вход</h1>
+        {successMessage && <p className="auth-success-hint" style={{ color: 'var(--success, #16a34a)' }}>{successMessage}</p>}
         {error && <p className="auth-error">{error}</p>}
         <label>
           Email
@@ -44,6 +47,9 @@ export default function LoginPage() {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         </label>
         <button type="submit">Войти</button>
+        <p className="auth-footer">
+          <Link to="/forgot-password">Забыли пароль?</Link>
+        </p>
         <p className="auth-footer">
           Нет аккаунта? <Link to="/register">Регистрация</Link>
         </p>

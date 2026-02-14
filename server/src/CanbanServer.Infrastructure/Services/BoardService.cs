@@ -21,16 +21,16 @@ public class BoardService : IBoardService
         var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
             c.Id, c.BoardId, c.Title, c.Order, c.Kind, c.CreatedAt,
             c.Quests.OrderBy(q => q.Order).Select(q => MapQuest(q)).ToList())).ToList();
-        return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns);
+        return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId);
     }
 
     public async Task<List<BoardDto>> GetByTeamIdAsync(Guid teamId, CancellationToken ct = default)
     {
         var list = await _db.Boards.Where(x => x.TeamId == teamId).OrderBy(x => x.Order).ToListAsync(ct);
-        return list.Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt)).ToList();
+        return list.Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId)).ToList();
     }
 
-    public async Task<BoardDto> CreateAsync(CreateBoardRequest request, CancellationToken ct = default)
+    public async Task<BoardDto> CreateAsync(CreateBoardRequest request, Guid? createdByUserId, CancellationToken ct = default)
     {
         var maxOrder = await _db.Boards.Where(b => b.TeamId == request.TeamId).MaxAsync(b => (int?)b.Order, ct) ?? -1;
         var board = new Board
@@ -40,7 +40,8 @@ public class BoardService : IBoardService
             Name = request.Name,
             Description = request.Description,
             Order = maxOrder + 1,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            CreatedByUserId = createdByUserId
         };
         _db.Boards.Add(board);
 
@@ -54,7 +55,7 @@ public class BoardService : IBoardService
         _db.Columns.AddRange(defaultColumns);
 
         await _db.SaveChangesAsync(ct);
-        return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt);
+        return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt, board.CreatedByUserId);
     }
 
     public async Task<BoardDto?> UpdateAsync(Guid id, UpdateBoardRequest request, CancellationToken ct = default)
@@ -65,13 +66,15 @@ public class BoardService : IBoardService
         if (request.Description != null) b.Description = request.Description;
         if (request.Order != null) b.Order = request.Order.Value;
         await _db.SaveChangesAsync(ct);
-        return new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt);
+        return new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId);
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task<bool?> DeleteAsync(Guid id, Guid? currentUserId, CancellationToken ct = default)
     {
         var b = await _db.Boards.FirstOrDefaultAsync(x => x.Id == id, ct);
-        if (b == null) return false;
+        if (b == null) return null;
+        if (b.CreatedByUserId == null || currentUserId != b.CreatedByUserId)
+            return false;
         _db.Boards.Remove(b);
         await _db.SaveChangesAsync(ct);
         return true;

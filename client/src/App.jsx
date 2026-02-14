@@ -5,6 +5,9 @@ import Layout from './components/Layout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import RegisterSuccessPage from './pages/RegisterSuccessPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ForgotPasswordCodePage from './pages/ForgotPasswordCodePage.jsx';
+import ForgotPasswordResetPage from './pages/ForgotPasswordResetPage.jsx';
 import BoardPage from './pages/BoardPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -23,6 +26,9 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register/success" element={<RegisterSuccessPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/forgot-password/code" element={<ForgotPasswordCodePage />} />
+        <Route path="/forgot-password/reset" element={<ForgotPasswordResetPage />} />
         <Route
           path="/"
           element={

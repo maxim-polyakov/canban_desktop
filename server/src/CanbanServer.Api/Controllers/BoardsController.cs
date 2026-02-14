@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -29,7 +30,8 @@ public class BoardsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<BoardDto>> Create([FromBody] CreateBoardRequest request, CancellationToken ct)
     {
-        var board = await _boardService.CreateAsync(request, ct);
+        var createdByUserId = User.GetUserId();
+        var board = await _boardService.CreateAsync(request, createdByUserId, ct);
         return CreatedAtAction(nameof(Get), new { id = board.Id }, board);
     }
 
@@ -43,7 +45,10 @@ public class BoardsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var deleted = await _boardService.DeleteAsync(id, ct);
-        return deleted ? NoContent() : NotFound();
+        var currentUserId = User.GetUserId();
+        var result = await _boardService.DeleteAsync(id, currentUserId, ct);
+        if (result == null) return NotFound();
+        if (result == false) return Forbid();
+        return NoContent();
     }
 }

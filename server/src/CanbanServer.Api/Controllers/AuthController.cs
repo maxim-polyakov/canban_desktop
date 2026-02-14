@@ -65,6 +65,32 @@ public class AuthController : ControllerBase
         return response != null ? Ok(response) : BadRequest("Неверный или устаревший код. Проверьте код и попробуйте снова.");
     }
 
+    /// <summary>Запрос сброса пароля. На email отправляется код из 6 цифр. Всегда 200 (не раскрывать наличие email).</summary>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest("Укажите email.");
+        await _authService.RequestPasswordResetAsync(request.Email.Trim(), ct);
+        return Ok(new { message = "Если аккаунт с таким email существует, на него отправлено письмо с кодом." });
+    }
+
+    /// <summary>Сброс пароля по коду из письма.</summary>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest("Укажите email.");
+        if (string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest("Введите код из письма.");
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest("Укажите новый пароль.");
+        if (request.NewPassword.Length < 6)
+            return BadRequest("Пароль должен быть не короче 6 символов.");
+        var ok = await _authService.ResetPasswordAsync(request.Email.Trim(), request.Code.Trim(), request.NewPassword, ct);
+        return ok ? Ok(new { message = "Пароль успешно изменён. Войдите с новым паролем." }) : BadRequest("Неверный или устаревший код. Запросите сброс пароля снова.");
+    }
+
     /// <summary>Обновить профиль текущего пользователя (имя и/или аватар). Требуется авторизация.</summary>
     [HttpPatch("me")]
     [Authorize]

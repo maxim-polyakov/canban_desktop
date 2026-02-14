@@ -10,4 +10,8 @@ public interface IAuthService
     Task<UserDto?> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken ct = default);
     /// <summary>Подтверждение email по коду из 6 цифр. При успехе возвращает AuthResponse для автоматического входа.</summary>
     Task<AuthResponse?> ConfirmEmailByCodeAsync(string email, string code, CancellationToken ct = default);
+    /// <summary>Запрос сброса пароля: отправляет на email код из 6 цифр. Всегда возвращает true (не раскрывать наличие email).</summary>
+    Task RequestPasswordResetAsync(string email, CancellationToken ct = default);
+    /// <summary>Сброс пароля по коду из письма. Возвращает true при успехе.</summary>
+    Task<bool> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken ct = default);
 }

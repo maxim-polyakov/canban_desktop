@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { boards, columns, quests, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
 import './BoardPage.css';
@@ -7,6 +8,7 @@ import './BoardPage.css';
 export default function BoardPage() {
   const { boardId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [board, setBoard] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -120,8 +122,9 @@ export default function BoardPage() {
   const handleDeleteBoard = async () => {
     if (!boardId || !window.confirm('Удалить доску? Это действие нельзя отменить.')) return;
     try {
-      const ok = await boards.delete(boardId);
-      if (ok) navigate('/');
+      const result = await boards.delete(boardId);
+      if (result === true) navigate('/');
+      else if (result?.status === 403) window.alert('Удалить доску может только тот, кто её создал.');
       else console.error('Не удалось удалить доску');
     } catch (e) {
       console.error(e);
@@ -234,7 +237,9 @@ export default function BoardPage() {
         </div>
         <div className="board-actions">
           <button type="button" className="board-btn board-btn-edit" onClick={() => setEditBoardOpen(true)} title="Изменить доску">✎</button>
-          <button type="button" className="board-btn board-btn-delete" onClick={handleDeleteBoard} title="Удалить доску">✕</button>
+          {board.createdByUserId === user?.id && (
+            <button type="button" className="board-btn board-btn-delete" onClick={handleDeleteBoard} title="Удалить доску">✕</button>
+          )}
         </div>
       </div>
       {editBoardOpen && (

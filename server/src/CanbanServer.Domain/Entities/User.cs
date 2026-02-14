@@ -12,6 +12,9 @@ public class User
     public bool EmailConfirmed { get; set; }
     public string? EmailConfirmationToken { get; set; }
     public DateTime? EmailConfirmationTokenExpiresAt { get; set; }
+    /// <summary>Код сброса пароля (6 цифр). Действует 15 минут.</summary>
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetTokenExpiresAt { get; set; }
 
     public Character Character { get; set; } = null!;
     public ICollection<TeamMember> TeamMemberships { get; set; } = new List<TeamMember>();

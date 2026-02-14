@@ -83,6 +83,58 @@ public class AuthService : IAuthService
         await _emailSender.SendAsync(email, displayName, subject, body.Trim(), ct);
     }
 
+    public async Task RequestPasswordResetAsync(string email, CancellationToken ct = default)
+    {
+        var normalizedEmail = email?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(normalizedEmail)) return;
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+        if (user == null) return;
+        var code = Random.Shared.Next(100000, 999999).ToString();
+        user.PasswordResetToken = code;
+        user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
+        await _db.SaveChangesAsync(ct);
+        _ = SendPasswordResetAsync(normalizedEmail, user.DisplayName, code, ct);
+    }
+
+    private async Task SendPasswordResetAsync(string email, string displayName, string code, CancellationToken ct)
+    {
+        var appName = _config["Smtp:AppName"]?.Trim() ?? "Canban";
+        var subject = $"Сброс пароля — {appName}";
+        var body = $@"
+<!DOCTYPE html>
+<html>
+<head><meta charset=""utf-8""></head>
+<body style=""font-family: sans-serif; line-height: 1.5;"">
+  <h2>Сброс пароля</h2>
+  <p>Здравствуйте, <strong>{System.Net.WebUtility.HtmlEncode(displayName)}</strong>.</p>
+  <p>Запрошен сброс пароля в <strong>{System.Net.WebUtility.HtmlEncode(appName)}</strong>. Введите этот код на странице сброса пароля:</p>
+  <p style=""font-size: 1.5rem; letter-spacing: 0.2em; font-weight: 600;"">{System.Net.WebUtility.HtmlEncode(code)}</p>
+  <p style=""color: #6b7280; font-size: 0.9em;"">Код действителен 15 минут. Если вы не запрашивали сброс, проигнорируйте это письмо.</p>
+</body>
+</html>";
+        await _emailSender.SendAsync(email, displayName, subject, body.Trim(), ct);
+    }
+
+    public async Task<bool> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(newPassword))
+            return false;
+        if (newPassword.Length < 6) return false;
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var cleanCode = code.Trim();
+        if (cleanCode.Length != 6) return false;
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+        if (user == null) return false;
+        if (user.PasswordResetToken != cleanCode) return false;
+        if (user.PasswordResetTokenExpiresAt.HasValue && user.PasswordResetTokenExpiresAt.Value < DateTime.UtcNow)
+            return false;
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpiresAt = null;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLowerInvariant(), ct);

@@ -42,7 +42,7 @@ public class TeamService : ITeamService
             var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
             return new TeamWithBoardsDto(
                 new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId),
-                (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt)).OrderBy(b => b.Order).ToList()
+                (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId)).OrderBy(b => b.Order).ToList()
             );
         }).ToList();
     }

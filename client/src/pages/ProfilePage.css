@@ -6,6 +6,21 @@
 .profile-page h1 {
   margin: 0 0 1.5rem;
   font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.profile-back-link {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.profile-back-link:hover {
+  text-decoration: underline;
 }
 
 .profile-section {

@@ -153,6 +153,34 @@
   color: var(--text-muted);
 }
 
+.home-kpi-section {
+  overflow: hidden;
+}
+
+.home-kpi-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .home-kpi-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-kpi-chart {
+  min-width: 0;
+}
+
+.home-kpi-chart h5 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .home-members-list,
 .home-leaderboard-list,
 .home-activity-list {
@@ -167,6 +195,16 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.35rem;
+}
+
+.home-member-name {
+  margin-right: 0.5rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.home-member-name:hover {
+  text-decoration: underline;
 }
 
 .home-member-avatar,

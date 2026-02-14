@@ -40,6 +40,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="board/:boardId" element={<BoardPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="profile/:userId" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

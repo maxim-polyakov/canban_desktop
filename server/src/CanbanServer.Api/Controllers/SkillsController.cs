@@ -30,4 +30,20 @@ public class SkillsController : ControllerBase
         var list = await _skillTreeService.GetUnlockedSkillsAsync(userId.Value, ct);
         return Ok(list);
     }
+
+    /// <summary>Дерево навыков для другого пользователя (для просмотра профиля).</summary>
+    [HttpGet("user/{userId:guid}/tree")]
+    public async Task<ActionResult<SkillTreeDto>> GetTreeByUser(Guid userId, CancellationToken ct)
+    {
+        var tree = await _skillTreeService.GetTreeForUserAsync(userId, ct);
+        return Ok(tree);
+    }
+
+    /// <summary>Разблокированные навыки другого пользователя.</summary>
+    [HttpGet("user/{userId:guid}/unlocked")]
+    public async Task<ActionResult<List<SkillDto>>> GetUnlockedByUser(Guid userId, CancellationToken ct)
+    {
+        var list = await _skillTreeService.GetUnlockedSkillsAsync(userId, ct);
+        return Ok(list);
+    }
 }

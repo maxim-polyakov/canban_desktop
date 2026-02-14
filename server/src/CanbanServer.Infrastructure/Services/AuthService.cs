@@ -184,6 +184,12 @@ public class AuthService : IAuthService
         return user == null ? null : new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
     }
 
+    public async Task<PublicUserDto?> GetPublicUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FindAsync(new object[] { userId }, ct);
+        return user == null ? null : new PublicUserDto(user.Id, user.DisplayName, user.AvatarUrl);
+    }
+
     public async Task<UserDto?> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken ct = default)
     {
         var user = await _db.Users.FindAsync(new object[] { userId }, ct);

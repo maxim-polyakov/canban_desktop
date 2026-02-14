@@ -128,6 +128,10 @@ export const character = {
   getXpHistory: (limit = 50) => apiJson(`/api/characters/me/xp-history?limit=${limit}`),
 };
 
+export const users = {
+  getPublic: (userId) => apiJson(`/api/users/${userId}`),
+};
+
 export const teams = {
   get: (id) => apiJson(`/api/teams/${id}`),
   getMyTeamsWithBoards: () => apiJson('/api/teams/my'),
@@ -136,7 +140,10 @@ export const teams = {
   update: (id, data) => apiJson(`/api/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (teamId) => api(`/api/teams/${teamId}`, { method: 'DELETE' }).then((r) => r.ok),
   addMember: (teamId, userId) => api(`/api/teams/${teamId}/members/${userId}`, { method: 'POST' }).then((r) => r.ok),
-  removeMember: (teamId, userId) => api(`/api/teams/${teamId}/members/${userId}`, { method: 'DELETE' }).then((r) => r.ok),
+  removeMember: async (teamId, userId) => {
+    const r = await api(`/api/teams/${teamId}/members/${userId}`, { method: 'DELETE' });
+    return r.ok ? true : { ok: false, status: r.status };
+  },
   inviteByEmail: async (teamId, email) => {
     const res = await api(`/api/teams/${teamId}/members/invite`, { method: 'POST', body: JSON.stringify({ email }) });
     if (res.ok) return { ok: true };
@@ -150,11 +157,14 @@ export const teams = {
 export const achievements = {
   getAll: () => apiJson('/api/achievements'),
   getMy: () => apiJson('/api/achievements/me'),
+  getByUser: (userId) => apiJson(`/api/achievements/user/${userId}`),
 };
 
 export const skills = {
   getTree: () => apiJson('/api/skills/tree'),
   getUnlocked: () => apiJson('/api/skills/unlocked'),
+  getTreeByUser: (userId) => apiJson(`/api/skills/user/${userId}/tree`),
+  getUnlockedByUser: (userId) => apiJson(`/api/skills/user/${userId}/unlocked`),
 };
 
 export const leaderboard = {
@@ -163,6 +173,13 @@ export const leaderboard = {
     if (from) url += `&from=${encodeURIComponent(from)}`;
     if (to) url += `&to=${encodeURIComponent(to)}`;
     return apiJson(url);
+  },
+  getTeamKpi: (teamId, from, to) => {
+    const params = [];
+    if (from) params.push(`from=${encodeURIComponent(from)}`);
+    if (to) params.push(`to=${encodeURIComponent(to)}`);
+    const query = params.length ? '?' + params.join('&') : '';
+    return apiJson(`/api/leaderboard/team/${teamId}/kpi${query}`);
   },
 };
 

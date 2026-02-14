@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { auth, character, achievements, skills } from '../api.js';
+import { auth, character, achievements, skills, users } from '../api.js';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
+  const { userId: routeUserId } = useParams();
   const { user, setUserFromResponse } = useAuth();
   const fileInputRef = useRef(null);
+  const [profileUser, setProfileUser] = useState(null);
   const [char, setChar] = useState(null);
   const [xpHistory, setXpHistory] = useState([]);
   const [myAchievements, setMyAchievements] = useState([]);
@@ -19,27 +22,52 @@ export default function ProfilePage() {
   const [avatarDeleting, setAvatarDeleting] = useState(false);
   const [avatarError, setAvatarError] = useState('');
 
+  const isOwnProfile = !routeUserId || routeUserId === user?.id;
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [charRes, xpRes, myAchRes, allAchRes, treeRes, unlockedRes, levelsRes] = await Promise.all([
-          character.getMe().catch(() => null),
-          character.getXpHistory(50).catch(() => []),
-          achievements.getMy().catch(() => []),
-          achievements.getAll().catch(() => []),
-          skills.getTree().catch(() => null),
-          skills.getUnlocked().catch(() => []),
-          character.getLevels().catch(() => []),
-        ]);
-        if (!cancelled) {
-          setChar(charRes);
-          setXpHistory(Array.isArray(xpRes) ? xpRes : []);
-          setMyAchievements(Array.isArray(myAchRes) ? myAchRes : []);
-          setAllAchievements(Array.isArray(allAchRes) ? allAchRes : []);
-          setSkillTree(treeRes);
-          setUnlockedSkills(Array.isArray(unlockedRes) ? unlockedRes : []);
-          setLevels(Array.isArray(levelsRes) ? levelsRes : []);
+        if (isOwnProfile) {
+          const [charRes, xpRes, myAchRes, allAchRes, treeRes, unlockedRes, levelsRes] = await Promise.all([
+            character.getMe().catch(() => null),
+            character.getXpHistory(50).catch(() => []),
+            achievements.getMy().catch(() => []),
+            achievements.getAll().catch(() => []),
+            skills.getTree().catch(() => null),
+            skills.getUnlocked().catch(() => []),
+            character.getLevels().catch(() => []),
+          ]);
+          if (!cancelled) {
+            setChar(charRes);
+            setXpHistory(Array.isArray(xpRes) ? xpRes : []);
+            setMyAchievements(Array.isArray(myAchRes) ? myAchRes : []);
+            setAllAchievements(Array.isArray(allAchRes) ? allAchRes : []);
+            setSkillTree(treeRes);
+            setUnlockedSkills(Array.isArray(unlockedRes) ? unlockedRes : []);
+            setLevels(Array.isArray(levelsRes) ? levelsRes : []);
+          }
+        } else {
+          const targetUserId = routeUserId;
+          const [userRes, charRes, myAchRes, allAchRes, treeRes, unlockedRes, levelsRes] = await Promise.all([
+            users.getPublic(targetUserId).catch(() => null),
+            character.getByUser(targetUserId).catch(() => null),
+            achievements.getByUser(targetUserId).catch(() => []),
+            achievements.getAll().catch(() => []),
+            skills.getTreeByUser(targetUserId).catch(() => null),
+            skills.getUnlockedByUser(targetUserId).catch(() => []),
+            character.getLevels().catch(() => []),
+          ]);
+          if (!cancelled) {
+            setProfileUser(userRes);
+            setChar(charRes);
+            setXpHistory([]);
+            setMyAchievements(Array.isArray(myAchRes) ? myAchRes : []);
+            setAllAchievements(Array.isArray(allAchRes) ? allAchRes : []);
+            setSkillTree(treeRes);
+            setUnlockedSkills(Array.isArray(unlockedRes) ? unlockedRes : []);
+            setLevels(Array.isArray(levelsRes) ? levelsRes : []);
+          }
         }
       } catch (e) {
         if (!cancelled) setError(e.message);
@@ -48,10 +76,11 @@ export default function ProfilePage() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [routeUserId, isOwnProfile]);
 
   if (loading) return <div className="page">Загрузка профиля...</div>;
   if (error) return <div className="page">Ошибка: {error}</div>;
+  if (!isOwnProfile && !profileUser && !char) return <div className="page">Пользователь не найден.</div>;
 
   const myAchIds = new Set((myAchievements || []).map((a) => a.achievementId || a.achievementid));
 
@@ -86,50 +115,61 @@ export default function ProfilePage() {
     }
   };
 
+  const displayUser = isOwnProfile ? user : profileUser;
+  const displayName = displayUser?.displayName ?? displayUser?.DisplayName ?? char?.name ?? '—';
+  const avatarUrl = displayUser?.avatarUrl ?? displayUser?.AvatarUrl ?? null;
+
   return (
     <div className="page profile-page">
-      <h1>Профиль и прогресс</h1>
+      <h1>
+        {isOwnProfile ? 'Профиль и прогресс' : 'Профиль'}
+        {!isOwnProfile && (
+          <Link to="/profile" className="profile-back-link">← Мой профиль</Link>
+        )}
+      </h1>
 
       <section className="profile-section profile-avatar-section">
         <h2>Аватар</h2>
         <div className="profile-avatar-row">
           <div className="profile-avatar-preview">
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" className="profile-avatar-img" />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="profile-avatar-img" />
             ) : (
-              <span className="profile-avatar-placeholder">{user?.displayName?.charAt(0) || '?'}</span>
+              <span className="profile-avatar-placeholder">{displayName?.charAt(0) || '?'}</span>
             )}
           </div>
-          <div className="profile-avatar-actions">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleAvatarChange}
-              className="profile-avatar-input"
-              disabled={avatarUploading}
-            />
-            <button
-              type="button"
-              className="profile-avatar-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={avatarUploading || avatarDeleting}
-            >
-              {avatarUploading ? 'Загрузка…' : 'Загрузить аватар'}
-            </button>
-            {user?.avatarUrl && (
+          {isOwnProfile && (
+            <div className="profile-avatar-actions">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleAvatarChange}
+                className="profile-avatar-input"
+                disabled={avatarUploading}
+              />
               <button
                 type="button"
-                className="profile-avatar-btn profile-avatar-delete-btn"
-                onClick={handleDeleteAvatar}
+                className="profile-avatar-btn"
+                onClick={() => fileInputRef.current?.click()}
                 disabled={avatarUploading || avatarDeleting}
               >
-                {avatarDeleting ? 'Удаление…' : 'Удалить аватар'}
+                {avatarUploading ? 'Загрузка…' : 'Загрузить аватар'}
               </button>
-            )}
-            <p className="profile-avatar-hint">JPEG, PNG, WebP или GIF, до 2 МБ</p>
-            {avatarError && <p className="profile-avatar-error">{avatarError}</p>}
-          </div>
+              {user?.avatarUrl && (
+                <button
+                  type="button"
+                  className="profile-avatar-btn profile-avatar-delete-btn"
+                  onClick={handleDeleteAvatar}
+                  disabled={avatarUploading || avatarDeleting}
+                >
+                  {avatarDeleting ? 'Удаление…' : 'Удалить аватар'}
+                </button>
+              )}
+              <p className="profile-avatar-hint">JPEG, PNG, WebP или GIF, до 2 МБ</p>
+              {avatarError && <p className="profile-avatar-error">{avatarError}</p>}
+            </div>
+          )}
         </div>
       </section>
 
@@ -154,20 +194,22 @@ export default function ProfilePage() {
         </section>
       )}
 
-      <section className="profile-section">
-        <h2>История XP</h2>
-        <ul className="profile-xp-list">
-          {(xpHistory || []).map((tx) => (
-            <li key={tx.id}>
-              <span className="profile-xp-amount">{tx.amount > 0 ? '+' : ''}{tx.amount}</span>
-              <span className="profile-xp-source">{tx.source}</span>
-              {tx.description && <span className="profile-xp-desc"> — {tx.description}</span>}
-              <span className="profile-xp-date">{tx.createdAt ? new Date(tx.createdAt).toLocaleString() : ''}</span>
-            </li>
-          ))}
-        </ul>
-        {(!xpHistory || !xpHistory.length) && <p className="profile-empty">Пока нет записей</p>}
-      </section>
+      {isOwnProfile && (
+        <section className="profile-section">
+          <h2>История XP</h2>
+          <ul className="profile-xp-list">
+            {(xpHistory || []).map((tx) => (
+              <li key={tx.id}>
+                <span className="profile-xp-amount">{tx.amount > 0 ? '+' : ''}{tx.amount}</span>
+                <span className="profile-xp-source">{tx.source}</span>
+                {tx.description && <span className="profile-xp-desc"> — {tx.description}</span>}
+                <span className="profile-xp-date">{tx.createdAt ? new Date(tx.createdAt).toLocaleString() : ''}</span>
+              </li>
+            ))}
+          </ul>
+          {(!xpHistory || !xpHistory.length) && <p className="profile-empty">Пока нет записей</p>}
+        </section>
+      )}
 
       <section className="profile-section">
         <h2>Достижения</h2>

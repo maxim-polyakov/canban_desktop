@@ -5,3 +5,6 @@ namespace CanbanServer.Application.DTOs;
 /// </summary>
 public record TeamLeaderboardRequest(Guid TeamId, DateTime? From = null, DateTime? To = null, int Limit = 10);
 public record LeaderboardEntryDto(int Rank, Guid UserId, string UserName, string? AvatarUrl, int TotalXpGained, int QuestsCompleted, int LevelNumber);
+
+/// <summary>Точка данных KPI за один день (для графиков).</summary>
+public record TeamKpiPointDto(DateTime Date, int TotalXpGained, int QuestsCompleted);

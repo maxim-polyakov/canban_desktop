@@ -76,8 +76,11 @@ public class TeamsController : ControllerBase
     [HttpDelete("{teamId:guid}/members/{userId:guid}")]
     public async Task<ActionResult> RemoveMember(Guid teamId, Guid userId, CancellationToken ct)
     {
-        var removed = await _teamService.RemoveMemberAsync(teamId, userId, ct);
-        return removed ? NoContent() : NotFound();
+        var currentUserId = User.GetUserId();
+        var result = await _teamService.RemoveMemberAsync(teamId, userId, currentUserId, ct);
+        if (result == null) return NotFound();
+        if (result == false) return Forbid();
+        return NoContent();
     }
 
     /// <summary>Удалить команду. Доступно только создателю команды.</summary>

@@ -25,4 +25,16 @@ public class LeaderboardController : ControllerBase
         var list = await _leaderboard.GetTeamLeaderboardAsync(request, ct);
         return Ok(list);
     }
+
+    /// <summary>KPI команды по дням за период (для графиков: набранный XP и выполненные квесты).</summary>
+    [HttpGet("team/{teamId:guid}/kpi")]
+    public async Task<ActionResult<List<TeamKpiPointDto>>> GetTeamKpi(
+        Guid teamId,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        CancellationToken ct = default)
+    {
+        var list = await _leaderboard.GetTeamKpiAsync(teamId, from, to, ct);
+        return Ok(list);
+    }
 }

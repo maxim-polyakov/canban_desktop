@@ -28,4 +28,12 @@ public class AchievementsController : ControllerBase
         var list = await _achievementService.GetUserAchievementsAsync(userId.Value, ct);
         return Ok(list);
     }
+
+    /// <summary>Достижения другого пользователя (для просмотра профиля).</summary>
+    [HttpGet("user/{userId:guid}")]
+    public async Task<ActionResult<List<UserAchievementDto>>> GetByUser(Guid userId, CancellationToken ct)
+    {
+        var list = await _achievementService.GetUserAchievementsAsync(userId, ct);
+        return Ok(list);
+    }
 }

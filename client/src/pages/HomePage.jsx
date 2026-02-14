@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useAuth } from '../context/AuthContext.jsx';
 import { boards, teams, character, leaderboard, activity } from '../api.js';
 import './HomePage.css';
@@ -26,6 +27,7 @@ export default function HomePage() {
   const [teamMembers, setTeamMembers] = useState({});
   const [teamLeaderboard, setTeamLeaderboard] = useState({});
   const [teamActivity, setTeamActivity] = useState({});
+  const [teamKpi, setTeamKpi] = useState({});
   const [inviteUserId, setInviteUserId] = useState('');
   const [inviteUserIdError, setInviteUserIdError] = useState('');
   const [addingByUserId, setAddingByUserId] = useState(false);
@@ -160,8 +162,9 @@ export default function HomePage() {
   const handleRemoveMember = async (teamId, userId) => {
     if (!window.confirm('Исключить участника из команды?')) return;
     try {
-      const ok = await teams.removeMember(teamId, userId);
-      if (ok) loadTeamMembers(teamId);
+      const result = await teams.removeMember(teamId, userId);
+      if (result === true) loadTeamMembers(teamId);
+      else if (result?.status === 403) window.alert('Исключать участников может только создатель команды.');
     } catch (err) {
       console.error(err);
     }
@@ -221,6 +224,25 @@ export default function HomePage() {
     }
   };
 
+  const loadTeamKpi = async (teamId) => {
+    if (!teamId) return;
+    try {
+      const to = new Date();
+      const from = new Date(to);
+      from.setDate(from.getDate() - 14);
+      const list = await leaderboard.getTeamKpi(teamId, from.toISOString(), to.toISOString());
+      const data = Array.isArray(list) ? list : [];
+      setTeamKpi((prev) => ({ ...prev, [teamId]: data.map((p) => ({
+        date: new Date(p.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
+        dateFull: p.date,
+        xp: p.totalXpGained ?? 0,
+        quests: p.questsCompleted ?? 0,
+      })) }));
+    } catch (_) {
+      setTeamKpi((prev) => ({ ...prev, [teamId]: [] }));
+    }
+  };
+
   const loadBoardsForTeam = async (teamId) => {
     if (!teamId) return;
     try {
@@ -274,12 +296,18 @@ export default function HomePage() {
     character.getByUser(userId).then((c) => setUserCharacter((prev) => ({ ...prev, [userId]: c }))).catch(() => setUserCharacter((prev) => ({ ...prev, [userId]: null })));
   };
 
+  const isTeamOwner = (team) => {
+    if (!team?.ownerId || !user?.id) return false;
+    return String(team.ownerId).toLowerCase() === String(user.id).toLowerCase();
+  };
+
   const toggleExpand = (teamId) => {
     const next = expandedTeamId === teamId ? null : teamId;
     setExpandedTeamId(next);
     if (next && !teamMembers[next]) loadTeamMembers(next);
     if (next && teamLeaderboard[next] === undefined) loadLeaderboard(next);
     if (next && teamActivity[next] === undefined) loadActivity(next);
+    if (next && teamKpi[next] === undefined) loadTeamKpi(next);
   };
 
   if (loading) return <div className="page">Загрузка...</div>;
@@ -315,7 +343,7 @@ export default function HomePage() {
                       <span className="home-team-name">{item.team?.name}</span>
                       <button type="button" className="home-team-btn home-team-edit-btn" onClick={() => loadTeamDetails(item.team?.id)} title="Изменить команду">✎</button>
                       <button type="button" className="home-team-btn home-team-refresh-boards" onClick={() => loadBoardsForTeam(item.team?.id)} title="Обновить список досок">↻</button>
-                      {item.team?.ownerId && user?.id && item.team.ownerId === user.id && (
+                      {isTeamOwner(item.team) && (
                         <button type="button" className="home-team-btn home-team-delete-btn" onClick={() => handleDeleteTeam(item.team?.id)} title="Удалить команду">🗑</button>
                       )}
                     </>
@@ -383,7 +411,7 @@ export default function HomePage() {
                 </div>
                 <div className="home-team-expand">
                   <button type="button" className="home-expand-btn" onClick={() => toggleExpand(item.team?.id)}>
-                    {expandedTeamId === item.team?.id ? '▼ Свернуть' : '▶ Участники, рейтинг, лента'}
+                    {expandedTeamId === item.team?.id ? '▼ Свернуть' : '▶ Участники, рейтинг, KPI, лента'}
                   </button>
                 </div>
                 {expandedTeamId === item.team?.id && (
@@ -394,12 +422,12 @@ export default function HomePage() {
                         {(teamMembers[item.team?.id] ?? []).map((m) => (
                           <li key={m.userId} className="home-member-item">
                             {m.avatarUrl ? <img src={m.avatarUrl} alt="" className="home-member-avatar" /> : <span className="home-member-avatar-placeholder">{m.displayName?.charAt(0)}</span>}
-                            <span>{m.displayName}</span>
+                            <Link to={`/profile/${m.userId}`} className="home-member-name">{m.displayName}</Link>
                             <button type="button" className="home-member-level" onClick={() => loadUserCharacter(m.userId)} title="Показать уровень">
                               {userCharacter[m.userId] !== undefined ? (userCharacter[m.userId] ? `Ур.${userCharacter[m.userId].levelNumber}` : '—') : '…'}
                             </button>
-                            {m.userId !== user?.id && (
-                              <button type="button" className="home-member-remove" onClick={() => handleRemoveMember(item.team?.id, m.userId)} title="Исключить">✕</button>
+                            {isTeamOwner(item.team) && m.userId !== user?.id && (
+                              <button type="button" className="home-member-remove" onClick={() => handleRemoveMember(item.team?.id, m.userId)} title="Исключить из команды">✕</button>
                             )}
                           </li>
                         ))}
@@ -410,12 +438,45 @@ export default function HomePage() {
                       <ol className="home-leaderboard-list">
                         {(teamLeaderboard[item.team?.id] ?? []).map((entry) => (
                           <li key={entry.userId}>
-                            #{entry.rank} {entry.userName} — {entry.totalXpGained} XP
+                            #{entry.rank} <Link to={`/profile/${entry.userId}`}>{entry.userName}</Link> — {entry.totalXpGained} XP
                             {userCharacter[entry.userId] != null && <span className="home-leaderboard-level"> (ур. {userCharacter[entry.userId].levelNumber})</span>}
                           </li>
                         ))}
                       </ol>
                       {(!teamLeaderboard[item.team?.id]?.length) && <p className="home-empty">Нет данных</p>}
+                    </div>
+                    <div className="home-detail-section home-kpi-section">
+                      <h4>KPI за 14 дней</h4>
+                      {(teamKpi[item.team?.id]?.length > 0) ? (
+                        <div className="home-kpi-charts">
+                          <div className="home-kpi-chart">
+                            <h5>Набранный XP</h5>
+                            <ResponsiveContainer width="100%" height={180}>
+                              <AreaChart data={teamKpi[item.team?.id] || []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                                <YAxis tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)' }} labelStyle={{ color: 'var(--text)' }} />
+                                <Area type="monotone" dataKey="xp" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.3} name="XP" />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="home-kpi-chart">
+                            <h5>Выполненные квесты</h5>
+                            <ResponsiveContainer width="100%" height={180}>
+                              <BarChart data={teamKpi[item.team?.id] || []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                                <YAxis tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)' }} labelStyle={{ color: 'var(--text)' }} />
+                                <Bar dataKey="quests" fill="var(--accent)" name="Квесты" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="home-empty">Нет данных за период</p>
+                      )}
                     </div>
                     <div className="home-detail-section">
                       <h4>Лента активностей</h4>

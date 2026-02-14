@@ -102,10 +102,15 @@ public class TeamService : ITeamService
         return true;
     }
 
-    public async Task<bool> RemoveMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default)
+    public async Task<bool?> RemoveMemberAsync(Guid teamId, Guid userId, Guid? requestedByUserId, CancellationToken ct = default)
     {
         var m = await _db.TeamMembers.FirstOrDefaultAsync(x => x.TeamId == teamId && x.UserId == userId, ct);
-        if (m == null) return false;
+        if (m == null) return null;
+        var team = await _db.Teams.FirstOrDefaultAsync(t => t.Id == teamId, ct);
+        if (team == null) return null;
+        var ownerId = team.OwnerId ?? await _db.TeamMembers.Where(x => x.TeamId == teamId && x.Role == TeamRole.Admin).Select(x => (Guid?)x.UserId).FirstOrDefaultAsync(ct);
+        if (!requestedByUserId.HasValue || ownerId != requestedByUserId.Value)
+            return false;
         _db.TeamMembers.Remove(m);
         await _db.SaveChangesAsync(ct);
         return true;

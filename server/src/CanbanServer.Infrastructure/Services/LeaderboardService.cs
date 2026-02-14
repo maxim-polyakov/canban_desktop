@@ -55,4 +55,39 @@ public class LeaderboardService : ILeaderboardService
         }
         return result;
     }
+
+    public async Task<List<TeamKpiPointDto>> GetTeamKpiAsync(Guid teamId, DateTime? from, DateTime? to, CancellationToken ct = default)
+    {
+        var toDate = (to ?? DateTime.UtcNow).Date;
+        var fromDate = (from ?? toDate.AddDays(-14)).Date;
+        if (fromDate > toDate) fromDate = toDate;
+
+        var memberIds = await _db.TeamMembers.Where(m => m.TeamId == teamId).Select(m => m.UserId).ToListAsync(ct);
+        if (memberIds.Count == 0) return new List<TeamKpiPointDto>();
+
+        var characterIds = await _db.Characters.Where(c => memberIds.Contains(c.UserId)).Select(c => c.Id).ToListAsync(ct);
+        var fromUtc = fromDate;
+        var toUtc = toDate.AddDays(1);
+
+        var xpList = await _db.XpTransactions
+            .Where(x => characterIds.Contains(x.CharacterId) && x.CreatedAt >= fromUtc && x.CreatedAt < toUtc)
+            .Select(x => new { x.CreatedAt, x.Amount })
+            .ToListAsync(ct);
+        var xpByDay = xpList
+            .GroupBy(x => x.CreatedAt.Date)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
+        var completedQuests = await _db.Quests
+            .Where(q => q.AssigneeId != null && memberIds.Contains(q.AssigneeId.Value) && q.CompletedAt >= fromUtc && q.CompletedAt < toUtc)
+            .Select(q => q.CompletedAt!.Value)
+            .ToListAsync(ct);
+        var questsByDay = completedQuests
+            .GroupBy(d => d.Date)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var result = new List<TeamKpiPointDto>();
+        for (var d = fromDate; d <= toDate; d = d.AddDays(1))
+            result.Add(new TeamKpiPointDto(d, xpByDay.GetValueOrDefault(d, 0), questsByDay.GetValueOrDefault(d, 0)));
+        return result;
+    }
 }

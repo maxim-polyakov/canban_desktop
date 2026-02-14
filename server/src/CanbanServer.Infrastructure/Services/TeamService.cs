@@ -9,8 +9,13 @@ namespace CanbanServer.Infrastructure.Services;
 public class TeamService : ITeamService
 {
     private readonly CanbanDbContext _db;
+    private readonly IAchievementService _achievementService;
 
-    public TeamService(CanbanDbContext db) => _db = db;
+    public TeamService(CanbanDbContext db, IAchievementService achievementService)
+    {
+        _db = db;
+        _achievementService = achievementService;
+    }
 
     public async Task<TeamDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
@@ -92,7 +97,7 @@ public class TeamService : ITeamService
         return true;
     }
 
-    public async Task<bool?> AddMemberByEmailAsync(Guid teamId, string email, CancellationToken ct = default)
+    public async Task<bool?> AddMemberByEmailAsync(Guid teamId, string email, Guid inviterUserId, CancellationToken ct = default)
     {
         var normalized = email?.Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(normalized)) return null;
@@ -107,9 +112,11 @@ public class TeamService : ITeamService
             TeamId = teamId,
             UserId = user.Id,
             Role = TeamRole.Member,
-            JoinedAt = DateTime.UtcNow
+            JoinedAt = DateTime.UtcNow,
+            InvitedByUserId = inviterUserId
         });
         await _db.SaveChangesAsync(ct);
+        await _achievementService.TryGrantAchievementsForUserAsync(inviterUserId, ct);
         return true;
     }
 }

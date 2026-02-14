@@ -67,6 +67,8 @@ public class AchievementService : IAchievementService
 
         var isInTeam = await _db.TeamMembers.AnyAsync(tm => tm.UserId == userId, ct);
 
+        var invitedCount = await _db.TeamMembers.CountAsync(tm => tm.InvitedByUserId == userId, ct);
+
         var character = await _db.Characters
             .Include(c => c.Level)
             .FirstOrDefaultAsync(c => c.UserId == userId, ct);
@@ -74,6 +76,7 @@ public class AchievementService : IAchievementService
 
         var now = DateTime.UtcNow;
         var grantedWithBonus = new List<(int XpBonus, string Name)>();
+        var grantedAchievementIds = new List<Guid>();
         foreach (var a in toUnlock)
         {
             var granted = a.ConditionType switch
@@ -82,7 +85,7 @@ public class AchievementService : IAchievementService
                 "CompleteQuests" => !string.IsNullOrEmpty(a.ConditionPayload) && int.TryParse(a.ConditionPayload, out var n) && completedQuestCount >= n,
                 "TeamMember" => isInTeam,
                 "LevelUp" => !string.IsNullOrEmpty(a.ConditionPayload) && int.TryParse(a.ConditionPayload, out var lvl) && levelNumber >= lvl,
-                "InviteMember" => false,
+                "InviteMember" => invitedCount >= 1,
                 _ => false
             };
             if (granted)
@@ -94,8 +97,35 @@ public class AchievementService : IAchievementService
                     AchievementId = a.Id,
                     UnlockedAt = now
                 });
+                grantedAchievementIds.Add(a.Id);
                 if (a.XpBonus.HasValue && a.XpBonus.Value > 0)
                     grantedWithBonus.Add((a.XpBonus.Value, a.Name));
+            }
+        }
+
+        if (grantedAchievementIds.Count > 0)
+        {
+            var skillsUnlockedByAchievements = await _db.Skills
+                .Where(s => s.RequiredAchievementId != null && grantedAchievementIds.Contains(s.RequiredAchievementId!.Value))
+                .ToListAsync(ct);
+            var existingSkillUnlockIds = (await _db.SkillUnlocks
+                .Where(su => su.UserId == userId)
+                .Select(su => su.SkillId)
+                .ToListAsync(ct))
+                .ToHashSet();
+            foreach (var skill in skillsUnlockedByAchievements)
+            {
+                if (!existingSkillUnlockIds.Contains(skill.Id))
+                {
+                    _db.SkillUnlocks.Add(new SkillUnlock
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        SkillId = skill.Id,
+                        UnlockedAt = now
+                    });
+                    existingSkillUnlockIds.Add(skill.Id);
+                }
             }
         }
 

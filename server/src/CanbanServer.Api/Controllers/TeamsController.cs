@@ -63,9 +63,11 @@ public class TeamsController : ControllerBase
     [HttpPost("{teamId:guid}/members/invite")]
     public async Task<ActionResult> InviteByEmail(Guid teamId, [FromBody] InviteMemberRequest? request, CancellationToken ct)
     {
+        var inviterId = User.GetUserId();
+        if (!inviterId.HasValue) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Email))
             return BadRequest("Укажите email.");
-        var result = await _teamService.AddMemberByEmailAsync(teamId, request.Email.Trim(), ct);
+        var result = await _teamService.AddMemberByEmailAsync(teamId, request.Email.Trim(), inviterId.Value, ct);
         if (result == null) return NotFound("Пользователь с таким email не найден.");
         if (result == false) return BadRequest("Пользователь уже в команде.");
         return NoContent();

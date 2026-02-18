@@ -130,6 +130,7 @@ export const character = {
 
 export const users = {
   getPublic: (userId) => apiJson(`/api/users/${userId}`),
+  getAll: () => apiJson('/api/users'),
 };
 
 export const teams = {
@@ -144,14 +145,18 @@ export const teams = {
     const r = await api(`/api/teams/${teamId}/members/${userId}`, { method: 'DELETE' });
     return r.ok ? true : { ok: false, status: r.status };
   },
+  leaveTeam: (teamId) => api(`/api/teams/${teamId}/leave`, { method: 'POST' }).then((r) => r.ok),
   inviteByEmail: async (teamId, email) => {
     const res = await api(`/api/teams/${teamId}/members/invite`, { method: 'POST', body: JSON.stringify({ email }) });
     if (res.ok) return { ok: true };
     const text = await res.text();
     if (res.status === 404) return { ok: false, error: text || 'Пользователь с таким email не найден.' };
-    if (res.status === 400) return { ok: false, error: text || 'Пользователь уже в команде.' };
-    return { ok: false, error: text || 'Ошибка при добавлении.' };
+    if (res.status === 400) return { ok: false, error: text || 'Пользователь уже в команде или приглашение уже отправлено.' };
+    return { ok: false, error: text || 'Ошибка при отправке приглашения.' };
   },
+  getMyInvites: () => apiJson('/api/teams/invites/my'),
+  acceptInvite: (inviteId) => api(`/api/teams/invites/${inviteId}/accept`, { method: 'POST' }).then((r) => r.ok),
+  declineInvite: (inviteId) => api(`/api/teams/invites/${inviteId}/decline`, { method: 'POST' }).then((r) => r.ok),
 };
 
 export const achievements = {

@@ -116,7 +116,27 @@ public class TeamService : ITeamService
         return true;
     }
 
-    public async Task<bool?> AddMemberByEmailAsync(Guid teamId, string email, Guid inviterUserId, CancellationToken ct = default)
+    public async Task<bool> LeaveTeamAsync(Guid teamId, Guid userId, CancellationToken ct = default)
+    {
+        var m = await _db.TeamMembers.FirstOrDefaultAsync(x => x.TeamId == teamId && x.UserId == userId, ct);
+        if (m == null) return false;
+        var team = await _db.Teams
+            .Include(t => t.Members.OrderBy(mem => mem.JoinedAt))
+            .FirstOrDefaultAsync(t => t.Id == teamId, ct);
+        if (team == null) return false;
+        var wasOwner = (team.OwnerId == userId) || (team.OwnerId == null && team.Members.FirstOrDefault(mem => mem.Role == TeamRole.Admin)?.UserId == userId);
+        _db.TeamMembers.Remove(m);
+        if (wasOwner)
+        {
+            var nextOwner = team.Members.Where(mem => mem.UserId != userId).FirstOrDefault(mem => mem.Role == TeamRole.Admin)?.UserId
+                ?? team.Members.Where(mem => mem.UserId != userId).FirstOrDefault()?.UserId;
+            team.OwnerId = nextOwner;
+        }
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool?> InviteByEmailAsync(Guid teamId, string email, Guid inviterUserId, CancellationToken ct = default)
     {
         var normalized = email?.Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(normalized)) return null;
@@ -125,17 +145,67 @@ public class TeamService : ITeamService
         if (user == null) return null;
         if (await _db.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == user.Id, ct))
             return false;
-        _db.TeamMembers.Add(new TeamMember
+        if (await _db.TeamInvites.AnyAsync(i => i.TeamId == teamId && i.InvitedUserId == user.Id, ct))
+            return false;
+        _db.TeamInvites.Add(new TeamInvite
         {
             Id = Guid.NewGuid(),
             TeamId = teamId,
-            UserId = user.Id,
-            Role = TeamRole.Member,
-            JoinedAt = DateTime.UtcNow,
-            InvitedByUserId = inviterUserId
+            InvitedUserId = user.Id,
+            InvitedByUserId = inviterUserId,
+            CreatedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync(ct);
-        await _achievementService.TryGrantAchievementsForUserAsync(inviterUserId, ct);
+        return true;
+    }
+
+    public async Task<List<TeamInviteDto>> GetPendingInvitesForUserAsync(Guid userId, CancellationToken ct = default)
+    {
+        var invites = await _db.TeamInvites
+            .Include(i => i.Team)
+            .Include(i => i.InvitedByUser)
+            .Where(i => i.InvitedUserId == userId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync(ct);
+        return invites.Select(i => new TeamInviteDto(
+            i.Id, i.TeamId, i.Team.Name, i.InvitedByUserId, i.InvitedByUser.DisplayName, i.CreatedAt)).ToList();
+    }
+
+    public async Task<bool?> AcceptInviteAsync(Guid inviteId, Guid userId, CancellationToken ct = default)
+    {
+        var invite = await _db.TeamInvites
+            .Include(i => i.Team)
+            .FirstOrDefaultAsync(i => i.Id == inviteId, ct);
+        if (invite == null) return null;
+        if (invite.InvitedUserId != userId) return false;
+        if (await _db.TeamMembers.AnyAsync(m => m.TeamId == invite.TeamId && m.UserId == userId, ct))
+        {
+            _db.TeamInvites.Remove(invite);
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+        _db.TeamMembers.Add(new TeamMember
+        {
+            Id = Guid.NewGuid(),
+            TeamId = invite.TeamId,
+            UserId = userId,
+            Role = TeamRole.Member,
+            JoinedAt = DateTime.UtcNow,
+            InvitedByUserId = invite.InvitedByUserId
+        });
+        _db.TeamInvites.Remove(invite);
+        await _db.SaveChangesAsync(ct);
+        await _achievementService.TryGrantAchievementsForUserAsync(invite.InvitedByUserId, ct);
+        return true;
+    }
+
+    public async Task<bool> DeclineInviteAsync(Guid inviteId, Guid userId, CancellationToken ct = default)
+    {
+        var invite = await _db.TeamInvites.FirstOrDefaultAsync(i => i.Id == inviteId, ct);
+        if (invite == null) return false;
+        if (invite.InvitedUserId != userId) return false;
+        _db.TeamInvites.Remove(invite);
+        await _db.SaveChangesAsync(ct);
         return true;
     }
 

@@ -25,6 +25,88 @@
   font-size: 0.85rem;
 }
 
+.home-invites-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.home-invites-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.home-invites-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.home-invite-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.home-invite-item:last-child {
+  border-bottom: none;
+}
+
+.home-invite-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.95rem;
+}
+
+.home-invite-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.home-invite-accept-btn {
+  padding: 0.4rem 0.75rem;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-invite-accept-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.home-invite-accept-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.home-invite-decline-btn {
+  padding: 0.4rem 0.75rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.home-invite-decline-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.home-invite-decline-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .home-boards h2 {
   margin: 0 0 0.75rem;
   font-size: 1.1rem;
@@ -75,6 +157,17 @@
 .home-team-delete-btn:hover {
   border-color: #c62828;
   color: #c62828;
+}
+
+.home-team-leave-btn {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.home-team-leave-btn:hover {
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .home-team-edit-form {
@@ -250,12 +343,6 @@
 
 .home-team-refresh-boards {
   margin-left: 0;
-}
-
-.home-invite-by-id {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed var(--border);
 }
 
 .home-member-level {

@@ -28,10 +28,9 @@ export default function HomePage() {
   const [teamLeaderboard, setTeamLeaderboard] = useState({});
   const [teamActivity, setTeamActivity] = useState({});
   const [teamKpi, setTeamKpi] = useState({});
-  const [inviteUserId, setInviteUserId] = useState('');
-  const [inviteUserIdError, setInviteUserIdError] = useState('');
-  const [addingByUserId, setAddingByUserId] = useState(false);
   const [userCharacter, setUserCharacter] = useState({});
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [inviteActioning, setInviteActioning] = useState(null);
   const [addBoardTeamId, setAddBoardTeamId] = useState(null);
   const [addBoardName, setAddBoardName] = useState('');
   const [addBoardError, setAddBoardError] = useState('');
@@ -42,11 +41,13 @@ export default function HomePage() {
     let cancelled = false;
     (async () => {
       try {
-        const [teamsRes, charRes] = await Promise.all([
+        const [teamsRes, charRes, invitesRes] = await Promise.all([
           teams.getMyTeamsWithBoards().catch(() => []),
           character.getMe().catch(() => null),
+          teams.getMyInvites().catch(() => []),
         ]);
         if (!cancelled) {
+          setPendingInvites(Array.isArray(invitesRes) ? invitesRes : []);
           const list = Array.isArray(teamsRes) ? teamsRes : [];
           setMyTeamsWithBoards(list.map((item) => {
             const team = item.team ?? item.Team ?? {};
@@ -170,6 +171,16 @@ export default function HomePage() {
     }
   };
 
+  const handleLeaveTeam = async (teamId) => {
+    if (!window.confirm('Выйти из команды? Вы сможете вернуться только по повторному приглашению.')) return;
+    try {
+      const ok = await teams.leaveTeam(teamId);
+      if (ok) await loadTeams();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleDeleteTeam = async (teamId) => {
     if (!window.confirm('Удалить команду и все её доски? Это действие нельзя отменить.')) return;
     try {
@@ -269,24 +280,37 @@ export default function HomePage() {
     }
   };
 
-  const handleAddByUserId = async (e, teamId) => {
-    e.preventDefault();
-    const uid = inviteUserId.trim();
-    if (!uid) return;
-    setInviteUserIdError('');
-    setAddingByUserId(true);
+  const loadPendingInvites = async () => {
     try {
-      const ok = await teams.addMember(teamId, uid);
+      const list = await teams.getMyInvites().catch(() => []);
+      setPendingInvites(Array.isArray(list) ? list : []);
+    } catch (_) {}
+  };
+
+  const handleAcceptInvite = async (inviteId) => {
+    setInviteActioning(inviteId);
+    try {
+      const ok = await teams.acceptInvite(inviteId);
       if (ok) {
-        setInviteUserId('');
-        loadTeamMembers(teamId);
-      } else {
-        setInviteUserIdError('Не удалось добавить.');
+        await loadPendingInvites();
+        await loadTeams();
       }
     } catch (err) {
-      setInviteUserIdError(err.message || 'Ошибка.');
+      console.error(err);
     } finally {
-      setAddingByUserId(false);
+      setInviteActioning(null);
+    }
+  };
+
+  const handleDeclineInvite = async (inviteId) => {
+    setInviteActioning(inviteId);
+    try {
+      const ok = await teams.declineInvite(inviteId);
+      if (ok) await loadPendingInvites();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setInviteActioning(null);
     }
   };
 
@@ -322,6 +346,38 @@ export default function HomePage() {
           {char.levelTitle && <span className="home-badge">{char.levelTitle}</span>}
         </section>
       )}
+      {pendingInvites.length > 0 && (
+        <section className="home-invites-section">
+          <h2>Приглашения в команды</h2>
+          <ul className="home-invites-list">
+            {pendingInvites.map((inv) => (
+              <li key={inv.id} className="home-invite-item">
+                <span className="home-invite-text">
+                  В команду <strong>{inv.teamName ?? inv.TeamName ?? '—'}</strong> вас пригласил {inv.invitedByUserName ?? inv.InvitedByUserName ?? '—'}
+                </span>
+                <div className="home-invite-actions">
+                  <button
+                    type="button"
+                    className="home-invite-accept-btn"
+                    onClick={() => handleAcceptInvite(inv.id)}
+                    disabled={inviteActioning === inv.id}
+                  >
+                    {inviteActioning === inv.id ? '…' : 'Принять'}
+                  </button>
+                  <button
+                    type="button"
+                    className="home-invite-decline-btn"
+                    onClick={() => handleDeclineInvite(inv.id)}
+                    disabled={inviteActioning === inv.id}
+                  >
+                    Отклонить
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="home-boards">
         <h2>Мои команды и доски</h2>
         {myTeamsWithBoards.length > 0 && (
@@ -346,6 +402,7 @@ export default function HomePage() {
                       {isTeamOwner(item.team) && (
                         <button type="button" className="home-team-btn home-team-delete-btn" onClick={() => handleDeleteTeam(item.team?.id)} title="Удалить команду">🗑</button>
                       )}
+                      <button type="button" className="home-team-btn home-team-leave-btn" onClick={() => handleLeaveTeam(item.team?.id)} title="Выйти из команды">Выйти</button>
                     </>
                   )}
                 </div>
@@ -398,13 +455,6 @@ export default function HomePage() {
                           <button type="button" onClick={() => { setInviteTeamId(null); setInviteEmail(''); setInviteError(''); }} disabled={inviting}>Отмена</button>
                         </div>
                         {inviteError && <p className="home-invite-error">{inviteError}</p>}
-                      </form>
-                      <form className="home-invite-form home-invite-by-id" onSubmit={(e) => handleAddByUserId(e, item.team?.id)}>
-                        <input type="text" placeholder="ID пользователя (GUID)" value={inviteUserId} onChange={(e) => setInviteUserId(e.target.value)} disabled={addingByUserId} />
-                        <div className="home-invite-actions">
-                          <button type="submit" disabled={addingByUserId || !inviteUserId.trim()}>{addingByUserId ? '…' : 'Добавить по ID'}</button>
-                        </div>
-                        {inviteUserIdError && <p className="home-invite-error">{inviteUserIdError}</p>}
                       </form>
                     </>
                   )}

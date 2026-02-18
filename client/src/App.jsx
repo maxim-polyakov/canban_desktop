@@ -11,6 +11,7 @@ import ForgotPasswordResetPage from './pages/ForgotPasswordResetPage.jsx';
 import BoardPage from './pages/BoardPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="board/:boardId" element={<BoardPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:userId" element={<ProfilePage />} />
+          <Route path="users" element={<UsersPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

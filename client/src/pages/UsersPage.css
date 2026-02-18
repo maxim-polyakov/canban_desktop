@@ -1,0 +1,78 @@
+.users-page {
+  padding: 1.5rem;
+  max-width: 720px;
+}
+
+.users-page h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+}
+
+.users-page-sub {
+  margin: 0 0 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.users-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.users-table th,
+.users-table td {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.users-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.users-table tbody tr:hover {
+  background: var(--bg);
+}
+
+.users-table-name {
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.users-table-name:hover {
+  text-decoration: underline;
+}
+
+.users-table-email {
+  color: var(--text);
+}
+
+.users-table-link {
+  font-size: 0.9rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.users-table-link:hover {
+  text-decoration: underline;
+}
+
+.users-page-empty {
+  margin: 1.5rem 0 0;
+  color: var(--text-muted);
+}

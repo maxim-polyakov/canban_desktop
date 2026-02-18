@@ -184,6 +184,12 @@ public class AuthService : IAuthService
         return user == null ? null : new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
     }
 
+    public async Task<List<UserDto>> GetAllUsersAsync(CancellationToken ct = default)
+    {
+        var users = await _db.Users.OrderBy(u => u.DisplayName).ThenBy(u => u.Email).ToListAsync(ct);
+        return users.Select(u => new UserDto(u.Id, u.Email, u.DisplayName, u.AvatarUrl, u.CreatedAt)).ToList();
+    }
+
     public async Task<PublicUserDto?> GetPublicUserAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await _db.Users.FindAsync(new object[] { userId }, ct);

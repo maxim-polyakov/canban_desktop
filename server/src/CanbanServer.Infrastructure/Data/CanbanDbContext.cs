@@ -12,6 +12,7 @@ public class CanbanDbContext : DbContext
     public DbSet<Level> Levels => Set<Level>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
+    public DbSet<TeamInvite> TeamInvites => Set<TeamInvite>();
     public DbSet<Board> Boards => Set<Board>();
     public DbSet<Column> Columns => Set<Column>();
     public DbSet<Quest> Quests => Set<Quest>();

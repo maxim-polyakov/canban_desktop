@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import KanbanColumn from './KanbanColumn.jsx';
@@ -42,7 +42,8 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
   const [newColumnIsDone, setNewColumnIsDone] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   );
 
   const activeQuest = activeId

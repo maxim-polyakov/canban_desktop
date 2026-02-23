@@ -13,19 +13,22 @@ public class QuestService : IQuestService
     private readonly IActivityHub _activityHub;
     private readonly ICharacterXpService _xpService;
     private readonly IAchievementService _achievementService;
+    private readonly CacheService _cache;
 
     public QuestService(
         CanbanDbContext db,
         IActivityFeedService activityFeed,
         IActivityHub activityHub,
         ICharacterXpService xpService,
-        IAchievementService achievementService)
+        IAchievementService achievementService,
+        CacheService cache)
     {
         _db = db;
         _activityFeed = activityFeed;
         _activityHub = activityHub;
         _xpService = xpService;
         _achievementService = achievementService;
+        _cache = cache;
     }
 
     public async Task<QuestDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -69,6 +72,7 @@ public class QuestService : IQuestService
         };
         _db.Quests.Add(quest);
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
         return (await GetByIdAsync(quest.Id, ct))!;
     }
 
@@ -83,6 +87,7 @@ public class QuestService : IQuestService
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + q.BoardId, ct);
         return await GetByIdAsync(id, ct);
     }
 
@@ -138,6 +143,7 @@ public class QuestService : IQuestService
         }
 
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
         if (justCompleted)
         {
             var assigneeId = quest.AssigneeId ?? userId;
@@ -148,21 +154,30 @@ public class QuestService : IQuestService
 
     public async Task ReorderAsync(ReorderQuestsRequest request, CancellationToken ct = default)
     {
+        Guid? boardId = null;
         for (var i = 0; i < request.QuestIdsInOrder.Count; i++)
         {
             var id = request.QuestIdsInOrder[i];
             var q = await _db.Quests.FirstOrDefaultAsync(x => x.Id == id && x.ColumnId == request.ColumnId, ct);
-            if (q != null) q.Order = i;
+            if (q != null)
+            {
+                q.Order = i;
+                boardId = q.BoardId;
+            }
         }
         await _db.SaveChangesAsync(ct);
+        if (boardId.HasValue)
+            await _cache.InvalidateAsync("board:detail:" + boardId.Value, ct);
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var q = await _db.Quests.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return false;
+        var boardId = q.BoardId;
         _db.Quests.Remove(q);
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + boardId, ct);
         return true;
     }
 

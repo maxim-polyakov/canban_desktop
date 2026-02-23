@@ -10,8 +10,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Smtp__Host: smtp-service-canban
       Smtp__Port: 1025
+      Redis__Configuration: redis:6379
     depends_on:
       - smtp-service-canban
+      - redis
     networks:
       - canban_net
 
@@ -47,6 +49,15 @@ services:
       --verbose
     ports:
       - "8183:1080"
+    networks:
+      - canban_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-canban
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     networks:
       - canban_net
 

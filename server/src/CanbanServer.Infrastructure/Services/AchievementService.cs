@@ -10,17 +10,26 @@ public class AchievementService : IAchievementService
 {
     private readonly CanbanDbContext _db;
     private readonly ICharacterXpService _xpService;
+    private readonly CacheService _cache;
 
-    public AchievementService(CanbanDbContext db, ICharacterXpService xpService)
+    public AchievementService(CanbanDbContext db, ICharacterXpService xpService, CacheService cache)
     {
         _db = db;
         _xpService = xpService;
+        _cache = cache;
     }
 
     public async Task<List<AchievementDto>> GetAllAsync(CancellationToken ct = default)
     {
-        var list = await _db.Achievements.OrderBy(a => a.Order).ToListAsync(ct);
-        return list.Select(a => new AchievementDto(a.Id, a.Key, a.Name, a.Description, HowToObtainText(a.ConditionType, a.ConditionPayload), a.IconUrl, a.XpBonus, a.Order)).ToList();
+        return (await _cache.GetOrCreateAsync(
+            "achievements:all",
+            TimeSpan.FromMinutes(15),
+            async _ =>
+            {
+                var list = await _db.Achievements.OrderBy(a => a.Order).ToListAsync(ct);
+                return list.Select(a => new AchievementDto(a.Id, a.Key, a.Name, a.Description, HowToObtainText(a.ConditionType, a.ConditionPayload), a.IconUrl, a.XpBonus, a.Order)).ToList();
+            },
+            ct)) ?? new List<AchievementDto>();
     }
 
     private static string? HowToObtainText(string conditionType, string? payload)
@@ -40,12 +49,19 @@ public class AchievementService : IAchievementService
 
     public async Task<List<UserAchievementDto>> GetUserAchievementsAsync(Guid userId, CancellationToken ct = default)
     {
-        var list = await _db.UserAchievements
+        return (await _cache.GetOrCreateAsync(
+            "achievements:user:" + userId,
+            TimeSpan.FromMinutes(5),
+            async _ =>
+            {
+                var list = await _db.UserAchievements
             .Include(ua => ua.Achievement)
             .Where(ua => ua.UserId == userId)
             .OrderByDescending(ua => ua.UnlockedAt)
             .ToListAsync(ct);
-        return list.Select(ua => new UserAchievementDto(ua.AchievementId, ua.Achievement.Key, ua.Achievement.Name, ua.Achievement.IconUrl, ua.UnlockedAt)).ToList();
+                return list.Select(ua => new UserAchievementDto(ua.AchievementId, ua.Achievement.Key, ua.Achievement.Name, ua.Achievement.IconUrl, ua.UnlockedAt)).ToList();
+            },
+            ct)) ?? new List<UserAchievementDto>();
     }
 
     public async Task TryGrantAchievementsForUserAsync(Guid userId, CancellationToken ct = default)
@@ -130,6 +146,13 @@ public class AchievementService : IAchievementService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        if (grantedAchievementIds.Count > 0)
+        {
+            await _cache.InvalidateAsync("achievements:user:" + userId, ct);
+            await _cache.InvalidateAsync("skilltree:user:" + userId, ct);
+            await _cache.InvalidateAsync("skilltree:unlocked:" + userId, ct);
+        }
 
         foreach (var (xpBonus, name) in grantedWithBonus)
             await _xpService.AwardAchievementAsync(userId, xpBonus, name, ct);

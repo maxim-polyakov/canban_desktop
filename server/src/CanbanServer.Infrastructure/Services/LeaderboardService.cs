@@ -11,10 +11,23 @@ namespace CanbanServer.Infrastructure.Services;
 public class LeaderboardService : ILeaderboardService
 {
     private readonly CanbanDbContext _db;
+    private readonly CacheService _cache;
 
-    public LeaderboardService(CanbanDbContext db) => _db = db;
+    public LeaderboardService(CanbanDbContext db, CacheService cache)
+    {
+        _db = db;
+        _cache = cache;
+    }
 
     public async Task<List<LeaderboardEntryDto>> GetTeamLeaderboardAsync(TeamLeaderboardRequest request, CancellationToken ct = default)
+    {
+        var to = request.To ?? DateTime.UtcNow;
+        var from = request.From ?? to.AddDays(-7);
+        var key = $"leaderboard:team:{request.TeamId}:{from:O}:{to:O}:{request.Limit}";
+        return (await _cache.GetOrCreateAsync(key, TimeSpan.FromMinutes(2), _ => GetTeamLeaderboardCoreAsync(request, ct), ct)) ?? new List<LeaderboardEntryDto>();
+    }
+
+    private async Task<List<LeaderboardEntryDto>> GetTeamLeaderboardCoreAsync(TeamLeaderboardRequest request, CancellationToken ct)
     {
         var to = request.To ?? DateTime.UtcNow;
         var from = request.From ?? to.AddDays(-7);
@@ -61,7 +74,12 @@ public class LeaderboardService : ILeaderboardService
         var toDate = (to ?? DateTime.UtcNow).Date;
         var fromDate = (from ?? toDate.AddDays(-14)).Date;
         if (fromDate > toDate) fromDate = toDate;
+        var key = $"leaderboard:kpi:{teamId}:{fromDate:O}:{toDate:O}";
+        return (await _cache.GetOrCreateAsync(key, TimeSpan.FromMinutes(2), _ => GetTeamKpiCoreAsync(teamId, fromDate, toDate, ct), ct)) ?? new List<TeamKpiPointDto>();
+    }
 
+    private async Task<List<TeamKpiPointDto>> GetTeamKpiCoreAsync(Guid teamId, DateTime fromDate, DateTime toDate, CancellationToken ct)
+    {
         var memberIds = await _db.TeamMembers.Where(m => m.TeamId == teamId).Select(m => m.UserId).ToListAsync(ct);
         if (memberIds.Count == 0) return new List<TeamKpiPointDto>();
 

@@ -82,6 +82,21 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
+// Redis (IDistributedCache) — подключается, если задан Redis:Configuration
+var redisConfig = builder.Configuration["Redis:Configuration"];
+if (!string.IsNullOrWhiteSpace(redisConfig))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConfig;
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+builder.Services.AddSingleton<CacheService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

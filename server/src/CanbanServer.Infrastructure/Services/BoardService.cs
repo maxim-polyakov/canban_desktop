@@ -9,25 +9,44 @@ namespace CanbanServer.Infrastructure.Services;
 public class BoardService : IBoardService
 {
     private readonly CanbanDbContext _db;
+    private readonly CacheService _cache;
 
-    public BoardService(CanbanDbContext db) => _db = db;
+    public BoardService(CanbanDbContext db, CacheService cache)
+    {
+        _db = db;
+        _cache = cache;
+    }
 
     public async Task<BoardDetailDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var b = await _db.Boards
-            .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Assignee)
-            .FirstOrDefaultAsync(x => x.Id == id, ct);
-        if (b == null) return null;
-        var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
-            c.Id, c.BoardId, c.Title, c.Order, c.Kind, c.CreatedAt,
-            c.Quests.OrderBy(q => q.Order).Select(q => MapQuest(q)).ToList())).ToList();
-        return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId);
+        return await _cache.GetOrCreateAsync(
+            "board:detail:" + id,
+            TimeSpan.FromMinutes(5),
+            async _ =>
+            {
+                var b = await _db.Boards
+                    .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Assignee)
+                    .FirstOrDefaultAsync(x => x.Id == id, ct);
+                if (b == null) return null;
+                var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
+                    c.Id, c.BoardId, c.Title, c.Order, c.Kind, c.CreatedAt,
+                    c.Quests.OrderBy(q => q.Order).Select(q => MapQuest(q)).ToList())).ToList();
+                return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId);
+            },
+            ct);
     }
 
     public async Task<List<BoardDto>> GetByTeamIdAsync(Guid teamId, CancellationToken ct = default)
     {
-        var list = await _db.Boards.Where(x => x.TeamId == teamId).OrderBy(x => x.Order).ToListAsync(ct);
-        return list.Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId)).ToList();
+        return (await _cache.GetOrCreateAsync(
+            "board:team:" + teamId,
+            TimeSpan.FromMinutes(5),
+            async _ =>
+            {
+                var list = await _db.Boards.Where(x => x.TeamId == teamId).OrderBy(x => x.Order).ToListAsync(ct);
+                return list.Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId)).ToList();
+            },
+            ct)) ?? new List<BoardDto>();
     }
 
     public async Task<BoardDto> CreateAsync(CreateBoardRequest request, Guid? createdByUserId, CancellationToken ct = default)
@@ -55,6 +74,7 @@ public class BoardService : IBoardService
         _db.Columns.AddRange(defaultColumns);
 
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:team:" + request.TeamId, ct);
         return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt, board.CreatedByUserId);
     }
 
@@ -66,6 +86,8 @@ public class BoardService : IBoardService
         if (request.Description != null) b.Description = request.Description;
         if (request.Order != null) b.Order = request.Order.Value;
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + id, ct);
+        await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
         return new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId);
     }
 
@@ -77,6 +99,8 @@ public class BoardService : IBoardService
             return false;
         _db.Boards.Remove(b);
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + id, ct);
+        await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
         return true;
     }
 

@@ -15,6 +15,7 @@
     <PackageReference Include="AWSSDK.S3" Version="3.7.400" />
     <PackageReference Include="MailKit" Version="4.8.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="7.0.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.0.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.0.3" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

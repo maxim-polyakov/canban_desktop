@@ -9,11 +9,13 @@ public class ColumnService : IColumnService
 {
     private readonly CanbanDbContext _db;
     private readonly IQuestService _questService;
+    private readonly CacheService _cache;
 
-    public ColumnService(CanbanDbContext db, IQuestService questService)
+    public ColumnService(CanbanDbContext db, IQuestService questService, CacheService cache)
     {
         _db = db;
         _questService = questService;
+        _cache = cache;
     }
 
     public async Task<ColumnDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -44,6 +46,7 @@ public class ColumnService : IColumnService
         };
         _db.Columns.Add(col);
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + boardId, ct);
         return new ColumnSummaryDto(col.Id, col.BoardId, col.Title, col.Order, col.Kind);
     }
 
@@ -55,6 +58,7 @@ public class ColumnService : IColumnService
         if (request.Order != null) c.Order = request.Order.Value;
         if (request.Kind != null) c.Kind = request.Kind.Value;
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + c.BoardId, ct);
         return new ColumnSummaryDto(c.Id, c.BoardId, c.Title, c.Order, c.Kind);
     }
 
@@ -66,14 +70,17 @@ public class ColumnService : IColumnService
             if (col != null) col.Order = i;
         }
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + boardId, ct);
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var c = await _db.Columns.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c == null) return false;
+        var boardId = c.BoardId;
         _db.Columns.Remove(c);
         await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + boardId, ct);
         return true;
     }
 }

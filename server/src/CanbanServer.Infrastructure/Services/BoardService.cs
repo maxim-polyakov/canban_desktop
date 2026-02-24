@@ -9,11 +9,13 @@ namespace CanbanServer.Infrastructure.Services;
 public class BoardService : IBoardService
 {
     private readonly CanbanDbContext _db;
+    private readonly IBoardHub _boardHub;
     private readonly CacheService _cache;
 
-    public BoardService(CanbanDbContext db, CacheService cache)
+    public BoardService(CanbanDbContext db, IBoardHub boardHub, CacheService cache)
     {
         _db = db;
+        _boardHub = boardHub;
         _cache = cache;
     }
 
@@ -75,6 +77,7 @@ public class BoardService : IBoardService
 
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:team:" + request.TeamId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(board.Id, ct);
         return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt, board.CreatedByUserId);
     }
 
@@ -88,6 +91,7 @@ public class BoardService : IBoardService
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + id, ct);
         await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(id, ct);
         return new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId);
     }
 
@@ -101,6 +105,7 @@ public class BoardService : IBoardService
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + id, ct);
         await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(id, ct);
         return true;
     }
 

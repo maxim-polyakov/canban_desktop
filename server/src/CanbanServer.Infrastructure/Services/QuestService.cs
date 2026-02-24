@@ -11,6 +11,7 @@ public class QuestService : IQuestService
     private readonly CanbanDbContext _db;
     private readonly IActivityFeedService _activityFeed;
     private readonly IActivityHub _activityHub;
+    private readonly IBoardHub _boardHub;
     private readonly ICharacterXpService _xpService;
     private readonly IAchievementService _achievementService;
     private readonly CacheService _cache;
@@ -19,6 +20,7 @@ public class QuestService : IQuestService
         CanbanDbContext db,
         IActivityFeedService activityFeed,
         IActivityHub activityHub,
+        IBoardHub boardHub,
         ICharacterXpService xpService,
         IAchievementService achievementService,
         CacheService cache)
@@ -26,6 +28,7 @@ public class QuestService : IQuestService
         _db = db;
         _activityFeed = activityFeed;
         _activityHub = activityHub;
+        _boardHub = boardHub;
         _xpService = xpService;
         _achievementService = achievementService;
         _cache = cache;
@@ -73,6 +76,7 @@ public class QuestService : IQuestService
         _db.Quests.Add(quest);
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(col.BoardId, ct);
         return (await GetByIdAsync(quest.Id, ct))!;
     }
 
@@ -88,6 +92,7 @@ public class QuestService : IQuestService
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + q.BoardId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(q.BoardId, ct);
         return await GetByIdAsync(id, ct);
     }
 
@@ -144,6 +149,7 @@ public class QuestService : IQuestService
 
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(quest.BoardId, ct);
         if (justCompleted)
         {
             var assigneeId = quest.AssigneeId ?? userId;
@@ -167,7 +173,10 @@ public class QuestService : IQuestService
         }
         await _db.SaveChangesAsync(ct);
         if (boardId.HasValue)
+        {
             await _cache.InvalidateAsync("board:detail:" + boardId.Value, ct);
+            await _boardHub.NotifyBoardUpdatedAsync(boardId.Value, ct);
+        }
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -178,6 +187,7 @@ public class QuestService : IQuestService
         _db.Quests.Remove(q);
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + boardId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
         return true;
     }
 

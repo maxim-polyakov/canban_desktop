@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { boards, columns, quests, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
 import './BoardPage.css';
+
+const API_BASE = process.env.REACT_APP_API_URL || '';
 
 export default function BoardPage() {
   const { boardId } = useParams();
@@ -40,6 +43,30 @@ export default function BoardPage() {
   useEffect(() => {
     loadBoard();
   }, [loadBoard]);
+
+  // Реалтайм: подписка на обновления доски (квест создан/изменён/удалён другим пользователем)
+  const loadBoardRef = useRef(loadBoard);
+  loadBoardRef.current = loadBoard;
+  useEffect(() => {
+    if (!boardId || !loadBoardRef.current) return;
+    const token = localStorage.getItem('token');
+    const hubUrl = API_BASE.replace(/\/$/, '') + '/hubs/board';
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(hubUrl, { accessTokenFactory: () => token || '' })
+      .withAutomaticReconnect()
+      .build();
+    connection.on('BoardUpdated', () => {
+      loadBoardRef.current?.();
+    });
+    connection.start()
+      .then(() => connection.invoke('JoinBoard', boardId))
+      .catch((err) => console.warn('Board hub connect:', err));
+    return () => {
+      connection.invoke('LeaveBoard', boardId).catch(() => {});
+      connection.off('BoardUpdated');
+      connection.stop().catch(() => {});
+    };
+  }, [boardId]);
 
   useEffect(() => {
     if (!board?.teamId) return;

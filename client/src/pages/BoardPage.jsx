@@ -52,7 +52,10 @@ export default function BoardPage() {
     const token = localStorage.getItem('token');
     const hubUrl = API_BASE.replace(/\/$/, '') + '/hubs/board';
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, { accessTokenFactory: () => token || '' })
+      .withUrl(hubUrl, {
+        accessTokenFactory: () => token || '',
+        transport: signalR.HttpTransportType.WebSockets,
+      })
       .withAutomaticReconnect()
       .build();
     connection.on('BoardUpdated', () => {

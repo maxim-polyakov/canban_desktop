@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import './AuthPages.css';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,6 +49,11 @@ export default function LoginPage() {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         </label>
         <button type="submit">Войти</button>
+        <p className="auth-footer" style={{ marginTop: '0.5rem' }}>
+          <a href={(API_BASE || '').replace(/\/$/, '') + '/api/auth/google'} className="auth-google-link">
+            Войти через Google
+          </a>
+        </p>
         <p className="auth-footer">
           <Link to="/forgot-password">Забыли пароль?</Link>
         </p>

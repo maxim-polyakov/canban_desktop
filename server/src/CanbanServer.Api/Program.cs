@@ -1,4 +1,7 @@
+using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using CanbanServer.Infrastructure.Data;
@@ -32,6 +35,33 @@ builder.Services.AddSwaggerGen(c =>
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key не задан.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddCookie("External")
+    .AddGoogle(options =>
+    {
+        options.ClientId = builder.Configuration["Google:ClientId"] ?? "";
+        options.ClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
+        options.SignInScheme = "External";
+        options.Events.OnTicketReceived = async context =>
+        {
+            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value
+                ?? context.Principal?.FindFirst("email")?.Value;
+            var name = context.Principal?.FindFirst(ClaimTypes.Name)?.Value
+                ?? context.Principal?.FindFirst("name")?.Value;
+            var picture = context.Principal?.FindFirst("urn:google:picture")?.Value
+                ?? context.Principal?.FindFirst("picture")?.Value;
+            if (string.IsNullOrEmpty(email))
+            {
+                context.Fail("Email not provided by Google");
+                return;
+            }
+            var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
+            var response = await authService.GoogleLoginOrCreateAsync(email, name ?? email, picture, context.HttpContext.RequestAborted);
+            var callbackUrl = builder.Configuration["Auth:FrontendCallbackUrl"] ?? "https://canban.baxic.ru";
+            var redirectUrl = callbackUrl.TrimEnd('/') + "/auth/callback#token=" + Uri.EscapeDataString(response.AccessToken);
+            context.Response.Redirect(redirectUrl);
+            context.HandleResponse();
+        };
+    })
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters

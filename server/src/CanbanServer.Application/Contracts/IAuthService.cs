@@ -18,4 +18,6 @@ public interface IAuthService
     Task RequestPasswordResetAsync(string email, CancellationToken ct = default);
     /// <summary>Сброс пароля по коду из письма. Возвращает true при успехе.</summary>
     Task<bool> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken ct = default);
+    /// <summary>Вход/регистрация через Google. Если пользователь с email есть — вход; если нет — создаётся без пароля (DisplayName из Google).</summary>
+    Task<AuthResponse> GoogleLoginOrCreateAsync(string email, string displayName, string? avatarUrl, CancellationToken ct = default);
 }

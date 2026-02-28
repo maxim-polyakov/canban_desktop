@@ -50,6 +50,7 @@ export const auth = {
   confirmEmail: (data) => apiJson('/api/auth/confirm-email', { method: 'POST', body: JSON.stringify(data) }),
   forgotPassword: (data) => apiJson('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
   resetPassword: (data) => apiJson('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+  getMe: () => apiJson('/api/auth/me'),
   updateProfile: (data) => apiJson('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
   uploadAvatar: async (file) => {
     const formData = new FormData();

@@ -20,6 +20,14 @@
   font-size: 1.5rem;
 }
 
+.auth-google-link {
+  color: var(--accent, #2563eb);
+  text-decoration: none;
+}
+.auth-google-link:hover {
+  text-decoration: underline;
+}
+
 .auth-form-message {
   text-align: center;
 }

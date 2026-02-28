@@ -37,7 +37,7 @@ public class AuthService : IAuthService
             Id = Guid.NewGuid(),
             Email = request.Email.Trim().ToLowerInvariant(),
             DisplayName = request.DisplayName.Trim(),
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password!),
             CreatedAt = DateTime.UtcNow,
             EmailConfirmed = false,
             EmailConfirmationToken = confirmationCode,
@@ -138,7 +138,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLowerInvariant(), ct);
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null || string.IsNullOrEmpty(user.PasswordHash) || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return null;
         if (!user.EmailConfirmed)
         {
@@ -241,5 +241,46 @@ public class AuthService : IAuthService
     {
         var expiresMinutes = int.TryParse(_config["Jwt:ExpirationMinutes"], out var m) ? m : 60;
         return expiresMinutes * 60;
+    }
+
+    public async Task<AuthResponse> GoogleLoginOrCreateAsync(string email, string displayName, string? avatarUrl, CancellationToken ct = default)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+        if (user != null)
+        {
+            if (!string.IsNullOrEmpty(avatarUrl)) user.AvatarUrl = avatarUrl;
+            if (!string.IsNullOrWhiteSpace(displayName)) user.DisplayName = displayName.Trim();
+            await _db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = normalizedEmail,
+                DisplayName = string.IsNullOrWhiteSpace(displayName) ? normalizedEmail : displayName.Trim(),
+                AvatarUrl = avatarUrl,
+                PasswordHash = null,
+                CreatedAt = DateTime.UtcNow,
+                EmailConfirmed = true
+            };
+            _db.Users.Add(user);
+            var character = new Character
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Name = user.DisplayName,
+                TotalXp = 0,
+                LevelId = 1,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.Characters.Add(character);
+            await _db.SaveChangesAsync(ct);
+        }
+        var userDto = new UserDto(user.Id, user.Email, user.DisplayName, user.AvatarUrl, user.CreatedAt);
+        var token = GenerateJwt(user);
+        var expiresIn = GetExpiresInSeconds();
+        return new AuthResponse(token, "Bearer", expiresIn, userDto);
     }
 }

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Api.Extensions;
@@ -38,6 +40,10 @@ public class AuthController : ControllerBase
             return Conflict(ex.Message);
         }
     }
+
+    /// <summary>Редирект на Google OAuth. После входа пользователь попадёт на Auth:FrontendCallbackUrl/auth/callback#token=...</summary>
+    [HttpGet("google")]
+    public IActionResult Google() => Challenge(new AuthenticationProperties { RedirectUri = "/signin-google" }, GoogleDefaults.AuthenticationScheme);
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken ct)
@@ -89,6 +95,17 @@ public class AuthController : ControllerBase
             return BadRequest("Пароль должен быть не короче 6 символов.");
         var ok = await _authService.ResetPasswordAsync(request.Email.Trim(), request.Code.Trim(), request.NewPassword, ct);
         return ok ? Ok(new { message = "Пароль успешно изменён. Войдите с новым паролем." }) : BadRequest("Неверный или устаревший код. Запросите сброс пароля снова.");
+    }
+
+    /// <summary>Получить текущего пользователя по JWT. Требуется авторизация.</summary>
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> GetMe(CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var user = await _authService.GetUserByIdAsync(userId.Value, ct);
+        return user == null ? NotFound() : Ok(user);
     }
 
     /// <summary>Обновить профиль текущего пользователя (имя и/или аватар). Требуется авторизация.</summary>

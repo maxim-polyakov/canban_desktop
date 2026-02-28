@@ -6,7 +6,8 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
-    public string PasswordHash { get; set; } = string.Empty;
+    /// <summary>Хэш пароля. Null для пользователей, вошедших только через Google (пароль не предоставляется).</summary>
+    public string? PasswordHash { get; set; }
     public DateTime CreatedAt { get; set; }
     /// <summary>Подтверждён ли email (иначе вход запрещён).</summary>
     public bool EmailConfirmed { get; set; }

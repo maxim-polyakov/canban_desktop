@@ -49,6 +49,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.ClientId = builder.Configuration["Google:ClientId"] ?? "";
         options.ClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
         options.SignInScheme = "External";
+        options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
         options.Events.OnTicketReceived = async context =>
         {
             var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value
@@ -56,7 +57,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             var name = context.Principal?.FindFirst(ClaimTypes.Name)?.Value
                 ?? context.Principal?.FindFirst("name")?.Value;
             var picture = context.Principal?.FindFirst("urn:google:picture")?.Value
-                ?? context.Principal?.FindFirst("picture")?.Value;
+                ?? context.Principal?.FindFirst("picture")?.Value
+                ?? context.Principal?.FindFirst(ClaimTypes.Uri)?.Value;
             if (string.IsNullOrEmpty(email))
             {
                 context.Fail("Email not provided by Google");

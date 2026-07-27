@@ -51,11 +51,11 @@ export default function BoardArchivePage() {
       {archiveQuests.length === 0 ? (
         <div className="board-archive-empty">В архиве пока нет квестов.</div>
       ) : (
-        <div className="board-archive-list">
+        <ul className="board-archive-list">
           {archiveQuests.map((quest) => (
-            <article key={quest.id} className="board-archive-card">
-              <div className="board-archive-card-header">
-                <h2>{quest.title}</h2>
+            <li key={quest.id} className="board-archive-item">
+              <div className="board-archive-item-main">
+                <span className="board-archive-item-title">{quest.title}</span>
                 {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}
               </div>
               {quest.description && <p className="board-archive-description">{quest.description}</p>}
@@ -64,9 +64,9 @@ export default function BoardArchivePage() {
                 {quest.completedAt && <span>Выполнено: {new Date(quest.completedAt).toLocaleString()}</span>}
                 {quest.dueDate && <span>Срок: {new Date(quest.dueDate).toLocaleDateString()}</span>}
               </div>
-            </article>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

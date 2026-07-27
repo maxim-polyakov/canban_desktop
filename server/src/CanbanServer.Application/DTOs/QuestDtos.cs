@@ -26,3 +26,4 @@ public record UpdateQuestRequest(string? Title, string? Description, Guid? Assig
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>
 public record MoveQuestRequest(Guid QuestId, Guid TargetColumnId, int NewOrder);
 public record ReorderQuestsRequest(Guid ColumnId, List<Guid> QuestIdsInOrder);
+public record ArchiveCompletedQuestsResult(int ArchivedCount);

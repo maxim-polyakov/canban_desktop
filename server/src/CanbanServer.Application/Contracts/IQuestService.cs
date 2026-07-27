@@ -10,6 +10,8 @@ public interface IQuestService
     Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, CancellationToken ct = default);
     /// <summary>Перемещение квеста между колонками (drag-n-drop). При переносе в Done начисляется XP.</summary>
     Task<QuestDto?> MoveAsync(MoveQuestRequest request, Guid userId, CancellationToken ct = default);
+    Task<List<QuestDto>> GetArchivedByBoardIdAsync(Guid boardId, CancellationToken ct = default);
+    Task<ArchiveCompletedQuestsResult?> ArchiveCompletedAsync(Guid boardId, CancellationToken ct = default);
     Task ReorderAsync(ReorderQuestsRequest request, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { boards, columns, quests, teams } from '../api.js';
@@ -7,6 +7,8 @@ import KanbanBoard from '../components/KanbanBoard.jsx';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
+const ARCHIVE_COLUMN_KIND = 5;
+const DONE_COLUMN_KIND = 3;
 
 export default function BoardPage() {
   const { boardId } = useParams();
@@ -25,6 +27,7 @@ export default function BoardPage() {
   const [editQuestDescription, setEditQuestDescription] = useState('');
   const [editQuestXpReward, setEditQuestXpReward] = useState(0);
   const [savingQuest, setSavingQuest] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const loadBoard = useCallback(async () => {
     if (!boardId) return;
@@ -161,6 +164,22 @@ export default function BoardPage() {
     }
   };
 
+  const handleArchiveCompleted = async () => {
+    if (!boardId || archiving) return;
+    setArchiving(true);
+    try {
+      const result = await quests.archiveCompleted(boardId);
+      await loadBoard();
+      if ((result?.archivedCount ?? 0) > 0) {
+        navigate(`/board/${boardId}/archive`);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   const handleUpdateColumn = async (columnId, title) => {
     if (!title?.trim()) return;
     try {
@@ -257,6 +276,10 @@ export default function BoardPage() {
       navigator.clipboard.writeText(board.teamId);
     }
   };
+  const boardColumns = (board.columns ?? []).filter((column) => column.kind !== ARCHIVE_COLUMN_KIND);
+  const completedQuestCount = boardColumns
+    .filter((column) => column.kind === DONE_COLUMN_KIND)
+    .reduce((total, column) => total + ((column.quests ?? column.Quests ?? []).length), 0);
 
   return (
     <div className="page board-page">
@@ -266,6 +289,16 @@ export default function BoardPage() {
           {board.description && <p className="board-desc">{board.description}</p>}
         </div>
         <div className="board-actions">
+          <Link to={`/board/${boardId}/archive`} className="board-btn board-btn-link">Архив</Link>
+          <button
+            type="button"
+            className="board-btn board-btn-archive"
+            onClick={handleArchiveCompleted}
+            disabled={archiving || completedQuestCount === 0}
+            title={completedQuestCount === 0 ? 'Нет выполненных квестов для архивации' : 'Переместить выполненные квесты в архив'}
+          >
+            {archiving ? 'Архивация...' : `Архивировать выполненные (${completedQuestCount})`}
+          </button>
           <button type="button" className="board-btn board-btn-edit" onClick={() => setEditBoardOpen(true)} title="Изменить доску">✎</button>
           {board.createdByUserId === user?.id && (
             <button type="button" className="board-btn board-btn-delete" onClick={handleDeleteBoard} title="Удалить доску">✕</button>
@@ -290,7 +323,7 @@ export default function BoardPage() {
       )}
       <KanbanBoard
         boardId={boardId}
-        columns={board.columns}
+        columns={boardColumns}
         members={members}
         onMoveQuest={handleMoveQuest}
         onAssignQuest={handleAssignQuest}

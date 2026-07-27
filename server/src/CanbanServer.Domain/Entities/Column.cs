@@ -22,5 +22,6 @@ public enum ColumnKind
     InProgress = 1,
     Review = 2,
     Done = 3,
-    Custom = 4
+    Custom = 4,
+    Archive = 5
 }

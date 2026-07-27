@@ -115,9 +115,11 @@ export const columns = {
 export const quests = {
   get: (id) => apiJson(`/api/quests/${id}`),
   getByColumn: (columnId) => apiJson(`/api/quests/column/${columnId}`),
+  getArchiveByBoard: (boardId) => apiJson(`/api/quests/board/${boardId}/archive`),
   create: (data) => apiJson('/api/quests', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/quests/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   move: (data) => apiJson('/api/quests/move', { method: 'POST', body: JSON.stringify(data) }),
+  archiveCompleted: (boardId) => apiJson(`/api/quests/board/${boardId}/archive-completed`, { method: 'POST' }),
   reorder: (data) => apiJson('/api/quests/reorder', { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => api(`/api/quests/${id}`, { method: 'DELETE' }).then((r) => r.ok),
 };

@@ -158,6 +158,76 @@ public class QuestService : IQuestService
         return await GetByIdAsync(quest.Id, ct);
     }
 
+    public async Task<List<QuestDto>> GetArchivedByBoardIdAsync(Guid boardId, CancellationToken ct = default)
+    {
+        var list = await _db.Quests
+            .Include(q => q.Assignee)
+            .Include(q => q.Column)
+            .Where(q => q.BoardId == boardId && q.Column.Kind == ColumnKind.Archive)
+            .OrderByDescending(q => q.CompletedAt ?? q.CreatedAt)
+            .ThenBy(q => q.Order)
+            .ToListAsync(ct);
+
+        return list.Select(Map).ToList();
+    }
+
+    public async Task<ArchiveCompletedQuestsResult?> ArchiveCompletedAsync(Guid boardId, CancellationToken ct = default)
+    {
+        var boardExists = await _db.Boards.AnyAsync(b => b.Id == boardId, ct);
+        if (!boardExists) return null;
+
+        var archiveColumn = await _db.Columns
+            .FirstOrDefaultAsync(c => c.BoardId == boardId && c.Kind == ColumnKind.Archive, ct);
+
+        if (archiveColumn == null)
+        {
+            var maxColumnOrder = await _db.Columns
+                .Where(c => c.BoardId == boardId)
+                .MaxAsync(c => (int?)c.Order, ct) ?? -1;
+
+            archiveColumn = new Column
+            {
+                Id = Guid.NewGuid(),
+                BoardId = boardId,
+                Title = "Архив",
+                Order = maxColumnOrder + 1,
+                Kind = ColumnKind.Archive,
+                CreatedAt = DateTime.UtcNow
+            };
+            _db.Columns.Add(archiveColumn);
+        }
+
+        var completedQuests = await _db.Quests
+            .Include(q => q.Column)
+            .Where(q => q.BoardId == boardId && q.Column.Kind == ColumnKind.Done)
+            .OrderBy(q => q.Column.Order)
+            .ThenBy(q => q.Order)
+            .ToListAsync(ct);
+
+        if (completedQuests.Count == 0)
+        {
+            await _db.SaveChangesAsync(ct);
+            return new ArchiveCompletedQuestsResult(0);
+        }
+
+        var nextArchiveOrder = (await _db.Quests
+            .Where(q => q.ColumnId == archiveColumn.Id)
+            .MaxAsync(q => (int?)q.Order, ct) ?? -1) + 1;
+
+        foreach (var quest in completedQuests)
+        {
+            quest.ColumnId = archiveColumn.Id;
+            quest.Order = nextArchiveOrder++;
+            quest.CompletedAt ??= DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + boardId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
+
+        return new ArchiveCompletedQuestsResult(completedQuests.Count);
+    }
+
     public async Task ReorderAsync(ReorderQuestsRequest request, CancellationToken ct = default)
     {
         Guid? boardId = null;

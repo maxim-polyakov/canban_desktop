@@ -27,6 +27,13 @@ public class QuestsController : ControllerBase
         return Ok(list);
     }
 
+    [HttpGet("board/{boardId:guid}/archive")]
+    public async Task<ActionResult<List<QuestDto>>> GetArchive(Guid boardId, CancellationToken ct)
+    {
+        var list = await _questService.GetArchivedByBoardIdAsync(boardId, ct);
+        return Ok(list);
+    }
+
     [HttpPost]
     public async Task<ActionResult<QuestDto>> Create([FromBody] CreateQuestRequest request, CancellationToken ct)
     {
@@ -51,6 +58,13 @@ public class QuestsController : ControllerBase
         if (!userId.HasValue) return Unauthorized();
         var quest = await _questService.MoveAsync(request, userId.Value, ct);
         return quest == null ? NotFound() : Ok(quest);
+    }
+
+    [HttpPost("board/{boardId:guid}/archive-completed")]
+    public async Task<ActionResult<ArchiveCompletedQuestsResult>> ArchiveCompleted(Guid boardId, CancellationToken ct)
+    {
+        var result = await _questService.ArchiveCompletedAsync(boardId, ct);
+        return result == null ? NotFound() : Ok(result);
     }
 
     [HttpPut("reorder")]

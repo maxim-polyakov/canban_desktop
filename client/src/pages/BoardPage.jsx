@@ -168,11 +168,8 @@ export default function BoardPage() {
     if (!boardId || archiving) return;
     setArchiving(true);
     try {
-      const result = await quests.archiveCompleted(boardId);
+      await quests.archiveCompleted(boardId);
       await loadBoard();
-      if ((result?.archivedCount ?? 0) > 0) {
-        navigate(`/board/${boardId}/archive`);
-      }
     } catch (e) {
       console.error(e);
     } finally {

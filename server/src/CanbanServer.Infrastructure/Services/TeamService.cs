@@ -55,7 +55,7 @@ public class TeamService : ITeamService
     public async Task<List<TeamMemberDto>> GetMembersAsync(Guid teamId, CancellationToken ct = default)
     {
         var list = await _db.TeamMembers.Include(m => m.User).Where(m => m.TeamId == teamId).ToListAsync(ct);
-        return list.Select(m => new TeamMemberDto(m.UserId, m.User.DisplayName, m.User.AvatarUrl, m.Role.ToString(), m.JoinedAt)).ToList();
+        return list.Select(m => new TeamMemberDto(m.UserId, m.User.DisplayName, m.User.Email, m.User.AvatarUrl, m.Role.ToString(), m.JoinedAt)).ToList();
     }
 
     public async Task<TeamDto> CreateAsync(CreateTeamRequest request, Guid ownerId, CancellationToken ct = default)

@@ -171,19 +171,6 @@
   font-size: 0.8rem;
 }
 
-.kanban-add-notifications label {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: 0.25rem;
-  font-size: 0.78rem;
-}
-
-.kanban-add-notifications input {
-  width: auto;
-  margin: 0;
-}
-
 .kanban-add-attachments {
   display: flex;
   flex-direction: column;

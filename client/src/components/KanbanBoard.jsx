@@ -195,9 +195,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                       if (userId) setNewQuestRecipientIds((current) => current.includes(userId) ? current : [...current, userId]);
                     }}
                     newQuestRecipientIds={newQuestRecipientIds}
-                    onToggleNewQuestRecipient={(userId) => setNewQuestRecipientIds((current) =>
-                      current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId]
-                    )}
+                    onNewQuestRecipientsChange={setNewQuestRecipientIds}
                     newQuestXpReward={newQuestXpReward}
                     onNewQuestXpRewardChange={setNewQuestXpReward}
                     newQuestFiles={newQuestFiles}

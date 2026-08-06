@@ -4,6 +4,7 @@ import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { boards, columns, quests, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
+import NotificationRecipientPicker from '../components/NotificationRecipientPicker.jsx';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -502,20 +503,11 @@ export default function BoardPage() {
                 {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString()}</p>}
                 <fieldset className="board-quest-notifications">
                   <legend>Email-уведомления получают</legend>
-                  {members.map((member) => (
-                    <label key={member.userId}>
-                      <input
-                        type="checkbox"
-                        checked={notificationRecipientIds.includes(member.userId)}
-                        onChange={() => setNotificationRecipientIds((current) =>
-                          current.includes(member.userId)
-                            ? current.filter((id) => id !== member.userId)
-                            : [...current, member.userId]
-                        )}
-                      />
-                      {member.displayName}
-                    </label>
-                  ))}
+                  <NotificationRecipientPicker
+                    members={members}
+                    selectedIds={notificationRecipientIds}
+                    onChange={setNotificationRecipientIds}
+                  />
                 </fieldset>
                 <section className="board-quest-attachments">
                   <div className="board-quest-attachments-header">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import KanbanQuestItem from './KanbanQuestItem.jsx';
 import AssigneeSelect from './AssigneeSelect.jsx';
+import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
 import './KanbanColumn.css';
 
 const COLUMN_NAMES = {
@@ -24,7 +25,7 @@ export default function KanbanColumn({
   newQuestAssigneeId,
   onNewQuestAssigneeChange,
   newQuestRecipientIds = [],
-  onToggleNewQuestRecipient,
+  onNewQuestRecipientsChange,
   newQuestXpReward = 10,
   onNewQuestXpRewardChange,
   newQuestFiles = [],
@@ -137,17 +138,12 @@ export default function KanbanColumn({
           </label>
           <fieldset className="kanban-add-notifications">
             <legend>Email-уведомления</legend>
-            {members.map((member) => (
-              <label key={member.userId}>
-                <input
-                  type="checkbox"
-                  checked={newQuestRecipientIds.includes(member.userId)}
-                  onChange={() => onToggleNewQuestRecipient?.(member.userId)}
-                  disabled={creatingQuest}
-                />
-                {member.displayName}
-              </label>
-            ))}
+            <NotificationRecipientPicker
+              members={members}
+              selectedIds={newQuestRecipientIds}
+              onChange={onNewQuestRecipientsChange}
+              disabled={creatingQuest}
+            />
           </fieldset>
           <label className="kanban-add-attachments">
             Файлы

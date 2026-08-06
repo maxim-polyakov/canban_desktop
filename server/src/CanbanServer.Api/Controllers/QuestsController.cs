@@ -14,13 +14,16 @@ public class QuestsController : ControllerBase
 
     private readonly IQuestService _questService;
     private readonly IQuestAttachmentService _attachmentService;
+    private readonly IQuestCollaborationService _collaborationService;
 
     public QuestsController(
         IQuestService questService,
-        IQuestAttachmentService attachmentService)
+        IQuestAttachmentService attachmentService,
+        IQuestCollaborationService collaborationService)
     {
         _questService = questService;
         _attachmentService = attachmentService;
+        _collaborationService = collaborationService;
     }
 
     [HttpGet("{id:guid}")]
@@ -154,8 +157,47 @@ public class QuestsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<QuestDto>> Update(Guid id, [FromBody] UpdateQuestRequest request, CancellationToken ct)
     {
-        var quest = await _questService.UpdateAsync(id, request, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var quest = await _questService.UpdateAsync(id, request, userId.Value, ct);
         return quest == null ? NotFound() : Ok(quest);
+    }
+
+    [HttpPut("{questId:guid}/notification-recipients")]
+    public async Task<ActionResult> SetNotificationRecipients(Guid questId, [FromBody] UpdateQuestNotificationRecipientsRequest request, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var status = await _collaborationService.SetRecipientsAsync(questId, userId.Value, request.UserIds, ct);
+        return status switch { QuestAttachmentOperationStatus.Success => NoContent(), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
+    }
+
+    [HttpGet("{questId:guid}/comments")]
+    public async Task<ActionResult<List<QuestCommentDto>>> GetComments(Guid questId, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var result = await _collaborationService.GetCommentsAsync(questId, userId.Value, ct);
+        return result.Status switch { QuestAttachmentOperationStatus.Success => Ok(result.Comments), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
+    }
+
+    [HttpPost("{questId:guid}/comments")]
+    public async Task<ActionResult<QuestCommentDto>> AddComment(Guid questId, [FromBody] CreateQuestCommentRequest request, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(request.Text) || request.Text.Trim().Length > 5000) return BadRequest("Комментарий должен содержать от 1 до 5000 символов.");
+        var result = await _collaborationService.AddCommentAsync(questId, userId.Value, request.Text, ct);
+        return result.Status switch { QuestAttachmentOperationStatus.Success => Ok(result.Comment), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
+    }
+
+    [HttpDelete("{questId:guid}/comments/{commentId:guid}")]
+    public async Task<ActionResult> DeleteComment(Guid questId, Guid commentId, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var status = await _collaborationService.DeleteCommentAsync(questId, commentId, userId.Value, ct);
+        return status switch { QuestAttachmentOperationStatus.Success => NoContent(), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
 
     /// <summary>Перемещение квеста между колонками (drag-n-drop). При переносе в «Готово» начисляется XP.</summary>
@@ -171,7 +213,9 @@ public class QuestsController : ControllerBase
     [HttpPost("board/{boardId:guid}/archive-completed")]
     public async Task<ActionResult<ArchiveCompletedQuestsResult>> ArchiveCompleted(Guid boardId, CancellationToken ct)
     {
-        var result = await _questService.ArchiveCompletedAsync(boardId, ct);
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var result = await _questService.ArchiveCompletedAsync(boardId, userId.Value, ct);
         return result == null ? NotFound() : Ok(result);
     }
 

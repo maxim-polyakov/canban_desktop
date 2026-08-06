@@ -45,6 +45,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
   const [newQuestAssigneeId, setNewQuestAssigneeId] = useState('');
   const [newQuestXpReward, setNewQuestXpReward] = useState(10);
   const [newQuestFiles, setNewQuestFiles] = useState([]);
+  const [newQuestRecipientIds, setNewQuestRecipientIds] = useState([]);
   const [newQuestFileError, setNewQuestFileError] = useState('');
   const [creatingQuest, setCreatingQuest] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
@@ -109,6 +110,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
         category: 0,
         xpReward: xp,
         isEpic: false,
+        notificationRecipientIds: newQuestRecipientIds,
       });
       const failedFiles = [];
       for (const file of newQuestFiles) {
@@ -124,6 +126,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
       setNewQuestAssigneeId('');
       setNewQuestXpReward(10);
       setNewQuestFiles([]);
+      setNewQuestRecipientIds([]);
       setNewQuestColumnId(null);
       if (onRefreshColumnQuests) onRefreshColumnQuests(columnId);
       else onRefresh();
@@ -157,6 +160,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
     setNewQuestAssigneeId('');
     setNewQuestXpReward(10);
     setNewQuestFiles([]);
+    setNewQuestRecipientIds([]);
     setNewQuestFileError('');
   };
 
@@ -186,7 +190,14 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                     newQuestDescription={newQuestDescription}
                     onNewQuestDescriptionChange={setNewQuestDescription}
                     newQuestAssigneeId={newQuestAssigneeId}
-                    onNewQuestAssigneeChange={setNewQuestAssigneeId}
+                    onNewQuestAssigneeChange={(userId) => {
+                      setNewQuestAssigneeId(userId);
+                      if (userId) setNewQuestRecipientIds((current) => current.includes(userId) ? current : [...current, userId]);
+                    }}
+                    newQuestRecipientIds={newQuestRecipientIds}
+                    onToggleNewQuestRecipient={(userId) => setNewQuestRecipientIds((current) =>
+                      current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId]
+                    )}
                     newQuestXpReward={newQuestXpReward}
                     onNewQuestXpRewardChange={setNewQuestXpReward}
                     newQuestFiles={newQuestFiles}

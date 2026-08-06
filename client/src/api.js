@@ -151,6 +151,18 @@ export const quests = {
     if (!res.ok) throw new Error(text || res.statusText);
     return true;
   },
+  setNotificationRecipients: (questId, userIds) =>
+    api(`/api/quests/${questId}/notification-recipients`, { method: 'PUT', body: JSON.stringify({ userIds }) }).then((r) => {
+      if (!r.ok) throw new Error(r.statusText);
+      return true;
+    }),
+  getComments: (questId) => apiJson(`/api/quests/${questId}/comments`),
+  addComment: (questId, text) => apiJson(`/api/quests/${questId}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
+  deleteComment: (questId, commentId) =>
+    api(`/api/quests/${questId}/comments/${commentId}`, { method: 'DELETE' }).then((r) => {
+      if (!r.ok) throw new Error(r.statusText);
+      return true;
+    }),
 };
 
 export const character = {

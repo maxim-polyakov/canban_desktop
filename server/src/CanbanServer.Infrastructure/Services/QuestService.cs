@@ -14,8 +14,9 @@ public class QuestService : IQuestService
     private readonly IBoardHub _boardHub;
     private readonly ICharacterXpService _xpService;
     private readonly IAchievementService _achievementService;
-    private readonly IEmailSender _emailSender;
     private readonly IQuestAttachmentService _attachmentService;
+    private readonly IQuestCollaborationService _collaborationService;
+    private readonly IQuestNotificationService _notificationService;
     private readonly CacheService _cache;
 
     public QuestService(
@@ -25,8 +26,9 @@ public class QuestService : IQuestService
         IBoardHub boardHub,
         ICharacterXpService xpService,
         IAchievementService achievementService,
-        IEmailSender emailSender,
         IQuestAttachmentService attachmentService,
+        IQuestCollaborationService collaborationService,
+        IQuestNotificationService notificationService,
         CacheService cache)
     {
         _db = db;
@@ -35,8 +37,9 @@ public class QuestService : IQuestService
         _boardHub = boardHub;
         _xpService = xpService;
         _achievementService = achievementService;
-        _emailSender = emailSender;
         _attachmentService = attachmentService;
+        _collaborationService = collaborationService;
+        _notificationService = notificationService;
         _cache = cache;
     }
 
@@ -44,6 +47,7 @@ public class QuestService : IQuestService
     {
         var q = await _db.Quests
             .Include(x => x.Assignee)
+            .Include(x => x.NotificationRecipients)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         return q == null ? null : Map(q);
     }
@@ -52,6 +56,7 @@ public class QuestService : IQuestService
     {
         var list = await _db.Quests
             .Include(x => x.Assignee)
+            .Include(x => x.NotificationRecipients)
             .Where(x => x.ColumnId == columnId)
             .OrderBy(x => x.Order)
             .ToListAsync(ct);
@@ -81,27 +86,26 @@ public class QuestService : IQuestService
         };
         _db.Quests.Add(quest);
         await _db.SaveChangesAsync(ct);
-        if (quest.AssigneeId.HasValue)
-        {
-            var assignee = await _db.Users.FirstOrDefaultAsync(u => u.Id == quest.AssigneeId.Value, ct);
-            if (assignee != null)
-                await SendAssignmentNotificationAsync(assignee, quest, col.Board.Name, ct);
-        }
+        var recipients = request.NotificationRecipientIds?.Distinct().ToList() ?? new List<Guid>();
+        if (recipients.Count == 0 && quest.AssigneeId.HasValue) recipients.Add(quest.AssigneeId.Value);
+        await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipients, ct);
+        await _notificationService.NotifyAsync(quest.Id, userId, "Задача создана", "Вам назначены уведомления по новой задаче.", ct);
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(col.BoardId, ct);
         return (await GetByIdAsync(quest.Id, ct))!;
     }
 
-    public async Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, CancellationToken ct = default)
+    public async Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, Guid userId, CancellationToken ct = default)
     {
         var q = await _db.Quests.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return null;
-        User? newAssignee = null;
-        var assigneeChanged = request.AssigneeIdSet
-            && request.AssigneeId.HasValue
-            && q.AssigneeId != request.AssigneeId;
-        if (assigneeChanged)
-            newAssignee = await _db.Users.FirstOrDefaultAsync(u => u.Id == request.AssigneeId!.Value, ct);
+        var oldAssigneeId = q.AssigneeId;
+        var changes = new List<string>();
+        if (request.Title != null && request.Title != q.Title) changes.Add("изменено название");
+        if (request.Description != null && request.Description != q.Description) changes.Add("изменено описание");
+        if (request.AssigneeIdSet && request.AssigneeId != q.AssigneeId) changes.Add("изменён исполнитель");
+        if (request.DueDate != null && request.DueDate != q.DueDate) changes.Add("изменён срок");
+        if (request.XpReward != null && request.XpReward != q.XpReward) changes.Add("изменена награда XP");
         if (request.Title != null) q.Title = request.Title;
         if (request.Description != null) q.Description = request.Description;
         if (request.AssigneeIdSet) q.AssigneeId = request.AssigneeId;
@@ -109,14 +113,17 @@ public class QuestService : IQuestService
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
         await _db.SaveChangesAsync(ct);
-        if (newAssignee != null)
+        if (request.NotificationRecipientIds != null)
+            await _collaborationService.SetRecipientsAsync(id, userId, request.NotificationRecipientIds, ct);
+        else if (request.AssigneeIdSet && request.AssigneeId.HasValue && request.AssigneeId != oldAssigneeId)
         {
-            var boardName = await _db.Boards
-                .Where(b => b.Id == q.BoardId)
-                .Select(b => b.Name)
-                .FirstOrDefaultAsync(ct) ?? "Без названия";
-            await SendAssignmentNotificationAsync(newAssignee, q, boardName, ct);
+            var recipientIds = await _db.QuestNotificationRecipients
+                .Where(r => r.QuestId == id).Select(r => r.UserId).ToListAsync(ct);
+            if (!recipientIds.Contains(request.AssigneeId.Value)) recipientIds.Add(request.AssigneeId.Value);
+            await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct);
         }
+        if (changes.Count > 0)
+            await _notificationService.NotifyAsync(id, userId, "Задача изменена", string.Join(", ", changes), ct);
         await _cache.InvalidateAsync("board:detail:" + q.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(q.BoardId, ct);
         return await GetByIdAsync(id, ct);
@@ -174,6 +181,8 @@ public class QuestService : IQuestService
         }
 
         await _db.SaveChangesAsync(ct);
+        if (oldColumnId != quest.ColumnId)
+            await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{quest.Column.Title}» в «{targetColumn.Title}».", ct);
         await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(quest.BoardId, ct);
         if (justCompleted)
@@ -189,6 +198,7 @@ public class QuestService : IQuestService
         var list = await _db.Quests
             .Include(q => q.Assignee)
             .Include(q => q.Column)
+            .Include(q => q.NotificationRecipients)
             .Where(q => q.BoardId == boardId && q.Column.Kind == ColumnKind.Archive)
             .OrderByDescending(q => q.CompletedAt ?? q.CreatedAt)
             .ThenBy(q => q.Order)
@@ -197,7 +207,7 @@ public class QuestService : IQuestService
         return list.Select(Map).ToList();
     }
 
-    public async Task<ArchiveCompletedQuestsResult?> ArchiveCompletedAsync(Guid boardId, CancellationToken ct = default)
+    public async Task<ArchiveCompletedQuestsResult?> ArchiveCompletedAsync(Guid boardId, Guid userId, CancellationToken ct = default)
     {
         var boardExists = await _db.Boards.AnyAsync(b => b.Id == boardId, ct);
         if (!boardExists) return null;
@@ -248,6 +258,8 @@ public class QuestService : IQuestService
         }
 
         await _db.SaveChangesAsync(ct);
+        foreach (var quest in completedQuests)
+            await _notificationService.NotifyAsync(quest.Id, userId, "Задача архивирована", "Выполненная задача перемещена в архив.", ct);
         await _cache.InvalidateAsync("board:detail:" + boardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
 
@@ -291,37 +303,6 @@ public class QuestService : IQuestService
     private static QuestDto Map(Quest q) => new(
         q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId,
         q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt,
-        q.Category, q.XpReward, q.IsEpic, q.ParentEpicId
+        q.Category, q.XpReward, q.IsEpic, q.ParentEpicId, q.NotificationRecipients.Select(r => r.UserId).ToList()
     );
-
-    private async Task SendAssignmentNotificationAsync(User assignee, Quest quest, string boardName, CancellationToken ct)
-    {
-        var encodedName = System.Net.WebUtility.HtmlEncode(assignee.DisplayName);
-        var encodedTitle = System.Net.WebUtility.HtmlEncode(quest.Title);
-        var encodedBoardName = System.Net.WebUtility.HtmlEncode(boardName);
-        var description = string.IsNullOrWhiteSpace(quest.Description)
-            ? string.Empty
-            : $"<p><strong>Описание:</strong><br>{System.Net.WebUtility.HtmlEncode(quest.Description).Replace("\r\n", "<br>").Replace("\n", "<br>")}</p>";
-        var dueDate = quest.DueDate.HasValue
-            ? $"<p><strong>Срок:</strong> {quest.DueDate.Value:dd.MM.yyyy}</p>"
-            : string.Empty;
-        var subject = $"Вам назначена задача «{quest.Title}»";
-        var body = $@"
-<!DOCTYPE html>
-<html>
-<head><meta charset=""utf-8""></head>
-<body style=""font-family: sans-serif; line-height: 1.5;"">
-  <h2>Вам назначена новая задача</h2>
-  <p>Здравствуйте, <strong>{encodedName}</strong>.</p>
-  <p>На доске <strong>{encodedBoardName}</strong> вам назначена задача:</p>
-  <p style=""font-size: 1.1rem;""><strong>{encodedTitle}</strong></p>
-  {description}
-  {dueDate}
-  <p><strong>Награда:</strong> {quest.XpReward} XP</p>
-  <p style=""color: #6b7280; font-size: 0.9em;"">Это письмо отправлено автоматически.</p>
-</body>
-</html>";
-
-        await _emailSender.SendAsync(assignee.Email, assignee.DisplayName, subject, body.Trim(), ct);
-    }
 }

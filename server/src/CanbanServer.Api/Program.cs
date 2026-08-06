@@ -134,6 +134,8 @@ builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IColumnService, ColumnService>();
 builder.Services.AddScoped<IQuestService, QuestService>();
 builder.Services.AddScoped<IQuestAttachmentService, QuestAttachmentService>();
+builder.Services.AddScoped<IQuestNotificationService, QuestNotificationService>();
+builder.Services.AddScoped<IQuestCollaborationService, QuestCollaborationService>();
 builder.Services.AddScoped<ICharacterService, CharacterService>();
 builder.Services.AddScoped<ICharacterXpService, CharacterXpService>();
 builder.Services.AddScoped<IAchievementService, AchievementService>();

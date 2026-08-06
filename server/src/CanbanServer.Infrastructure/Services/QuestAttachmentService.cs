@@ -13,15 +13,18 @@ public class QuestAttachmentService : IQuestAttachmentService
 
     private readonly CanbanDbContext _db;
     private readonly IQuestAttachmentStorageService _storage;
+    private readonly IQuestNotificationService _notifications;
     private readonly ILogger<QuestAttachmentService> _logger;
 
     public QuestAttachmentService(
         CanbanDbContext db,
         IQuestAttachmentStorageService storage,
+        IQuestNotificationService notifications,
         ILogger<QuestAttachmentService> logger)
     {
         _db = db;
         _storage = storage;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -108,6 +111,7 @@ public class QuestAttachmentService : IQuestAttachmentService
             _db.QuestAttachments.Add(attachment);
             await _db.SaveChangesAsync(ct);
             attachment.UploadedByUser = await _db.Users.FirstAsync(u => u.Id == userId, ct);
+            await _notifications.NotifyAsync(questId, userId, "Добавлено вложение", safeFileName, ct);
             return (QuestAttachmentOperationStatus.Success, Map(attachment));
         }
         catch (Exception ex)
@@ -167,6 +171,7 @@ public class QuestAttachmentService : IQuestAttachmentService
 
         _db.QuestAttachments.Remove(attachment);
         await _db.SaveChangesAsync(ct);
+        await _notifications.NotifyAsync(questId, userId, "Удалено вложение", attachment.FileName, ct);
         return QuestAttachmentOperationStatus.Success;
     }
 

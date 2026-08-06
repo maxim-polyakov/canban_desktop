@@ -40,6 +40,11 @@ export default function BoardPage() {
   const [attachmentUploading, setAttachmentUploading] = useState(false);
   const [deletingAttachmentId, setDeletingAttachmentId] = useState(null);
   const [attachmentError, setAttachmentError] = useState('');
+  const [notificationRecipientIds, setNotificationRecipientIds] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [commentError, setCommentError] = useState('');
   const attachmentInputRef = useRef(null);
   const questDetailIdRef = useRef(questDetailId);
   questDetailIdRef.current = questDetailId;
@@ -258,8 +263,25 @@ export default function BoardPage() {
         setEditQuestTitle(q?.title ?? '');
         setEditQuestDescription(q?.description ?? '');
         setEditQuestXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);
+        setNotificationRecipientIds(q?.notificationRecipientIds ?? []);
       }
     }).catch(() => { if (!cancelled) setQuestDetail(null); });
+    return () => { cancelled = true; };
+  }, [questDetailId]);
+
+  useEffect(() => {
+    if (!questDetailId) {
+      setComments([]);
+      setNewComment('');
+      setCommentError('');
+      return;
+    }
+    let cancelled = false;
+    quests.getComments(questDetailId).then((list) => {
+      if (!cancelled) setComments(Array.isArray(list) ? list : []);
+    }).catch((e) => {
+      if (!cancelled) setCommentError(e.message || 'Не удалось загрузить комментарии.');
+    });
     return () => { cancelled = true; };
   }, [questDetailId]);
 
@@ -352,7 +374,7 @@ export default function BoardPage() {
     setSavingQuest(true);
     try {
       const xp = Math.max(0, Math.min(9999, Number(editQuestXpReward) || 0));
-      await quests.update(questDetailId, { title: editQuestTitle.trim(), description: editQuestDescription.trim(), xpReward: xp });
+      await quests.update(questDetailId, { title: editQuestTitle.trim(), description: editQuestDescription.trim(), xpReward: xp, notificationRecipientIds });
       const updated = await quests.get(questDetailId);
       setQuestDetail(updated);
       await loadBoard();
@@ -360,6 +382,31 @@ export default function BoardPage() {
       console.error(e);
     } finally {
       setSavingQuest(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!questDetailId || !newComment.trim() || commentSaving) return;
+    setCommentSaving(true);
+    setCommentError('');
+    try {
+      const comment = await quests.addComment(questDetailId, newComment.trim());
+      if (comment) setComments((current) => [...current, comment]);
+      setNewComment('');
+    } catch (e) {
+      setCommentError(e.message || 'Не удалось добавить комментарий.');
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  const handleDeleteComment = async (comment) => {
+    if (!questDetailId || !window.confirm('Удалить комментарий?')) return;
+    try {
+      await quests.deleteComment(questDetailId, comment.id);
+      setComments((current) => current.filter((item) => item.id !== comment.id));
+    } catch (e) {
+      setCommentError(e.message || 'Не удалось удалить комментарий.');
     }
   };
 
@@ -453,6 +500,23 @@ export default function BoardPage() {
                 </label>
                 {questDetail.assigneeName && <p>Исполнитель: {questDetail.assigneeName}</p>}
                 {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString()}</p>}
+                <fieldset className="board-quest-notifications">
+                  <legend>Email-уведомления получают</legend>
+                  {members.map((member) => (
+                    <label key={member.userId}>
+                      <input
+                        type="checkbox"
+                        checked={notificationRecipientIds.includes(member.userId)}
+                        onChange={() => setNotificationRecipientIds((current) =>
+                          current.includes(member.userId)
+                            ? current.filter((id) => id !== member.userId)
+                            : [...current, member.userId]
+                        )}
+                      />
+                      {member.displayName}
+                    </label>
+                  ))}
+                </fieldset>
                 <section className="board-quest-attachments">
                   <div className="board-quest-attachments-header">
                     <h4>Вложения</h4>
@@ -504,6 +568,37 @@ export default function BoardPage() {
                       ))}
                     </ul>
                   )}
+                </section>
+                <section className="board-quest-comments">
+                  <h4>Комментарии</h4>
+                  {comments.length === 0 ? (
+                    <p className="board-quest-comment-empty">Комментариев пока нет.</p>
+                  ) : (
+                    <ul className="board-quest-comment-list">
+                      {comments.map((comment) => (
+                        <li key={comment.id}>
+                          <div className="board-quest-comment-header">
+                            <strong>{comment.authorName}</strong>
+                            <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                            {comment.authorUserId === user?.id && (
+                              <button type="button" onClick={() => handleDeleteComment(comment)}>Удалить</button>
+                            )}
+                          </div>
+                          <p>{comment.text}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value.slice(0, 5000))}
+                    placeholder="Написать комментарий"
+                    rows={3}
+                  />
+                  {commentError && <p className="board-quest-comment-error">{commentError}</p>}
+                  <button type="button" onClick={handleAddComment} disabled={commentSaving || !newComment.trim()}>
+                    {commentSaving ? 'Отправка…' : 'Добавить комментарий'}
+                  </button>
                 </section>
                 <label className="board-quest-modal-field">
                   Опыт (XP)

@@ -23,6 +23,8 @@ export default function KanbanColumn({
   onNewQuestDescriptionChange,
   newQuestAssigneeId,
   onNewQuestAssigneeChange,
+  newQuestRecipientIds = [],
+  onToggleNewQuestRecipient,
   newQuestXpReward = 10,
   onNewQuestXpRewardChange,
   newQuestFiles = [],
@@ -133,6 +135,20 @@ export default function KanbanColumn({
               placeholder="— не назначен —"
             />
           </label>
+          <fieldset className="kanban-add-notifications">
+            <legend>Email-уведомления</legend>
+            {members.map((member) => (
+              <label key={member.userId}>
+                <input
+                  type="checkbox"
+                  checked={newQuestRecipientIds.includes(member.userId)}
+                  onChange={() => onToggleNewQuestRecipient?.(member.userId)}
+                  disabled={creatingQuest}
+                />
+                {member.displayName}
+              </label>
+            ))}
+          </fieldset>
           <label className="kanban-add-attachments">
             Файлы
             <input

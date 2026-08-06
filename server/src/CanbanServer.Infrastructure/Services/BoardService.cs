@@ -34,6 +34,7 @@ public class BoardService : IBoardService
             {
                 var b = await _db.Boards
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Assignee)
+                    .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.NotificationRecipients)
                     .FirstOrDefaultAsync(x => x.Id == id, ct);
                 if (b == null) return null;
                 var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
@@ -120,5 +121,5 @@ public class BoardService : IBoardService
         return true;
     }
 
-    private static QuestDto MapQuest(Quest q) => new(q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId, q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt, q.Category, q.XpReward, q.IsEpic, q.ParentEpicId);
+    private static QuestDto MapQuest(Quest q) => new(q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId, q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt, q.Category, q.XpReward, q.IsEpic, q.ParentEpicId, q.NotificationRecipients.Select(r => r.UserId).ToList());
 }

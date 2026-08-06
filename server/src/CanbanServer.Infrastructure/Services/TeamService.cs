@@ -10,11 +10,16 @@ public class TeamService : ITeamService
 {
     private readonly CanbanDbContext _db;
     private readonly IAchievementService _achievementService;
+    private readonly IQuestAttachmentService _attachmentService;
 
-    public TeamService(CanbanDbContext db, IAchievementService achievementService)
+    public TeamService(
+        CanbanDbContext db,
+        IAchievementService achievementService,
+        IQuestAttachmentService attachmentService)
     {
         _db = db;
         _achievementService = achievementService;
+        _attachmentService = attachmentService;
     }
 
     public async Task<TeamDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -220,6 +225,11 @@ public class TeamService : ITeamService
 
         var members = await _db.TeamMembers.Where(m => m.TeamId == teamId).ToListAsync(ct);
         var teamBoards = await _db.Boards.Where(b => b.TeamId == teamId).ToListAsync(ct);
+        var questIds = await _db.Quests
+            .Where(q => q.Board.TeamId == teamId)
+            .Select(q => q.Id)
+            .ToListAsync(ct);
+        await _attachmentService.DeleteFilesForQuestIdsAsync(questIds, ct);
         _db.TeamMembers.RemoveRange(members);
         _db.Boards.RemoveRange(teamBoards);
         _db.Teams.Remove(team);

@@ -122,6 +122,35 @@ export const quests = {
   archiveCompleted: (boardId) => apiJson(`/api/quests/board/${boardId}/archive-completed`, { method: 'POST' }),
   reorder: (data) => apiJson('/api/quests/reorder', { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => api(`/api/quests/${id}`, { method: 'DELETE' }).then((r) => r.ok),
+  getAttachments: (questId) => apiJson(`/api/quests/${questId}/attachments`),
+  uploadAttachment: async (questId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/api/quests/${questId}/attachments`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (res.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth-logout'));
+    }
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || res.statusText);
+    return text ? JSON.parse(text) : null;
+  },
+  getAttachmentDownload: (questId, attachmentId) =>
+    apiJson(`/api/quests/${questId}/attachments/${attachmentId}/download-url`),
+  deleteAttachment: async (questId, attachmentId) => {
+    const res = await api(`/api/quests/${questId}/attachments/${attachmentId}`, { method: 'DELETE' });
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || res.statusText);
+    return true;
+  },
 };
 
 export const character = {

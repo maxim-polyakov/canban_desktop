@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 
@@ -9,8 +10,15 @@ namespace CanbanServer.Api.Controllers;
 public class ColumnsController : ControllerBase
 {
     private readonly IColumnService _columnService;
+    private readonly IQuestAttachmentService _attachmentService;
 
-    public ColumnsController(IColumnService columnService) => _columnService = columnService;
+    public ColumnsController(
+        IColumnService columnService,
+        IQuestAttachmentService attachmentService)
+    {
+        _columnService = columnService;
+        _attachmentService = attachmentService;
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ColumnDto>> Get(Guid id, CancellationToken ct)
@@ -50,6 +58,12 @@ public class ColumnsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var access = await _attachmentService.CheckColumnAccessAsync(id, userId.Value, ct);
+        if (access == QuestAttachmentOperationStatus.NotFound) return NotFound();
+        if (access == QuestAttachmentOperationStatus.Forbidden) return Forbid();
+
         var deleted = await _columnService.DeleteAsync(id, ct);
         return deleted ? NoContent() : NotFound();
     }

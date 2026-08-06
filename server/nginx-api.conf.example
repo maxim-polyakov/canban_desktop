@@ -17,6 +17,8 @@
 
     # 2) Затем — всё остальное API
     location / {
+        client_max_body_size 1034m;
+
         add_header Access-Control-Allow-Origin * always;
         add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
         add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;

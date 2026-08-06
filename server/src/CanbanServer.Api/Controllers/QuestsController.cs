@@ -9,9 +9,19 @@ namespace CanbanServer.Api.Controllers;
 [Route("api/[controller]")]
 public class QuestsController : ControllerBase
 {
-    private readonly IQuestService _questService;
+    private const long MaxAttachmentSize = 1024L * 1024 * 1024;
+    private const long MaxAttachmentRequestSize = 1034L * 1024 * 1024;
 
-    public QuestsController(IQuestService questService) => _questService = questService;
+    private readonly IQuestService _questService;
+    private readonly IQuestAttachmentService _attachmentService;
+
+    public QuestsController(
+        IQuestService questService,
+        IQuestAttachmentService attachmentService)
+    {
+        _questService = questService;
+        _attachmentService = attachmentService;
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<QuestDto>> Get(Guid id, CancellationToken ct)
@@ -25,6 +35,104 @@ public class QuestsController : ControllerBase
     {
         var list = await _questService.GetByColumnIdAsync(columnId, ct);
         return Ok(list);
+    }
+
+    [HttpGet("{questId:guid}/attachments")]
+    public async Task<ActionResult<List<QuestAttachmentDto>>> GetAttachments(
+        Guid questId,
+        CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _attachmentService.GetByQuestAsync(questId, userId.Value, ct);
+        return result.Status switch
+        {
+            QuestAttachmentOperationStatus.Success => Ok(result.Items),
+            QuestAttachmentOperationStatus.NotFound => NotFound(),
+            QuestAttachmentOperationStatus.Forbidden => Forbid(),
+            _ => StatusCode(500, "Не удалось получить вложения.")
+        };
+    }
+
+    [HttpPost("{questId:guid}/attachments")]
+    [RequestSizeLimit(MaxAttachmentRequestSize)]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxAttachmentRequestSize)]
+    public async Task<ActionResult<QuestAttachmentDto>> UploadAttachment(
+        Guid questId,
+        IFormFile? file,
+        CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        if (file == null || file.Length == 0)
+            return BadRequest("Выберите непустой файл.");
+        if (file.Length > MaxAttachmentSize)
+            return BadRequest("Размер файла не должен превышать 1 ГБ.");
+
+        await using var stream = file.OpenReadStream();
+        var result = await _attachmentService.UploadAsync(
+            questId,
+            userId.Value,
+            stream,
+            file.FileName,
+            file.ContentType,
+            file.Length,
+            ct);
+
+        return result.Status switch
+        {
+            QuestAttachmentOperationStatus.Success => Ok(result.Attachment),
+            QuestAttachmentOperationStatus.NotFound => NotFound(),
+            QuestAttachmentOperationStatus.Forbidden => Forbid(),
+            _ => StatusCode(500, "Не удалось загрузить файл в S3.")
+        };
+    }
+
+    [HttpGet("{questId:guid}/attachments/{attachmentId:guid}/download-url")]
+    public async Task<ActionResult<QuestAttachmentDownloadDto>> GetAttachmentDownloadUrl(
+        Guid questId,
+        Guid attachmentId,
+        CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _attachmentService.GetDownloadAsync(
+            questId,
+            attachmentId,
+            userId.Value,
+            ct);
+        return result.Status switch
+        {
+            QuestAttachmentOperationStatus.Success => Ok(result.Download),
+            QuestAttachmentOperationStatus.NotFound => NotFound(),
+            QuestAttachmentOperationStatus.Forbidden => Forbid(),
+            _ => StatusCode(500, "Не удалось создать ссылку на скачивание.")
+        };
+    }
+
+    [HttpDelete("{questId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<ActionResult> DeleteAttachment(
+        Guid questId,
+        Guid attachmentId,
+        CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var status = await _attachmentService.DeleteAsync(
+            questId,
+            attachmentId,
+            userId.Value,
+            ct);
+        return status switch
+        {
+            QuestAttachmentOperationStatus.Success => NoContent(),
+            QuestAttachmentOperationStatus.NotFound => NotFound(),
+            QuestAttachmentOperationStatus.Forbidden => Forbid(),
+            _ => StatusCode(500, "Не удалось удалить вложение из S3.")
+        };
     }
 
     [HttpGet("board/{boardId:guid}/archive")]
@@ -77,6 +185,12 @@ public class QuestsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {
+        var userId = User.GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+        var access = await _attachmentService.CheckQuestAccessAsync(id, userId.Value, ct);
+        if (access == QuestAttachmentOperationStatus.NotFound) return NotFound();
+        if (access == QuestAttachmentOperationStatus.Forbidden) return Forbid();
+
         var deleted = await _questService.DeleteAsync(id, ct);
         return deleted ? NoContent() : NotFound();
     }

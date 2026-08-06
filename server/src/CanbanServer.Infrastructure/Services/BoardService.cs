@@ -9,12 +9,18 @@ namespace CanbanServer.Infrastructure.Services;
 public class BoardService : IBoardService
 {
     private readonly CanbanDbContext _db;
+    private readonly IQuestAttachmentService _attachmentService;
     private readonly IBoardHub _boardHub;
     private readonly CacheService _cache;
 
-    public BoardService(CanbanDbContext db, IBoardHub boardHub, CacheService cache)
+    public BoardService(
+        CanbanDbContext db,
+        IQuestAttachmentService attachmentService,
+        IBoardHub boardHub,
+        CacheService cache)
     {
         _db = db;
+        _attachmentService = attachmentService;
         _boardHub = boardHub;
         _cache = cache;
     }
@@ -101,6 +107,11 @@ public class BoardService : IBoardService
         if (b == null) return null;
         if (b.CreatedByUserId == null || currentUserId != b.CreatedByUserId)
             return false;
+        var questIds = await _db.Quests
+            .Where(q => q.BoardId == id)
+            .Select(q => q.Id)
+            .ToListAsync(ct);
+        await _attachmentService.DeleteFilesForQuestIdsAsync(questIds, ct);
         _db.Boards.Remove(b);
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + id, ct);

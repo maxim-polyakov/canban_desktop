@@ -133,6 +133,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IColumnService, ColumnService>();
 builder.Services.AddScoped<IQuestService, QuestService>();
+builder.Services.AddScoped<IQuestAttachmentService, QuestAttachmentService>();
 builder.Services.AddScoped<ICharacterService, CharacterService>();
 builder.Services.AddScoped<ICharacterXpService, CharacterXpService>();
 builder.Services.AddScoped<IAchievementService, AchievementService>();
@@ -144,6 +145,7 @@ builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
+builder.Services.AddScoped<IQuestAttachmentStorageService, QuestAttachmentStorageService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration
@@ -167,6 +169,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CanbanDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await DatabaseSchemaInitializer.EnsureQuestAttachmentsSchemaAsync(db);
     await SeedData.EnsureLevelsAsync(db);
     await SeedData.EnsureAchievementsAsync(db);
     await SeedData.EnsureSkillsAsync(db);

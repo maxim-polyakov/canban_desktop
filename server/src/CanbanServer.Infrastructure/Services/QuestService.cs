@@ -14,6 +14,8 @@ public class QuestService : IQuestService
     private readonly IBoardHub _boardHub;
     private readonly ICharacterXpService _xpService;
     private readonly IAchievementService _achievementService;
+    private readonly IEmailSender _emailSender;
+    private readonly IQuestAttachmentService _attachmentService;
     private readonly CacheService _cache;
 
     public QuestService(
@@ -23,6 +25,8 @@ public class QuestService : IQuestService
         IBoardHub boardHub,
         ICharacterXpService xpService,
         IAchievementService achievementService,
+        IEmailSender emailSender,
+        IQuestAttachmentService attachmentService,
         CacheService cache)
     {
         _db = db;
@@ -31,6 +35,8 @@ public class QuestService : IQuestService
         _boardHub = boardHub;
         _xpService = xpService;
         _achievementService = achievementService;
+        _emailSender = emailSender;
+        _attachmentService = attachmentService;
         _cache = cache;
     }
 
@@ -75,6 +81,12 @@ public class QuestService : IQuestService
         };
         _db.Quests.Add(quest);
         await _db.SaveChangesAsync(ct);
+        if (quest.AssigneeId.HasValue)
+        {
+            var assignee = await _db.Users.FirstOrDefaultAsync(u => u.Id == quest.AssigneeId.Value, ct);
+            if (assignee != null)
+                await SendAssignmentNotificationAsync(assignee, quest, col.Board.Name, ct);
+        }
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(col.BoardId, ct);
         return (await GetByIdAsync(quest.Id, ct))!;
@@ -84,6 +96,12 @@ public class QuestService : IQuestService
     {
         var q = await _db.Quests.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return null;
+        User? newAssignee = null;
+        var assigneeChanged = request.AssigneeIdSet
+            && request.AssigneeId.HasValue
+            && q.AssigneeId != request.AssigneeId;
+        if (assigneeChanged)
+            newAssignee = await _db.Users.FirstOrDefaultAsync(u => u.Id == request.AssigneeId!.Value, ct);
         if (request.Title != null) q.Title = request.Title;
         if (request.Description != null) q.Description = request.Description;
         if (request.AssigneeIdSet) q.AssigneeId = request.AssigneeId;
@@ -91,6 +109,14 @@ public class QuestService : IQuestService
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
         await _db.SaveChangesAsync(ct);
+        if (newAssignee != null)
+        {
+            var boardName = await _db.Boards
+                .Where(b => b.Id == q.BoardId)
+                .Select(b => b.Name)
+                .FirstOrDefaultAsync(ct) ?? "Без названия";
+            await SendAssignmentNotificationAsync(newAssignee, q, boardName, ct);
+        }
         await _cache.InvalidateAsync("board:detail:" + q.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(q.BoardId, ct);
         return await GetByIdAsync(id, ct);
@@ -254,6 +280,7 @@ public class QuestService : IQuestService
         var q = await _db.Quests.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return false;
         var boardId = q.BoardId;
+        await _attachmentService.DeleteFilesForQuestIdsAsync(new[] { id }, ct);
         _db.Quests.Remove(q);
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + boardId, ct);
@@ -266,4 +293,35 @@ public class QuestService : IQuestService
         q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt,
         q.Category, q.XpReward, q.IsEpic, q.ParentEpicId
     );
+
+    private async Task SendAssignmentNotificationAsync(User assignee, Quest quest, string boardName, CancellationToken ct)
+    {
+        var encodedName = System.Net.WebUtility.HtmlEncode(assignee.DisplayName);
+        var encodedTitle = System.Net.WebUtility.HtmlEncode(quest.Title);
+        var encodedBoardName = System.Net.WebUtility.HtmlEncode(boardName);
+        var description = string.IsNullOrWhiteSpace(quest.Description)
+            ? string.Empty
+            : $"<p><strong>Описание:</strong><br>{System.Net.WebUtility.HtmlEncode(quest.Description).Replace("\r\n", "<br>").Replace("\n", "<br>")}</p>";
+        var dueDate = quest.DueDate.HasValue
+            ? $"<p><strong>Срок:</strong> {quest.DueDate.Value:dd.MM.yyyy}</p>"
+            : string.Empty;
+        var subject = $"Вам назначена задача «{quest.Title}»";
+        var body = $@"
+<!DOCTYPE html>
+<html>
+<head><meta charset=""utf-8""></head>
+<body style=""font-family: sans-serif; line-height: 1.5;"">
+  <h2>Вам назначена новая задача</h2>
+  <p>Здравствуйте, <strong>{encodedName}</strong>.</p>
+  <p>На доске <strong>{encodedBoardName}</strong> вам назначена задача:</p>
+  <p style=""font-size: 1.1rem;""><strong>{encodedTitle}</strong></p>
+  {description}
+  {dueDate}
+  <p><strong>Награда:</strong> {quest.XpReward} XP</p>
+  <p style=""color: #6b7280; font-size: 0.9em;"">Это письмо отправлено автоматически.</p>
+</body>
+</html>";
+
+        await _emailSender.SendAsync(assignee.Email, assignee.DisplayName, subject, body.Trim(), ct);
+    }
 }

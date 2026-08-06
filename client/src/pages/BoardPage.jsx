@@ -9,6 +9,13 @@ import './BoardPage.css';
 const API_BASE = process.env.REACT_APP_API_URL || '';
 const ARCHIVE_COLUMN_KIND = 5;
 const DONE_COLUMN_KIND = 3;
+const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 1024;
+
+function formatFileSize(sizeBytes) {
+  if (sizeBytes < 1024) return `${sizeBytes} Б`;
+  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} КБ`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
 
 export default function BoardPage() {
   const { boardId } = useParams();
@@ -28,6 +35,14 @@ export default function BoardPage() {
   const [editQuestXpReward, setEditQuestXpReward] = useState(0);
   const [savingQuest, setSavingQuest] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [attachmentUploading, setAttachmentUploading] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState(null);
+  const [attachmentError, setAttachmentError] = useState('');
+  const attachmentInputRef = useRef(null);
+  const questDetailIdRef = useRef(questDetailId);
+  questDetailIdRef.current = questDetailId;
 
   const loadBoard = useCallback(async () => {
     if (!boardId) return;
@@ -248,6 +263,90 @@ export default function BoardPage() {
     return () => { cancelled = true; };
   }, [questDetailId]);
 
+  useEffect(() => {
+    if (!questDetailId) {
+      setAttachments([]);
+      setAttachmentError('');
+      return;
+    }
+    let cancelled = false;
+    setAttachmentUploading(false);
+    setDeletingAttachmentId(null);
+    setAttachmentsLoading(true);
+    setAttachmentError('');
+    quests.getAttachments(questDetailId).then((list) => {
+      if (!cancelled) setAttachments(Array.isArray(list) ? list : []);
+    }).catch((e) => {
+      if (!cancelled) {
+        setAttachments([]);
+        setAttachmentError(e.message || 'Не удалось загрузить список вложений.');
+      }
+    }).finally(() => {
+      if (!cancelled) setAttachmentsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [questDetailId]);
+
+  const handleUploadAttachment = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !questDetailId) return;
+    const targetQuestId = questDetailId;
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      setAttachmentError('Размер файла не должен превышать 1 ГБ.');
+      return;
+    }
+
+    setAttachmentUploading(true);
+    setAttachmentError('');
+    try {
+      const uploaded = await quests.uploadAttachment(targetQuestId, file);
+      if (uploaded && questDetailIdRef.current === targetQuestId) {
+        setAttachments((current) => [uploaded, ...current]);
+      }
+    } catch (e) {
+      if (questDetailIdRef.current === targetQuestId) {
+        setAttachmentError(e.message || 'Не удалось загрузить файл.');
+      }
+    } finally {
+      if (questDetailIdRef.current === targetQuestId) setAttachmentUploading(false);
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment) => {
+    if (!questDetailId) return;
+    const targetQuestId = questDetailId;
+    setAttachmentError('');
+    try {
+      const download = await quests.getAttachmentDownload(targetQuestId, attachment.id);
+      if (!download?.url) throw new Error('Ссылка на скачивание не получена.');
+      if (questDetailIdRef.current === targetQuestId) window.location.assign(download.url);
+    } catch (e) {
+      if (questDetailIdRef.current === targetQuestId) {
+        setAttachmentError(e.message || 'Не удалось скачать файл.');
+      }
+    }
+  };
+
+  const handleDeleteAttachment = async (attachment) => {
+    if (!questDetailId || !window.confirm(`Удалить файл «${attachment.fileName}»?`)) return;
+    const targetQuestId = questDetailId;
+    setDeletingAttachmentId(attachment.id);
+    setAttachmentError('');
+    try {
+      await quests.deleteAttachment(targetQuestId, attachment.id);
+      if (questDetailIdRef.current === targetQuestId) {
+        setAttachments((current) => current.filter((item) => item.id !== attachment.id));
+      }
+    } catch (e) {
+      if (questDetailIdRef.current === targetQuestId) {
+        setAttachmentError(e.message || 'Не удалось удалить файл.');
+      }
+    } finally {
+      if (questDetailIdRef.current === targetQuestId) setDeletingAttachmentId(null);
+    }
+  };
+
   const handleSaveQuest = async () => {
     if (!questDetailId) return;
     setSavingQuest(true);
@@ -354,6 +453,58 @@ export default function BoardPage() {
                 </label>
                 {questDetail.assigneeName && <p>Исполнитель: {questDetail.assigneeName}</p>}
                 {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString()}</p>}
+                <section className="board-quest-attachments">
+                  <div className="board-quest-attachments-header">
+                    <h4>Вложения</h4>
+                    <button
+                      type="button"
+                      className="board-quest-attachment-upload"
+                      onClick={() => attachmentInputRef.current?.click()}
+                      disabled={attachmentUploading}
+                    >
+                      {attachmentUploading ? 'Загрузка…' : '+ Прикрепить файл'}
+                    </button>
+                    <input
+                      ref={attachmentInputRef}
+                      type="file"
+                      className="board-quest-attachment-input"
+                      onChange={handleUploadAttachment}
+                    />
+                  </div>
+                  <p className="board-quest-attachment-hint">Любой формат, до 1 ГБ на файл.</p>
+                  {attachmentError && <p className="board-quest-attachment-error" role="alert">{attachmentError}</p>}
+                  {attachmentsLoading ? (
+                    <p className="board-quest-attachment-empty">Загрузка вложений…</p>
+                  ) : attachments.length === 0 ? (
+                    <p className="board-quest-attachment-empty">Вложений пока нет.</p>
+                  ) : (
+                    <ul className="board-quest-attachment-list">
+                      {attachments.map((attachment) => (
+                        <li key={attachment.id} className="board-quest-attachment-item">
+                          <div className="board-quest-attachment-info">
+                            <span className="board-quest-attachment-name" title={attachment.fileName}>{attachment.fileName}</span>
+                            <span className="board-quest-attachment-meta">
+                              {formatFileSize(attachment.sizeBytes)}
+                              {attachment.uploadedByName ? ` · ${attachment.uploadedByName}` : ''}
+                              {attachment.createdAt ? ` · ${new Date(attachment.createdAt).toLocaleString()}` : ''}
+                            </span>
+                          </div>
+                          <div className="board-quest-attachment-actions">
+                            <button type="button" onClick={() => handleDownloadAttachment(attachment)}>Скачать</button>
+                            <button
+                              type="button"
+                              className="board-quest-attachment-delete"
+                              onClick={() => handleDeleteAttachment(attachment)}
+                              disabled={deletingAttachmentId === attachment.id}
+                            >
+                              {deletingAttachmentId === attachment.id ? 'Удаление…' : 'Удалить'}
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
                 <label className="board-quest-modal-field">
                   Опыт (XP)
                   <input

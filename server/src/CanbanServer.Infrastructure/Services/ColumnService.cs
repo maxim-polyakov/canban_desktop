@@ -9,13 +9,20 @@ public class ColumnService : IColumnService
 {
     private readonly CanbanDbContext _db;
     private readonly IQuestService _questService;
+    private readonly IQuestAttachmentService _attachmentService;
     private readonly IBoardHub _boardHub;
     private readonly CacheService _cache;
 
-    public ColumnService(CanbanDbContext db, IQuestService questService, IBoardHub boardHub, CacheService cache)
+    public ColumnService(
+        CanbanDbContext db,
+        IQuestService questService,
+        IQuestAttachmentService attachmentService,
+        IBoardHub boardHub,
+        CacheService cache)
     {
         _db = db;
         _questService = questService;
+        _attachmentService = attachmentService;
         _boardHub = boardHub;
         _cache = cache;
     }
@@ -83,6 +90,11 @@ public class ColumnService : IColumnService
         var c = await _db.Columns.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c == null) return false;
         var boardId = c.BoardId;
+        var questIds = await _db.Quests
+            .Where(q => q.ColumnId == id)
+            .Select(q => q.Id)
+            .ToListAsync(ct);
+        await _attachmentService.DeleteFilesForQuestIdsAsync(questIds, ct);
         _db.Columns.Remove(c);
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + boardId, ct);

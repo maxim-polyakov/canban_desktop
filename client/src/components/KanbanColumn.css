@@ -159,6 +159,69 @@
   font-size: 0.9rem;
 }
 
+.kanban-add-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.kanban-add-attachments input[type="file"] {
+  padding: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.kanban-add-attachments-hint {
+  font-size: 0.72rem;
+}
+
+.kanban-add-attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.kanban-add-attachments-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.3rem 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.72rem;
+}
+
+.kanban-add-attachments-list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kanban-add-attachments-list button {
+  padding: 0.1rem 0.25rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.kanban-add-attachments-list button:hover {
+  color: var(--error, #c53030);
+}
+
+.kanban-add-attachments-error {
+  margin: 0 0 0.5rem;
+  color: var(--error, #c53030);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
 .kanban-add-actions {
   display: flex;
   gap: 0.5rem;
@@ -180,4 +243,9 @@
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
+}
+
+.kanban-add-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

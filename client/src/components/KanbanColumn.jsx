@@ -25,6 +25,12 @@ export default function KanbanColumn({
   onNewQuestAssigneeChange,
   newQuestXpReward = 10,
   onNewQuestXpRewardChange,
+  newQuestFiles = [],
+  onNewQuestFilesChange,
+  onRemoveNewQuestFile,
+  newQuestFileError,
+  formatFileSize,
+  creatingQuest,
   onSubmitNewQuest,
   onCancelAdd,
   onAssignQuest,
@@ -127,6 +133,39 @@ export default function KanbanColumn({
               placeholder="— не назначен —"
             />
           </label>
+          <label className="kanban-add-attachments">
+            Файлы
+            <input
+              type="file"
+              multiple
+              disabled={creatingQuest}
+              onChange={(e) => {
+                onNewQuestFilesChange?.(e.target.files);
+                e.target.value = '';
+              }}
+            />
+            <span className="kanban-add-attachments-hint">Можно выбрать несколько файлов, до 1 ГБ каждый.</span>
+          </label>
+          {newQuestFiles.length > 0 && (
+            <ul className="kanban-add-attachments-list">
+              {newQuestFiles.map((file, index) => (
+                <li key={`${file.name}-${file.size}-${index}`}>
+                  <span title={file.name}>
+                    {file.name} ({formatFileSize?.(file.size) ?? `${file.size} Б`})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveNewQuestFile?.(index)}
+                    disabled={creatingQuest}
+                    title="Убрать файл"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {newQuestFileError && <p className="kanban-add-attachments-error" role="alert">{newQuestFileError}</p>}
           <label className="kanban-add-xp">
             Опыт (XP)
             <input
@@ -138,8 +177,10 @@ export default function KanbanColumn({
             />
           </label>
           <div className="kanban-add-actions">
-            <button type="button" onClick={onSubmitNewQuest}>Добавить</button>
-            <button type="button" onClick={onCancelAdd}>Отмена</button>
+            <button type="button" onClick={onSubmitNewQuest} disabled={creatingQuest}>
+              {creatingQuest ? 'Создание…' : 'Добавить'}
+            </button>
+            <button type="button" onClick={onCancelAdd} disabled={creatingQuest}>Отмена</button>
           </div>
         </div>
       ) : (

@@ -141,11 +141,24 @@ export default function BoardPage() {
   };
 
   const handleAssignQuest = async (questId, assigneeIds) => {
+    const assignees = assigneeIds
+      .map((userId) => members.find((member) => member.userId === userId))
+      .filter(Boolean);
+    setBoard((current) => current ? {
+      ...current,
+      columns: (current.columns ?? []).map((column) => ({
+        ...column,
+        quests: (column.quests ?? []).map((quest) =>
+          quest.id === questId ? { ...quest, assigneeIds, assignees } : quest),
+      })),
+    } : current);
     try {
       await quests.update(questId, { assigneeIds, assigneeIdsSet: true });
       await loadBoard();
     } catch (e) {
       console.error(e);
+      await loadBoard();
+      window.alert(e.message || 'Не удалось изменить исполнителей задачи.');
     }
   };
 

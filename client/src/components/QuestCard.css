@@ -30,6 +30,21 @@
   min-width: 0;
 }
 
+.quest-card-drag-handle {
+  flex-shrink: 0;
+  padding: 0.05rem 0.15rem;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: grab;
+  line-height: 1;
+  touch-action: none;
+}
+
+.quest-card-drag-handle:active {
+  cursor: grabbing;
+}
+
 .quest-card-delete {
   padding: 0.1rem 0.25rem;
   background: transparent;

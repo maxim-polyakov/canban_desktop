@@ -106,15 +106,7 @@ public class QuestService : IQuestService
         return (await GetByIdAsync(quest.Id, ct))!;
     }
 
-    public Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, Guid userId, CancellationToken ct = default)
-        => UpdateCoreAsync(id, request, userId, retryOnConcurrency: true, ct: ct);
-
-    private async Task<QuestDto?> UpdateCoreAsync(
-        Guid id,
-        UpdateQuestRequest request,
-        Guid userId,
-        bool retryOnConcurrency,
-        CancellationToken ct)
+    public async Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, Guid userId, CancellationToken ct = default)
     {
         var q = await _db.Quests
             .Include(x => x.Assignees)
@@ -137,38 +129,32 @@ public class QuestService : IQuestService
         if (request.Title != null) q.Title = request.Title;
         if (request.Description != null) q.Description = request.Description;
         if (requestedAssigneeIds != null && assigneesChanged)
-        {
-            var requestedSet = requestedAssigneeIds.ToHashSet();
-            _db.QuestAssignees.RemoveRange(q.Assignees.Where(a => !requestedSet.Contains(a.UserId)));
-            var existingByUserId = q.Assignees.ToDictionary(a => a.UserId);
-            foreach (var (assigneeId, index) in requestedAssigneeIds.Select((userId, index) => (userId, index)))
-            {
-                if (existingByUserId.TryGetValue(assigneeId, out var assignment))
-                {
-                    assignment.Order = index;
-                    continue;
-                }
-                q.Assignees.Add(new QuestAssignee
-                {
-                    Id = Guid.NewGuid(),
-                    QuestId = q.Id,
-                    UserId = assigneeId,
-                    Order = index
-                });
-            }
             q.AssigneeId = requestedAssigneeIds.Count == 0 ? null : requestedAssigneeIds[0];
-        }
         if (request.DueDate != null) q.DueDate = request.DueDate;
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
-        try
+
+        if (assigneesChanged)
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+            await _db.SaveChangesAsync(ct);
+            await _db.QuestAssignees.Where(a => a.QuestId == id).ExecuteDeleteAsync(ct);
+            foreach (var (assigneeId, order) in requestedAssigneeIds!.Select((userId, index) => (userId, index)))
+            {
+                var assignmentId = Guid.NewGuid();
+                await _db.Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                    INSERT INTO "QuestAssignees" ("Id", "QuestId", "UserId", "Order")
+                    VALUES ({assignmentId}, {id}, {assigneeId}, {order})
+                    """,
+                    ct);
+            }
+            await transaction.CommitAsync(ct);
+            _db.ChangeTracker.Clear();
+        }
+        else
         {
             await _db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException) when (retryOnConcurrency)
-        {
-            _db.ChangeTracker.Clear();
-            return await UpdateCoreAsync(id, request, userId, retryOnConcurrency: false, ct: ct);
         }
         if (request.NotificationRecipientIds != null)
         {

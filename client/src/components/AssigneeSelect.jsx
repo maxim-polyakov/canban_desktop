@@ -24,11 +24,11 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
     [options, selectedIds]
   );
   const matches = useMemo(() => {
+    if (!normalized) return [];
     return options
       .filter((member) => !selectedIds.includes(member.userId))
       .filter((member) =>
-        !normalized
-        || member.displayName?.toLowerCase().includes(normalized)
+        member.displayName?.toLowerCase().includes(normalized)
         || member.email?.toLowerCase().includes(normalized))
       .slice(0, 8);
   }, [options, selectedIds, normalized]);
@@ -75,7 +75,7 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
           if (event.key === 'Escape') setOpen(false);
         }}
       />
-      {open && (
+      {open && normalized && (
         <ul className="assignee-select-dropdown" onPointerDown={(e) => e.stopPropagation()}>
           {matches.map((m) => (
             <li key={m.userId}>
@@ -93,9 +93,7 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
             </li>
           ))}
           {matches.length === 0 && (
-            <li className="assignee-select-empty">
-              {normalized ? 'Участник команды не найден' : 'Все участники уже выбраны'}
-            </li>
+            <li className="assignee-select-empty">Участник команды не найден</li>
           )}
         </ul>
       )}

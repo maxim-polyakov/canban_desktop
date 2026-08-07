@@ -64,13 +64,27 @@ export default function BoardPage() {
     }
   }, [boardId]);
 
+  const loadMembers = useCallback(async (teamId) => {
+    if (!teamId) return;
+    try {
+      const list = await teams.getMembers(teamId);
+      setMembers(Array.isArray(list) ? list : []);
+    } catch {
+      setMembers([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadBoard();
   }, [loadBoard]);
 
   // Реалтайм: подписка на обновления доски (квест создан/изменён/удалён другим пользователем)
   const loadBoardRef = useRef(loadBoard);
+  const loadMembersRef = useRef(loadMembers);
+  const teamIdRef = useRef(board?.teamId);
   loadBoardRef.current = loadBoard;
+  loadMembersRef.current = loadMembers;
+  teamIdRef.current = board?.teamId;
   useEffect(() => {
     if (!boardId || !loadBoardRef.current) return;
     const token = localStorage.getItem('token');
@@ -84,6 +98,7 @@ export default function BoardPage() {
       .build();
     connection.on('BoardUpdated', () => {
       loadBoardRef.current?.();
+      loadMembersRef.current?.(teamIdRef.current);
     });
     connection.start()
       .then(() => connection.invoke('JoinBoard', boardId))
@@ -97,12 +112,8 @@ export default function BoardPage() {
 
   useEffect(() => {
     if (!board?.teamId) return;
-    let cancelled = false;
-    teams.getMembers(board.teamId).then((list) => {
-      if (!cancelled) setMembers(Array.isArray(list) ? list : []);
-    }).catch(() => { if (!cancelled) setMembers([]); });
-    return () => { cancelled = true; };
-  }, [board?.teamId]);
+    loadMembers(board.teamId);
+  }, [board?.teamId, loadMembers]);
 
   const handleMoveQuest = async (questId, targetColumnId, newOrder) => {
     const col = board?.columns?.find((c) => c.id === targetColumnId);

@@ -11,15 +11,18 @@ public class TeamService : ITeamService
     private readonly CanbanDbContext _db;
     private readonly IAchievementService _achievementService;
     private readonly IQuestAttachmentService _attachmentService;
+    private readonly IBoardHub _boardHub;
 
     public TeamService(
         CanbanDbContext db,
         IAchievementService achievementService,
-        IQuestAttachmentService attachmentService)
+        IQuestAttachmentService attachmentService,
+        IBoardHub boardHub)
     {
         _db = db;
         _achievementService = achievementService;
         _attachmentService = attachmentService;
+        _boardHub = boardHub;
     }
 
     public async Task<TeamDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -104,6 +107,7 @@ public class TeamService : ITeamService
             JoinedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync(ct);
+        await NotifyTeamBoardsAsync(teamId, ct);
         return true;
     }
 
@@ -118,6 +122,7 @@ public class TeamService : ITeamService
             return false;
         _db.TeamMembers.Remove(m);
         await _db.SaveChangesAsync(ct);
+        await NotifyTeamBoardsAsync(teamId, ct);
         return true;
     }
 
@@ -138,6 +143,7 @@ public class TeamService : ITeamService
             team.OwnerId = nextOwner;
         }
         await _db.SaveChangesAsync(ct);
+        await NotifyTeamBoardsAsync(teamId, ct);
         return true;
     }
 
@@ -200,6 +206,7 @@ public class TeamService : ITeamService
         });
         _db.TeamInvites.Remove(invite);
         await _db.SaveChangesAsync(ct);
+        await NotifyTeamBoardsAsync(invite.TeamId, ct);
         await _achievementService.TryGrantAchievementsForUserAsync(invite.InvitedByUserId, ct);
         return true;
     }
@@ -235,5 +242,15 @@ public class TeamService : ITeamService
         _db.Teams.Remove(team);
         await _db.SaveChangesAsync(ct);
         return true;
+    }
+
+    private async Task NotifyTeamBoardsAsync(Guid teamId, CancellationToken ct)
+    {
+        var boardIds = await _db.Boards.AsNoTracking()
+            .Where(board => board.TeamId == teamId)
+            .Select(board => board.Id)
+            .ToListAsync(ct);
+        foreach (var boardId in boardIds)
+            await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
     }
 }

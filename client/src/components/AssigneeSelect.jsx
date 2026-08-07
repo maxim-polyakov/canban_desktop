@@ -82,7 +82,11 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
               <button
                 type="button"
                 className="assignee-select-option"
-                onClick={() => handleSelect(m.userId)}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleSelect(m.userId);
+                }}
               >
                 <AssigneeAvatar displayName={m.displayName} avatarUrl={m.avatarUrl} size={24} />
                 <span className="assignee-select-option-text">

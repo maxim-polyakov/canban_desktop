@@ -4,6 +4,7 @@ import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { boards, columns, quests, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
+import AssigneeSelect from '../components/AssigneeSelect.jsx';
 import NotificationRecipientPicker from '../components/NotificationRecipientPicker.jsx';
 import './BoardPage.css';
 
@@ -34,6 +35,7 @@ export default function BoardPage() {
   const [editQuestTitle, setEditQuestTitle] = useState('');
   const [editQuestDescription, setEditQuestDescription] = useState('');
   const [editQuestXpReward, setEditQuestXpReward] = useState(0);
+  const [editQuestAssigneeIds, setEditQuestAssigneeIds] = useState([]);
   const [savingQuest, setSavingQuest] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [attachments, setAttachments] = useState([]);
@@ -138,9 +140,9 @@ export default function BoardPage() {
     }
   };
 
-  const handleAssignQuest = async (questId, assigneeId) => {
+  const handleAssignQuest = async (questId, assigneeIds) => {
     try {
-      await quests.update(questId, { assigneeId: assigneeId || null, assigneeIdSet: true });
+      await quests.update(questId, { assigneeIds, assigneeIdsSet: true });
       await loadBoard();
     } catch (e) {
       console.error(e);
@@ -275,6 +277,7 @@ export default function BoardPage() {
         setEditQuestTitle(q?.title ?? '');
         setEditQuestDescription(q?.description ?? '');
         setEditQuestXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);
+        setEditQuestAssigneeIds(q?.assigneeIds ?? []);
         setNotificationRecipientIds(q?.notificationRecipientIds ?? []);
       }
     }).catch(() => { if (!cancelled) setQuestDetail(null); });
@@ -386,7 +389,14 @@ export default function BoardPage() {
     setSavingQuest(true);
     try {
       const xp = Math.max(0, Math.min(9999, Number(editQuestXpReward) || 0));
-      await quests.update(questDetailId, { title: editQuestTitle.trim(), description: editQuestDescription.trim(), xpReward: xp, notificationRecipientIds });
+      await quests.update(questDetailId, {
+        title: editQuestTitle.trim(),
+        description: editQuestDescription.trim(),
+        xpReward: xp,
+        assigneeIds: editQuestAssigneeIds,
+        assigneeIdsSet: true,
+        notificationRecipientIds,
+      });
       const updated = await quests.get(questDetailId);
       setQuestDetail(updated);
       await loadBoard();
@@ -510,7 +520,15 @@ export default function BoardPage() {
                   Описание
                   <textarea value={editQuestDescription} onChange={(e) => setEditQuestDescription(e.target.value)} rows={3} placeholder="Описание квеста" />
                 </label>
-                {questDetail.assigneeName && <p>Исполнитель: {questDetail.assigneeName}</p>}
+                <label className="board-quest-modal-field">
+                  Исполнители
+                  <AssigneeSelect
+                    value={editQuestAssigneeIds}
+                    options={members}
+                    onChange={setEditQuestAssigneeIds}
+                    placeholder="— не назначены —"
+                  />
+                </label>
                 {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString()}</p>}
                 <fieldset className="board-quest-notifications">
                   <legend>Email-уведомления получают</legend>

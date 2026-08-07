@@ -29,7 +29,7 @@ public class ColumnService : IColumnService
 
     public async Task<ColumnDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var c = await _db.Columns.Include(x => x.Quests).ThenInclude(q => q.Assignee).FirstOrDefaultAsync(x => x.Id == id, ct);
+        var c = await _db.Columns.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c == null) return null;
         var quests = await _questService.GetByColumnIdAsync(id, ct);
         return new ColumnDto(c.Id, c.BoardId, c.Title, c.Order, c.Kind, c.CreatedAt, quests);

@@ -47,6 +47,7 @@ public class QuestService : IQuestService
     {
         var q = await _db.Quests
             .Include(x => x.Assignee)
+            .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.NotificationRecipients)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         return q == null ? null : Map(q);
@@ -56,6 +57,7 @@ public class QuestService : IQuestService
     {
         var list = await _db.Quests
             .Include(x => x.Assignee)
+            .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.NotificationRecipients)
             .Where(x => x.ColumnId == columnId)
             .OrderBy(x => x.Order)
@@ -67,6 +69,8 @@ public class QuestService : IQuestService
     {
         var col = await _db.Columns.Include(c => c.Board).FirstOrDefaultAsync(c => c.Id == request.ColumnId, ct)
             ?? throw new ArgumentException("Column not found");
+        var assigneeIds = NormalizeAssigneeIds(request.AssigneeIds, request.AssigneeId);
+        await ValidateAssigneesAsync(col.Board.TeamId, assigneeIds, ct);
         var maxOrder = await _db.Quests.Where(q => q.ColumnId == request.ColumnId).MaxAsync(q => (int?)q.Order, ct) ?? -1;
         var quest = new Quest
         {
@@ -75,7 +79,7 @@ public class QuestService : IQuestService
             BoardId = col.BoardId,
             Title = request.Title,
             Description = request.Description,
-            AssigneeId = request.AssigneeId,
+            AssigneeId = assigneeIds.Count == 0 ? null : assigneeIds[0],
             Order = maxOrder + 1,
             DueDate = request.DueDate,
             CreatedAt = DateTime.UtcNow,
@@ -84,10 +88,17 @@ public class QuestService : IQuestService
             IsEpic = request.IsEpic,
             ParentEpicId = request.ParentEpicId
         };
+        quest.Assignees = assigneeIds.Select((id, index) => new QuestAssignee
+        {
+            Id = Guid.NewGuid(),
+            QuestId = quest.Id,
+            UserId = id,
+            Order = index
+        }).ToList();
         _db.Quests.Add(quest);
         await _db.SaveChangesAsync(ct);
         var recipients = request.NotificationRecipientIds?.Distinct().ToList() ?? new List<Guid>();
-        if (recipients.Count == 0 && quest.AssigneeId.HasValue) recipients.Add(quest.AssigneeId.Value);
+        recipients.AddRange(assigneeIds.Where(id => !recipients.Contains(id)));
         await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipients, ct);
         await _notificationService.NotifyAsync(quest.Id, userId, "Задача создана", "Вам назначены уведомления по новой задаче.", ct);
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
@@ -97,29 +108,64 @@ public class QuestService : IQuestService
 
     public async Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, Guid userId, CancellationToken ct = default)
     {
-        var q = await _db.Quests.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var q = await _db.Quests
+            .Include(x => x.Assignees)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return null;
-        var oldAssigneeId = q.AssigneeId;
+        var requestedAssigneeIds = GetUpdatedAssigneeIds(request);
+        if (requestedAssigneeIds != null)
+            await ValidateAssigneesAsync(
+                await _db.Boards.Where(b => b.Id == q.BoardId).Select(b => b.TeamId).FirstAsync(ct),
+                requestedAssigneeIds,
+                ct);
+        var currentAssigneeIds = q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList();
+        var assigneesChanged = requestedAssigneeIds != null && !currentAssigneeIds.SequenceEqual(requestedAssigneeIds);
         var changes = new List<string>();
         if (request.Title != null && request.Title != q.Title) changes.Add("изменено название");
         if (request.Description != null && request.Description != q.Description) changes.Add("изменено описание");
-        if (request.AssigneeIdSet && request.AssigneeId != q.AssigneeId) changes.Add("изменён исполнитель");
+        if (assigneesChanged) changes.Add("изменены исполнители");
         if (request.DueDate != null && request.DueDate != q.DueDate) changes.Add("изменён срок");
         if (request.XpReward != null && request.XpReward != q.XpReward) changes.Add("изменена награда XP");
         if (request.Title != null) q.Title = request.Title;
         if (request.Description != null) q.Description = request.Description;
-        if (request.AssigneeIdSet) q.AssigneeId = request.AssigneeId;
+        if (requestedAssigneeIds != null && assigneesChanged)
+        {
+            var requestedSet = requestedAssigneeIds.ToHashSet();
+            _db.QuestAssignees.RemoveRange(q.Assignees.Where(a => !requestedSet.Contains(a.UserId)));
+            var existingByUserId = q.Assignees.ToDictionary(a => a.UserId);
+            foreach (var (assigneeId, index) in requestedAssigneeIds.Select((userId, index) => (userId, index)))
+            {
+                if (existingByUserId.TryGetValue(assigneeId, out var assignment))
+                {
+                    assignment.Order = index;
+                    continue;
+                }
+                q.Assignees.Add(new QuestAssignee
+                {
+                    Id = Guid.NewGuid(),
+                    QuestId = q.Id,
+                    UserId = assigneeId,
+                    Order = index
+                });
+            }
+            q.AssigneeId = requestedAssigneeIds.Count == 0 ? null : requestedAssigneeIds[0];
+        }
         if (request.DueDate != null) q.DueDate = request.DueDate;
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
         await _db.SaveChangesAsync(ct);
         if (request.NotificationRecipientIds != null)
-            await _collaborationService.SetRecipientsAsync(id, userId, request.NotificationRecipientIds, ct);
-        else if (request.AssigneeIdSet && request.AssigneeId.HasValue && request.AssigneeId != oldAssigneeId)
+        {
+            var recipientIds = request.NotificationRecipientIds.Distinct().ToList();
+            var assignedIds = requestedAssigneeIds ?? currentAssigneeIds;
+            recipientIds.AddRange(assignedIds.Where(assignedId => !recipientIds.Contains(assignedId)));
+            await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct);
+        }
+        else if (assigneesChanged)
         {
             var recipientIds = await _db.QuestNotificationRecipients
                 .Where(r => r.QuestId == id).Select(r => r.UserId).ToListAsync(ct);
-            if (!recipientIds.Contains(request.AssigneeId.Value)) recipientIds.Add(request.AssigneeId.Value);
+            recipientIds.AddRange(requestedAssigneeIds!.Where(assignedId => !recipientIds.Contains(assignedId)));
             await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct);
         }
         if (changes.Count > 0)
@@ -135,6 +181,7 @@ public class QuestService : IQuestService
             .Include(q => q.Column)
             .Include(q => q.Board)
             .Include(q => q.Assignee)
+            .Include(q => q.Assignees).ThenInclude(a => a.User)
             .FirstOrDefaultAsync(q => q.Id == request.QuestId, ct);
         if (quest == null) return null;
 
@@ -152,14 +199,33 @@ public class QuestService : IQuestService
         {
             justCompleted = true;
             quest.CompletedAt = DateTime.UtcNow;
-            if (quest.AssigneeId == null)
-                quest.AssigneeId = userId;
-            var assigneeId = quest.AssigneeId ?? userId;
-            var (xpGained, levelUp, newLevel) = await _xpService.AwardQuestCompletedAsync(assigneeId, quest, ct);
-            if (assigneeId != Guid.Empty)
+            if (quest.Assignees.Count == 0)
             {
-                var teamId = quest.Board.TeamId;
-                var user = await _db.Users.FindAsync(new object[] { assigneeId }, ct);
+                var mover = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
+                    ?? throw new ArgumentException("Mover not found");
+                quest.Assignees.Add(new QuestAssignee
+                {
+                    Id = Guid.NewGuid(),
+                    QuestId = quest.Id,
+                    UserId = userId,
+                    User = mover,
+                    Order = 0
+                });
+                quest.AssigneeId = userId;
+            }
+
+            var assignees = quest.Assignees
+                .OrderBy(a => a.Order)
+                .GroupBy(a => a.UserId)
+                .Select(g => g.First())
+                .ToList();
+            quest.AssigneeId = assignees[0].UserId;
+            var teamId = quest.Board.TeamId;
+            foreach (var assignment in assignees)
+            {
+                var assigneeId = assignment.UserId;
+                var user = assignment.User;
+                var (xpGained, levelUp, newLevel) = await _xpService.AwardQuestCompletedAsync(assigneeId, quest, ct);
                 var title = $"{user?.DisplayName ?? "Кто-то"} закрыл квест «{quest.Title}»";
                 if (xpGained > 0)
                     title += $" (+{xpGained} XP)";
@@ -170,25 +236,32 @@ public class QuestService : IQuestService
                     var levelActivity = await _activityFeed.PublishAsync(teamId, assigneeId, "LevelUp", $"{user?.DisplayName ?? "Кто-то"} получил уровень {newLevel}!", null, $"{{ \"level\": {newLevel} }}", ct);
                     await _activityHub.PushToTeamAsync(teamId, levelActivity, ct);
                 }
-            }
-            if (quest.IsEpic && quest.AssigneeId.HasValue)
-            {
-                var teamId = quest.Board.TeamId;
-                var assignee = await _db.Users.FindAsync(new object[] { quest.AssigneeId.Value }, ct);
-                var activity = await _activityFeed.PublishAsync(teamId, quest.AssigneeId.Value, "EpicClosed", $"{assignee?.DisplayName ?? "Кто-то"} закрыл эпик «{quest.Title}»", null, null, ct);
-                await _activityHub.PushToTeamAsync(teamId, activity, ct);
+                if (quest.IsEpic)
+                {
+                    var epicActivity = await _activityFeed.PublishAsync(teamId, assigneeId, "EpicClosed", $"{user?.DisplayName ?? "Кто-то"} закрыл эпик «{quest.Title}»", null, null, ct);
+                    await _activityHub.PushToTeamAsync(teamId, epicActivity, ct);
+                }
             }
         }
 
         await _db.SaveChangesAsync(ct);
+        if (justCompleted)
+        {
+            var recipientIds = await _db.QuestNotificationRecipients
+                .Where(r => r.QuestId == quest.Id)
+                .Select(r => r.UserId)
+                .ToListAsync(ct);
+            recipientIds.AddRange(quest.Assignees.Select(a => a.UserId).Where(id => !recipientIds.Contains(id)));
+            await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipientIds, ct);
+        }
         if (oldColumnId != quest.ColumnId)
             await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{quest.Column.Title}» в «{targetColumn.Title}».", ct);
         await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(quest.BoardId, ct);
         if (justCompleted)
         {
-            var assigneeId = quest.AssigneeId ?? userId;
-            await _achievementService.TryGrantAchievementsForUserAsync(assigneeId, ct);
+            foreach (var assigneeId in quest.Assignees.Select(a => a.UserId).Distinct())
+                await _achievementService.TryGrantAchievementsForUserAsync(assigneeId, ct);
         }
         return await GetByIdAsync(quest.Id, ct);
     }
@@ -197,6 +270,7 @@ public class QuestService : IQuestService
     {
         var list = await _db.Quests
             .Include(q => q.Assignee)
+            .Include(q => q.Assignees).ThenInclude(a => a.User)
             .Include(q => q.Column)
             .Include(q => q.NotificationRecipients)
             .Where(q => q.BoardId == boardId && q.Column.Kind == ColumnKind.Archive)
@@ -303,6 +377,43 @@ public class QuestService : IQuestService
     private static QuestDto Map(Quest q) => new(
         q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId,
         q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt,
-        q.Category, q.XpReward, q.IsEpic, q.ParentEpicId, q.NotificationRecipients.Select(r => r.UserId).ToList()
+        q.Category, q.XpReward, q.IsEpic, q.ParentEpicId, q.NotificationRecipients.Select(r => r.UserId).ToList(),
+        q.Assignees.OrderBy(a => a.Order).Select(a => new QuestAssigneeDto(a.UserId, a.User.DisplayName, a.User.AvatarUrl)).ToList(),
+        q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList()
     );
+
+    private static List<Guid> NormalizeAssigneeIds(IEnumerable<Guid>? assigneeIds, Guid? legacyAssigneeId)
+    {
+        var result = assigneeIds?.Distinct().ToList()
+            ?? (legacyAssigneeId.HasValue ? new List<Guid> { legacyAssigneeId.Value } : new List<Guid>());
+        if (result.Contains(Guid.Empty))
+            throw new ArgumentException("Assignee id cannot be empty");
+        return result;
+    }
+
+    private static List<Guid>? GetUpdatedAssigneeIds(UpdateQuestRequest request)
+    {
+        if (request.AssigneeIdsSet)
+            return NormalizeAssigneeIds(request.AssigneeIds, null);
+        if (request.AssigneeIdSet)
+            return NormalizeAssigneeIds(null, request.AssigneeId);
+        return null;
+    }
+
+    private async Task ValidateAssigneesAsync(Guid teamId, IReadOnlyCollection<Guid> assigneeIds, CancellationToken ct)
+    {
+        if (assigneeIds.Count == 0) return;
+        var allowedIds = await _db.TeamMembers
+            .Where(m => m.TeamId == teamId && assigneeIds.Contains(m.UserId))
+            .Select(m => m.UserId)
+            .ToListAsync(ct);
+        var ownerId = await _db.Teams
+            .Where(t => t.Id == teamId)
+            .Select(t => t.OwnerId)
+            .FirstOrDefaultAsync(ct);
+        if (ownerId.HasValue)
+            allowedIds.Add(ownerId.Value);
+        if (assigneeIds.Any(id => !allowedIds.Contains(id)))
+            throw new ArgumentException("Every assignee must be a member or owner of the board team");
+    }
 }

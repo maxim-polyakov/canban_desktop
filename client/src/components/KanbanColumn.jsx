@@ -22,8 +22,8 @@ export default function KanbanColumn({
   onNewQuestTitleChange,
   newQuestDescription,
   onNewQuestDescriptionChange,
-  newQuestAssigneeId,
-  onNewQuestAssigneeChange,
+  newQuestAssigneeIds,
+  onNewQuestAssigneesChange,
   newQuestRecipientIds = [],
   onNewQuestRecipientsChange,
   newQuestXpReward = 10,
@@ -128,12 +128,12 @@ export default function KanbanColumn({
             />
           </label>
           <label className="kanban-add-assignee">
-            Исполнитель
+            Исполнители
             <AssigneeSelect
-              value={newQuestAssigneeId || ''}
+              value={newQuestAssigneeIds || []}
               options={members || []}
-              onChange={(v) => onNewQuestAssigneeChange(v != null ? v : '')}
-              placeholder="— не назначен —"
+              onChange={onNewQuestAssigneesChange}
+              placeholder="— не назначены —"
             />
           </label>
           <fieldset className="kanban-add-notifications">

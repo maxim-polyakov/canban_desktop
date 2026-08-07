@@ -150,8 +150,15 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        var quest = await _questService.CreateAsync(request, userId.Value, ct);
-        return CreatedAtAction(nameof(Get), new { id = quest.Id }, quest);
+        try
+        {
+            var quest = await _questService.CreateAsync(request, userId.Value, ct);
+            return CreatedAtAction(nameof(Get), new { id = quest.Id }, quest);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id:guid}")]
@@ -159,8 +166,15 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        var quest = await _questService.UpdateAsync(id, request, userId.Value, ct);
-        return quest == null ? NotFound() : Ok(quest);
+        try
+        {
+            var quest = await _questService.UpdateAsync(id, request, userId.Value, ct);
+            return quest == null ? NotFound() : Ok(quest);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{questId:guid}/notification-recipients")]

@@ -16,6 +16,7 @@ public class CanbanDbContext : DbContext
     public DbSet<Board> Boards => Set<Board>();
     public DbSet<Column> Columns => Set<Column>();
     public DbSet<Quest> Quests => Set<Quest>();
+    public DbSet<QuestAssignee> QuestAssignees => Set<QuestAssignee>();
     public DbSet<QuestAttachment> QuestAttachments => Set<QuestAttachment>();
     public DbSet<QuestNotificationRecipient> QuestNotificationRecipients => Set<QuestNotificationRecipient>();
     public DbSet<QuestComment> QuestComments => Set<QuestComment>();

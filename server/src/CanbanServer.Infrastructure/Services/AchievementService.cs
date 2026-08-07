@@ -78,8 +78,13 @@ public class AchievementService : IAchievementService
         var toUnlock = achievements.Where(a => !unlockedIds.Contains(a.Id)).ToList();
         if (toUnlock.Count == 0) return;
 
-        var completedQuestCount = await _db.Quests
-            .CountAsync(q => q.CompletedAt != null && q.AssigneeId == userId, ct);
+        var completedQuestCount = await _db.QuestAssignees
+            .CountAsync(a => a.UserId == userId && a.Quest.CompletedAt != null, ct);
+        var completedByCategory = await _db.QuestAssignees
+            .Where(a => a.UserId == userId && a.Quest.CompletedAt != null)
+            .GroupBy(a => a.Quest.Category)
+            .Select(g => new { Category = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Category, x => x.Count, ct);
 
         var isInTeam = await _db.TeamMembers.AnyAsync(tm => tm.UserId == userId, ct);
 
@@ -99,6 +104,7 @@ public class AchievementService : IAchievementService
             {
                 "FirstQuest" => completedQuestCount >= 1,
                 "CompleteQuests" => !string.IsNullOrEmpty(a.ConditionPayload) && int.TryParse(a.ConditionPayload, out var n) && completedQuestCount >= n,
+                "CompleteQuestsInCategory" => IsCategoryTargetMet(a.ConditionPayload, completedByCategory),
                 "TeamMember" => isInTeam,
                 "LevelUp" => !string.IsNullOrEmpty(a.ConditionPayload) && int.TryParse(a.ConditionPayload, out var lvl) && levelNumber >= lvl,
                 "InviteMember" => invitedCount >= 1,
@@ -156,5 +162,14 @@ public class AchievementService : IAchievementService
 
         foreach (var (xpBonus, name) in grantedWithBonus)
             await _xpService.AwardAchievementAsync(userId, xpBonus, name, ct);
+    }
+
+    private static bool IsCategoryTargetMet(string? payload, IReadOnlyDictionary<QuestCategory, int> completedByCategory)
+    {
+        var parts = payload?.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts is { Length: 2 }
+            && Enum.TryParse<QuestCategory>(parts[0], true, out var category)
+            && int.TryParse(parts[1], out var target)
+            && completedByCategory.GetValueOrDefault(category) >= target;
     }
 }

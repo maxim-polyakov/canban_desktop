@@ -10,6 +10,67 @@ public static class DatabaseSchemaInitializer
     {
         await db.Database.ExecuteSqlRawAsync(
             """
+            CREATE TABLE IF NOT EXISTS "QuestAssignees" (
+                "Id" uuid NOT NULL,
+                "QuestId" uuid NOT NULL,
+                "UserId" uuid NOT NULL,
+                "Order" integer NOT NULL,
+                CONSTRAINT "PK_QuestAssignees" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_QuestAssignees_Quests_QuestId"
+                    FOREIGN KEY ("QuestId") REFERENCES "Quests" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_QuestAssignees_Users_UserId"
+                    FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_QuestAssignees_QuestId_UserId"
+                ON "QuestAssignees" ("QuestId", "UserId");
+            CREATE INDEX IF NOT EXISTS "IX_QuestAssignees_UserId"
+                ON "QuestAssignees" ("UserId");
+            """,
+            ct);
+
+        // md5(text)::uuid is built into PostgreSQL, so the backfill is concurrent-safe
+        // without requiring pgcrypto/gen_random_uuid().
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO "QuestAssignees" ("Id", "QuestId", "UserId", "Order")
+            SELECT md5(q."Id"::text || ':' || q."AssigneeId"::text)::uuid,
+                   q."Id",
+                   q."AssigneeId",
+                   0
+            FROM "Quests" q
+            WHERE q."AssigneeId" IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM "QuestAssignees" qa
+                  WHERE qa."QuestId" = q."Id"
+              )
+            ON CONFLICT DO NOTHING;
+            """,
+            ct);
+
+        var assignmentHeads = (await db.QuestAssignees
+            .AsNoTracking()
+            .OrderBy(a => a.QuestId)
+            .ThenBy(a => a.Order)
+            .Select(a => new { a.QuestId, a.UserId })
+            .ToListAsync(ct))
+            .GroupBy(a => a.QuestId)
+            .Select(g => g.First())
+            .ToList();
+        var assignedQuestIds = assignmentHeads.Select(x => x.QuestId).ToList();
+        var questsToSynchronize = await db.Quests
+            .Where(q => assignedQuestIds.Contains(q.Id))
+            .ToDictionaryAsync(q => q.Id, ct);
+        foreach (var head in assignmentHeads)
+        {
+            var quest = questsToSynchronize[head.QuestId];
+            if (quest.AssigneeId != head.UserId)
+                quest.AssigneeId = head.UserId;
+        }
+        await db.SaveChangesAsync(ct);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
             CREATE TABLE IF NOT EXISTS "QuestAttachments" (
                 "Id" uuid NOT NULL,
                 "QuestId" uuid NOT NULL,

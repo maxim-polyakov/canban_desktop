@@ -3,6 +3,7 @@ import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, TouchSen
 import { SortableContext, verticalListSortingStrategy, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import KanbanColumn from './KanbanColumn.jsx';
+import AssigneeSummary from './AssigneeSummary.jsx';
 import { quests } from '../api.js';
 import './KanbanBoard.css';
 
@@ -42,7 +43,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
   const [newQuestColumnId, setNewQuestColumnId] = useState(null);
   const [newQuestTitle, setNewQuestTitle] = useState('');
   const [newQuestDescription, setNewQuestDescription] = useState('');
-  const [newQuestAssigneeId, setNewQuestAssigneeId] = useState('');
+  const [newQuestAssigneeIds, setNewQuestAssigneeIds] = useState([]);
   const [newQuestXpReward, setNewQuestXpReward] = useState(10);
   const [newQuestFiles, setNewQuestFiles] = useState([]);
   const [newQuestRecipientIds, setNewQuestRecipientIds] = useState([]);
@@ -106,11 +107,11 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
         title: newQuestTitle.trim(),
         description: newQuestDescription.trim() || null,
         columnId,
-        assigneeId: newQuestAssigneeId || null,
+        assigneeIds: newQuestAssigneeIds,
         category: 0,
         xpReward: xp,
         isEpic: false,
-        notificationRecipientIds: newQuestRecipientIds,
+        notificationRecipientIds: [...new Set([...newQuestRecipientIds, ...newQuestAssigneeIds])],
       });
       const failedFiles = [];
       for (const file of newQuestFiles) {
@@ -123,7 +124,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
       }
       setNewQuestTitle('');
       setNewQuestDescription('');
-      setNewQuestAssigneeId('');
+      setNewQuestAssigneeIds([]);
       setNewQuestXpReward(10);
       setNewQuestFiles([]);
       setNewQuestRecipientIds([]);
@@ -157,7 +158,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
     setNewQuestColumnId(null);
     setNewQuestTitle('');
     setNewQuestDescription('');
-    setNewQuestAssigneeId('');
+    setNewQuestAssigneeIds([]);
     setNewQuestXpReward(10);
     setNewQuestFiles([]);
     setNewQuestRecipientIds([]);
@@ -189,10 +190,10 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                     onNewQuestTitleChange={setNewQuestTitle}
                     newQuestDescription={newQuestDescription}
                     onNewQuestDescriptionChange={setNewQuestDescription}
-                    newQuestAssigneeId={newQuestAssigneeId}
-                    onNewQuestAssigneeChange={(userId) => {
-                      setNewQuestAssigneeId(userId);
-                      if (userId) setNewQuestRecipientIds((current) => current.includes(userId) ? current : [...current, userId]);
+                    newQuestAssigneeIds={newQuestAssigneeIds}
+                    onNewQuestAssigneesChange={(assigneeIds) => {
+                      setNewQuestAssigneeIds(assigneeIds);
+                      setNewQuestRecipientIds((current) => [...new Set([...current, ...assigneeIds])]);
                     }}
                     newQuestRecipientIds={newQuestRecipientIds}
                     onNewQuestRecipientsChange={setNewQuestRecipientIds}
@@ -260,7 +261,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
           {activeQuest ? (
             <div className="quest-card quest-card-dragging">
               <span className="quest-card-title">{activeQuest.title}</span>
-              {activeQuest.assigneeName && <span className="quest-card-assignee">{activeQuest.assigneeName}</span>}
+              <AssigneeSummary assignees={activeQuest.assignees} />
               {activeQuest.xpReward > 0 && <span className="quest-card-xp">+{activeQuest.xpReward} XP</span>}
             </div>
           ) : null}

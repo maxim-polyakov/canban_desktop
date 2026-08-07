@@ -30,6 +30,11 @@ public class QuestCollaborationService : IQuestCollaborationService
         var ownerId = await _db.Teams.Where(t => t.Id == teamId).Select(t => t.OwnerId).FirstOrDefaultAsync(ct);
         if (ownerId.HasValue) allowed.Add(ownerId.Value);
         var requested = userIds.Distinct().ToList();
+        var assigneeIds = await _db.QuestAssignees
+            .Where(a => a.QuestId == questId)
+            .Select(a => a.UserId)
+            .ToListAsync(ct);
+        requested.AddRange(assigneeIds.Where(id => !requested.Contains(id)));
         if (requested.Any(id => !allowed.Contains(id))) return QuestAttachmentOperationStatus.Forbidden;
 
         var existing = await _db.QuestNotificationRecipients.Where(r => r.QuestId == questId).ToListAsync(ct);

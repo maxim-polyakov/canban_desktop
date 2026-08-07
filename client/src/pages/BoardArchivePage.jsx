@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { boards, quests } from '../api.js';
+import AssigneeSummary from '../components/AssigneeSummary.jsx';
 import './BoardPage.css';
 
 export default function BoardArchivePage() {
@@ -60,7 +61,7 @@ export default function BoardArchivePage() {
               </div>
               {quest.description && <p className="board-archive-description">{quest.description}</p>}
               <div className="board-archive-meta">
-                {quest.assigneeName && <span>Исполнитель: {quest.assigneeName}</span>}
+                <AssigneeSummary assignees={quest.assignees} label="Исполнители:" />
                 {quest.completedAt && <span>Выполнено: {new Date(quest.completedAt).toLocaleString()}</span>}
                 {quest.dueDate && <span>Срок: {new Date(quest.dueDate).toLocaleDateString()}</span>}
               </div>

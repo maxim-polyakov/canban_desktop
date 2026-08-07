@@ -43,9 +43,9 @@ public class LeaderboardService : ILeaderboardService
         var userIds = userXp.Select(x => x.UserId).Distinct().ToList();
         var users = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct);
         var characters = await _db.Characters.Include(c => c.Level).Where(c => userIds.Contains(c.UserId)).ToDictionaryAsync(c => c.UserId, ct);
-        var completedCount = await _db.Quests
-            .Where(q => q.AssigneeId != null && userIds.Contains(q.AssigneeId.Value) && q.CompletedAt >= from && q.CompletedAt <= to)
-            .GroupBy(q => q.AssigneeId!.Value)
+        var completedCount = await _db.QuestAssignees
+            .Where(a => userIds.Contains(a.UserId) && a.Quest.CompletedAt >= from && a.Quest.CompletedAt <= to)
+            .GroupBy(a => a.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToListAsync(ct);
         var completedByUser = completedCount.ToDictionary(x => x.UserId, x => x.Count);
@@ -95,9 +95,11 @@ public class LeaderboardService : ILeaderboardService
             .GroupBy(x => x.CreatedAt.Date)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
-        var completedQuests = await _db.Quests
-            .Where(q => q.AssigneeId != null && memberIds.Contains(q.AssigneeId.Value) && q.CompletedAt >= fromUtc && q.CompletedAt < toUtc)
-            .Select(q => q.CompletedAt!.Value)
+        var completedQuests = await _db.QuestAssignees
+            .Where(a => memberIds.Contains(a.UserId) && a.Quest.CompletedAt >= fromUtc && a.Quest.CompletedAt < toUtc)
+            .Select(a => new { a.QuestId, CompletedAt = a.Quest.CompletedAt!.Value })
+            .Distinct()
+            .Select(x => x.CompletedAt)
             .ToListAsync(ct);
         var questsByDay = completedQuests
             .GroupBy(d => d.Date)

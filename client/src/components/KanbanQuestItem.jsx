@@ -15,8 +15,8 @@ export default function KanbanQuestItem({ quest, members, onAssignQuest, onDelet
     transition,
   };
 
-  const handleAssigneeChange = (userId) => {
-    onAssignQuest?.(quest.id, userId);
+  const handleAssigneeChange = (assigneeIds) => {
+    onAssignQuest?.(quest.id, assigneeIds);
   };
 
   return (
@@ -37,12 +37,12 @@ export default function KanbanQuestItem({ quest, members, onAssignQuest, onDelet
         )}
       </div>
       <div className="quest-card-assignee-row" onPointerDown={(e) => e.stopPropagation()}>
-        <span className="quest-card-assignee-label">Исполнитель:</span>
+        <span className="quest-card-assignee-label">Исполнители:</span>
         <AssigneeSelect
-          value={quest.assigneeId || ''}
+          value={quest.assigneeIds || []}
           options={members || []}
           onChange={handleAssigneeChange}
-          placeholder="— назначить —"
+          placeholder="— назначить исполнителей —"
         />
       </div>
       {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}

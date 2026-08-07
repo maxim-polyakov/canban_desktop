@@ -20,6 +20,7 @@ public class User
     public Character Character { get; set; } = null!;
     public ICollection<TeamMember> TeamMemberships { get; set; } = new List<TeamMember>();
     public ICollection<Quest> AssignedQuests { get; set; } = new List<Quest>();
+    public ICollection<QuestAssignee> QuestAssignments { get; set; } = new List<QuestAssignee>();
     public ICollection<QuestReview> ReviewsGiven { get; set; } = new List<QuestReview>();
     public ICollection<UserAchievement> Achievements { get; set; } = new List<UserAchievement>();
     public ICollection<SkillUnlock> SkillUnlocks { get; set; } = new List<SkillUnlock>();

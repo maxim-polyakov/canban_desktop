@@ -1,0 +1,36 @@
+.assignee-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.assignee-summary-label {
+  flex-shrink: 0;
+}
+
+.assignee-summary-avatars {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.assignee-summary-avatars .assignee-avatar + .assignee-avatar {
+  margin-left: -0.4rem;
+}
+
+.assignee-summary-names {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignee-summary-extra {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-weight: 600;
+}

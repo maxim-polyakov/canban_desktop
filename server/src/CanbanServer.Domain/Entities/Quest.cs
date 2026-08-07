@@ -27,6 +27,7 @@ public class Quest
     public User? Assignee { get; set; }
     public Quest? ParentEpic { get; set; }
     public ICollection<Quest> SubQuests { get; set; } = new List<Quest>();
+    public ICollection<QuestAssignee> Assignees { get; set; } = new List<QuestAssignee>();
     public ICollection<QuestReview> Reviews { get; set; } = new List<QuestReview>();
     public ICollection<QuestAttachment> Attachments { get; set; } = new List<QuestAttachment>();
     public ICollection<QuestNotificationRecipient> NotificationRecipients { get; set; } = new List<QuestNotificationRecipient>();

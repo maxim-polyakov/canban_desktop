@@ -99,7 +99,7 @@ public class QuestService : IQuestService
         await _db.SaveChangesAsync(ct);
         var recipients = request.NotificationRecipientIds?.Distinct().ToList() ?? new List<Guid>();
         recipients.AddRange(assigneeIds.Where(id => !recipients.Contains(id)));
-        await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipients, ct);
+        await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipients, ct, notifyBoard: false);
         await _notificationService.NotifyAsync(quest.Id, userId, "Задача создана", "Вам назначены уведомления по новой задаче.", ct);
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(col.BoardId, ct);
@@ -161,14 +161,14 @@ public class QuestService : IQuestService
             var recipientIds = request.NotificationRecipientIds.Distinct().ToList();
             var assignedIds = requestedAssigneeIds ?? currentAssigneeIds;
             recipientIds.AddRange(assignedIds.Where(assignedId => !recipientIds.Contains(assignedId)));
-            await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct);
+            await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct, notifyBoard: false);
         }
         else if (assigneesChanged)
         {
             var recipientIds = await _db.QuestNotificationRecipients
                 .Where(r => r.QuestId == id).Select(r => r.UserId).ToListAsync(ct);
             recipientIds.AddRange(requestedAssigneeIds!.Where(assignedId => !recipientIds.Contains(assignedId)));
-            await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct);
+            await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct, notifyBoard: false);
         }
         if (changes.Count > 0)
             await _notificationService.NotifyAsync(id, userId, "Задача изменена", string.Join(", ", changes), ct);
@@ -254,7 +254,7 @@ public class QuestService : IQuestService
                 .Select(r => r.UserId)
                 .ToListAsync(ct);
             recipientIds.AddRange(quest.Assignees.Select(a => a.UserId).Where(id => !recipientIds.Contains(id)));
-            await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipientIds, ct);
+            await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipientIds, ct, notifyBoard: false);
         }
         if (oldColumnId != quest.ColumnId)
             await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{quest.Column.Title}» в «{targetColumn.Title}».", ct);

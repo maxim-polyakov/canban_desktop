@@ -21,7 +21,12 @@ public class QuestCollaborationService : IQuestCollaborationService
         _boardHub = boardHub;
     }
 
-    public async Task<QuestAttachmentOperationStatus> SetRecipientsAsync(Guid questId, Guid actorUserId, IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
+    public async Task<QuestAttachmentOperationStatus> SetRecipientsAsync(
+        Guid questId,
+        Guid actorUserId,
+        IReadOnlyCollection<Guid> userIds,
+        CancellationToken ct = default,
+        bool notifyBoard = true)
     {
         var access = await _access.CheckQuestAccessAsync(questId, actorUserId, ct);
         if (access != QuestAttachmentOperationStatus.Success) return access;
@@ -43,8 +48,11 @@ public class QuestCollaborationService : IQuestCollaborationService
         _db.QuestNotificationRecipients.AddRange(requested.Where(id => !existingIds.Contains(id)).Select(id =>
             new QuestNotificationRecipient { Id = Guid.NewGuid(), QuestId = questId, UserId = id }));
         await _db.SaveChangesAsync(ct);
-        var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
-        await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
+        if (notifyBoard)
+        {
+            var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
+            await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
+        }
         return QuestAttachmentOperationStatus.Success;
     }
 

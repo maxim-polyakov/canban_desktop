@@ -106,7 +106,15 @@ public class QuestService : IQuestService
         return (await GetByIdAsync(quest.Id, ct))!;
     }
 
-    public async Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, Guid userId, CancellationToken ct = default)
+    public Task<QuestDto?> UpdateAsync(Guid id, UpdateQuestRequest request, Guid userId, CancellationToken ct = default)
+        => UpdateCoreAsync(id, request, userId, retryOnConcurrency: true, ct: ct);
+
+    private async Task<QuestDto?> UpdateCoreAsync(
+        Guid id,
+        UpdateQuestRequest request,
+        Guid userId,
+        bool retryOnConcurrency,
+        CancellationToken ct)
     {
         var q = await _db.Quests
             .Include(x => x.Assignees)
@@ -153,7 +161,15 @@ public class QuestService : IQuestService
         if (request.DueDate != null) q.DueDate = request.DueDate;
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException) when (retryOnConcurrency)
+        {
+            _db.ChangeTracker.Clear();
+            return await UpdateCoreAsync(id, request, userId, retryOnConcurrency: false, ct: ct);
+        }
         if (request.NotificationRecipientIds != null)
         {
             var recipientIds = request.NotificationRecipientIds.Distinct().ToList();

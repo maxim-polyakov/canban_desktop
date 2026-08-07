@@ -5,7 +5,7 @@ import AssigneeSelect from './AssigneeSelect';
 import './QuestCard.css';
 
 export default function KanbanQuestItem({ quest, members, onAssignQuest, onDeleteQuest, onQuestClick }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: quest.id,
     data: { type: 'quest', columnId: quest.columnId },
   });
@@ -24,18 +24,10 @@ export default function KanbanQuestItem({ quest, members, onAssignQuest, onDelet
       ref={setNodeRef}
       style={style}
       className={`quest-card ${isDragging ? 'quest-card-ghost' : ''}`}
+      {...attributes}
+      {...listeners}
     >
       <div className="quest-card-top">
-        <button
-          ref={setActivatorNodeRef}
-          type="button"
-          className="quest-card-drag-handle"
-          title="Перетащить квест"
-          {...attributes}
-          {...listeners}
-        >
-          ⋮⋮
-        </button>
         <span className="quest-card-title">{quest.title}</span>
         {onQuestClick && (
           <button type="button" className="quest-card-info" onClick={(e) => { e.stopPropagation(); onQuestClick(quest.id); }} onPointerDown={(e) => e.stopPropagation()} title="Подробнее">ℹ</button>

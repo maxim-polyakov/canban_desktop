@@ -36,6 +36,7 @@ public class BoardService : IBoardService
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Assignee)
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Assignees).ThenInclude(a => a.User)
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.NotificationRecipients)
+                    .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.ExternalNotificationRecipients)
                     .FirstOrDefaultAsync(x => x.Id == id, ct);
                 if (b == null) return null;
                 var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
@@ -127,6 +128,7 @@ public class BoardService : IBoardService
         q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt,
         q.CompletedAt, q.Category, q.XpReward, q.IsEpic, q.ParentEpicId,
         q.NotificationRecipients.Select(r => r.UserId).ToList(),
+        q.ExternalNotificationRecipients.Select(r => new ExternalNotificationRecipientDto(r.Email, r.DisplayName)).ToList(),
         q.Assignees.OrderBy(a => a.Order)
             .Select(a => new QuestAssigneeDto(a.UserId, a.User.DisplayName, a.User.AvatarUrl)).ToList(),
         q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList());

@@ -31,6 +31,7 @@ public class Quest
     public ICollection<QuestReview> Reviews { get; set; } = new List<QuestReview>();
     public ICollection<QuestAttachment> Attachments { get; set; } = new List<QuestAttachment>();
     public ICollection<QuestNotificationRecipient> NotificationRecipients { get; set; } = new List<QuestNotificationRecipient>();
+    public ICollection<QuestExternalNotificationRecipient> ExternalNotificationRecipients { get; set; } = new List<QuestExternalNotificationRecipient>();
     public ICollection<QuestComment> Comments { get; set; } = new List<QuestComment>();
 }
 

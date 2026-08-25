@@ -182,7 +182,12 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        var status = await _collaborationService.SetRecipientsAsync(questId, userId.Value, request.UserIds, ct);
+        var status = await _collaborationService.SetRecipientsAsync(
+            questId,
+            userId.Value,
+            request.UserIds,
+            ct,
+            externalRecipients: request.ExternalNotificationRecipients);
         return status switch { QuestAttachmentOperationStatus.Success => NoContent(), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
 

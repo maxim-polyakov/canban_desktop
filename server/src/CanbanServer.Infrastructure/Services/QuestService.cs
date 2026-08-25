@@ -49,6 +49,7 @@ public class QuestService : IQuestService
             .Include(x => x.Assignee)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.NotificationRecipients)
+            .Include(x => x.ExternalNotificationRecipients)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         return q == null ? null : Map(q);
     }
@@ -59,6 +60,7 @@ public class QuestService : IQuestService
             .Include(x => x.Assignee)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.NotificationRecipients)
+            .Include(x => x.ExternalNotificationRecipients)
             .Where(x => x.ColumnId == columnId)
             .OrderBy(x => x.Order)
             .ToListAsync(ct);
@@ -99,7 +101,13 @@ public class QuestService : IQuestService
         await _db.SaveChangesAsync(ct);
         var recipients = request.NotificationRecipientIds?.Distinct().ToList() ?? new List<Guid>();
         recipients.AddRange(assigneeIds.Where(id => !recipients.Contains(id)));
-        await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipients, ct, notifyBoard: false);
+        await _collaborationService.SetRecipientsAsync(
+            quest.Id,
+            userId,
+            recipients,
+            ct,
+            notifyBoard: false,
+            externalRecipients: request.ExternalNotificationRecipients);
         await _notificationService.NotifyAsync(quest.Id, userId, "Задача создана", "Вам назначены уведомления по новой задаче.", ct);
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(col.BoardId, ct);
@@ -156,12 +164,22 @@ public class QuestService : IQuestService
         {
             await _db.SaveChangesAsync(ct);
         }
-        if (request.NotificationRecipientIds != null)
+        if (request.NotificationRecipientIds != null || request.ExternalNotificationRecipients != null)
         {
-            var recipientIds = request.NotificationRecipientIds.Distinct().ToList();
+            var recipientIds = request.NotificationRecipientIds?.Distinct().ToList()
+                ?? await _db.QuestNotificationRecipients
+                    .Where(r => r.QuestId == id)
+                    .Select(r => r.UserId)
+                    .ToListAsync(ct);
             var assignedIds = requestedAssigneeIds ?? currentAssigneeIds;
             recipientIds.AddRange(assignedIds.Where(assignedId => !recipientIds.Contains(assignedId)));
-            await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct, notifyBoard: false);
+            await _collaborationService.SetRecipientsAsync(
+                id,
+                userId,
+                recipientIds,
+                ct,
+                notifyBoard: false,
+                externalRecipients: request.ExternalNotificationRecipients);
         }
         else if (assigneesChanged)
         {
@@ -275,6 +293,7 @@ public class QuestService : IQuestService
             .Include(q => q.Assignees).ThenInclude(a => a.User)
             .Include(q => q.Column)
             .Include(q => q.NotificationRecipients)
+            .Include(q => q.ExternalNotificationRecipients)
             .Where(q => q.BoardId == boardId && q.Column.Kind == ColumnKind.Archive)
             .OrderByDescending(q => q.CompletedAt ?? q.CreatedAt)
             .ThenBy(q => q.Order)
@@ -380,6 +399,7 @@ public class QuestService : IQuestService
         q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId,
         q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt,
         q.Category, q.XpReward, q.IsEpic, q.ParentEpicId, q.NotificationRecipients.Select(r => r.UserId).ToList(),
+        q.ExternalNotificationRecipients.Select(r => new ExternalNotificationRecipientDto(r.Email, r.DisplayName)).ToList(),
         q.Assignees.OrderBy(a => a.Order).Select(a => new QuestAssigneeDto(a.UserId, a.User.DisplayName, a.User.AvatarUrl)).ToList(),
         q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList()
     );

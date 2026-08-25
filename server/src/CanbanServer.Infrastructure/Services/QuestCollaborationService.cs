@@ -3,6 +3,7 @@ using CanbanServer.Application.DTOs;
 using CanbanServer.Domain.Entities;
 using CanbanServer.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
 
 namespace CanbanServer.Infrastructure.Services;
 
@@ -26,7 +27,8 @@ public class QuestCollaborationService : IQuestCollaborationService
         Guid actorUserId,
         IReadOnlyCollection<Guid> userIds,
         CancellationToken ct = default,
-        bool notifyBoard = true)
+        bool notifyBoard = true,
+        IReadOnlyCollection<ExternalNotificationRecipientDto>? externalRecipients = null)
     {
         var access = await _access.CheckQuestAccessAsync(questId, actorUserId, ct);
         if (access != QuestAttachmentOperationStatus.Success) return access;
@@ -47,6 +49,34 @@ public class QuestCollaborationService : IQuestCollaborationService
         var existingIds = existing.Select(r => r.UserId).ToHashSet();
         _db.QuestNotificationRecipients.AddRange(requested.Where(id => !existingIds.Contains(id)).Select(id =>
             new QuestNotificationRecipient { Id = Guid.NewGuid(), QuestId = questId, UserId = id }));
+
+        if (externalRecipients != null)
+        {
+            var requestedExternal = NormalizeExternalRecipients(externalRecipients);
+            var existingExternal = await _db.QuestExternalNotificationRecipients
+                .Where(r => r.QuestId == questId)
+                .ToListAsync(ct);
+            _db.QuestExternalNotificationRecipients.RemoveRange(
+                existingExternal.Where(r => !requestedExternal.ContainsKey(r.Email)));
+            var existingExternalByEmail = existingExternal.ToDictionary(r => r.Email, StringComparer.OrdinalIgnoreCase);
+            foreach (var (email, displayName) in requestedExternal)
+            {
+                if (existingExternalByEmail.TryGetValue(email, out var existingRecipient))
+                {
+                    existingRecipient.DisplayName = displayName;
+                    continue;
+                }
+
+                _db.QuestExternalNotificationRecipients.Add(new QuestExternalNotificationRecipient
+                {
+                    Id = Guid.NewGuid(),
+                    QuestId = questId,
+                    Email = email,
+                    DisplayName = displayName
+                });
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
         if (notifyBoard)
         {
@@ -98,4 +128,31 @@ public class QuestCollaborationService : IQuestCollaborationService
     }
 
     private static QuestCommentDto Map(QuestComment c) => new(c.Id, c.QuestId, c.AuthorUserId, c.AuthorUser.DisplayName, c.AuthorUser.AvatarUrl, c.Text, c.CreatedAt);
+
+    private static Dictionary<string, string?> NormalizeExternalRecipients(
+        IReadOnlyCollection<ExternalNotificationRecipientDto>? externalRecipients)
+    {
+        var normalized = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        if (externalRecipients == null) return normalized;
+
+        foreach (var recipient in externalRecipients)
+        {
+            if (string.IsNullOrWhiteSpace(recipient.Email)) continue;
+
+            try
+            {
+                var email = new MailAddress(recipient.Email.Trim()).Address.ToLowerInvariant();
+                var displayName = string.IsNullOrWhiteSpace(recipient.DisplayName)
+                    ? null
+                    : recipient.DisplayName.Trim();
+                normalized[email] = displayName;
+            }
+            catch (FormatException)
+            {
+                continue;
+            }
+        }
+
+        return normalized;
+    }
 }

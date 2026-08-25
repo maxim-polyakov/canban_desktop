@@ -131,6 +131,24 @@ public static class DatabaseSchemaInitializer
 
         await db.Database.ExecuteSqlRawAsync(
             """
+            CREATE TABLE IF NOT EXISTS "QuestExternalNotificationRecipients" (
+                "Id" uuid NOT NULL,
+                "QuestId" uuid NOT NULL,
+                "Email" character varying(320) NOT NULL,
+                "DisplayName" character varying(200) NULL,
+                CONSTRAINT "PK_QuestExternalNotificationRecipients" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_QuestExternalNotificationRecipients_Quests_QuestId"
+                    FOREIGN KEY ("QuestId") REFERENCES "Quests" ("Id") ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_QuestExternalNotificationRecipients_QuestId_Email"
+                ON "QuestExternalNotificationRecipients" ("QuestId", "Email");
+            CREATE INDEX IF NOT EXISTS "IX_QuestExternalNotificationRecipients_Email"
+                ON "QuestExternalNotificationRecipients" ("Email");
+            """,
+            ct);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
             CREATE TABLE IF NOT EXISTS "QuestComments" (
                 "Id" uuid NOT NULL,
                 "QuestId" uuid NOT NULL,

@@ -37,7 +37,9 @@ public class TeamService : ITeamService
 
     public async Task<List<TeamWithBoardsDto>> GetMyTeamsWithBoardsAsync(Guid userId, CancellationToken ct = default)
     {
-        var teamIds = await _db.TeamMembers.Where(m => m.UserId == userId).Select(m => m.TeamId).ToListAsync(ct);
+        var memberTeamIds = await _db.TeamMembers.Where(m => m.UserId == userId).Select(m => m.TeamId).ToListAsync(ct);
+        var ownedTeamIds = await _db.Teams.Where(t => t.OwnerId == userId).Select(t => t.Id).ToListAsync(ct);
+        var teamIds = memberTeamIds.Concat(ownedTeamIds).Distinct().ToList();
         var teams = await _db.Teams
             .Include(t => t.Members.OrderBy(m => m.JoinedAt))
             .Where(t => teamIds.Contains(t.Id))

@@ -128,3 +128,31 @@
   color: var(--text-muted);
   cursor: pointer;
 }
+
+@media (max-width: 700px) {
+  .kanban-board {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .kanban-columns {
+    width: calc(100% + 1.5rem);
+    margin-inline: -0.75rem;
+    padding: 0 0.75rem 1rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .kanban-column-sortable {
+    flex: 0 0 260px;
+    min-width: 260px;
+    max-width: 260px;
+  }
+
+  .kanban-column-add {
+    flex: 0 0 260px;
+    min-width: 260px;
+    max-width: 260px;
+  }
+}

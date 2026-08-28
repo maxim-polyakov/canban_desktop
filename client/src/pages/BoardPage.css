@@ -555,3 +555,64 @@
   color: var(--text-muted);
   font-size: 0.8rem;
 }
+
+@media (max-width: 700px) {
+  .board-page {
+    padding: 0.75rem;
+    overflow-x: hidden;
+  }
+
+  .board-header-row {
+    align-items: flex-start;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .board-title {
+    font-size: 1.35rem;
+  }
+
+  .board-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .board-btn-archive {
+    flex: 0 0 auto;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .board-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+  }
+
+  .board-id {
+    min-width: 0;
+    max-width: calc(100% - 6.5rem);
+    margin-right: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .board-quest-modal {
+    width: calc(100% - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .board-quest-modal-body {
+    padding: 0.75rem;
+  }
+
+  .board-quest-attachment-item,
+  .board-quest-attachments-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

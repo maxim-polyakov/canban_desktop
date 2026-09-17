@@ -8,7 +8,7 @@ COPY src/CanbanServer.Application/CanbanServer.Application.csproj src/CanbanServ
 COPY src/CanbanServer.Domain/CanbanServer.Domain.csproj src/CanbanServer.Domain/
 COPY src/CanbanServer.Infrastructure/CanbanServer.Infrastructure.csproj src/CanbanServer.Infrastructure/
 
-RUN dotnet restore CanbanServer.sln
+RUN dotnet restore src/CanbanServer.Api/CanbanServer.Api.csproj
 
 COPY . .
 RUN dotnet publish src/CanbanServer.Api/CanbanServer.Api.csproj -c Release -o /app/publish --no-restore

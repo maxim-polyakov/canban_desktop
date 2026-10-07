@@ -26,9 +26,8 @@ Environment:
   COMPOSE_K3S_STRICT_ROLLOUT      Set to 1 to fail when kubectl rollout status fails
   COMPOSE_BAKE                    Default 0 — avoid compose bake metadata-file races on build
   BUILDX_NO_DEFAULT_ATTESTATIONS  Default 1 — skip provenance attestation (metadata-file flake)
-  COMPOSE_K3S_TMPDIR              Parent of the private per-run build TMPDIR
-                                  (default: $HOME/.cache/compose-k3s-sync)
-  COMPOSE_K3S_LOCK_WAIT           Seconds to wait for per-project flock (default 1800; 0 = fail immediately)
+  TMPDIR                          Default /tmp for compose build temp files
+  COMPOSE_K3S_LOCK_WAIT           Seconds to wait for per-project flock (0 = fail immediately)
   COMPOSE_K3S_CLEAR_ORPHAN_LOCK   Set to 1 to fuser -k stale lock holders after wait (default 1)
 EOF
 }
@@ -214,8 +213,7 @@ fi
 cd "$project_dir"
 config_json=$(mktemp)
 config_yaml=$(mktemp)
-build_tmp=
-trap 'rm -rf "$config_json" "$config_yaml" ${build_tmp:+"$build_tmp"}' EXIT
+trap 'rm -f "$config_json" "$config_yaml"' EXIT
 config_ready=false
 if [[ "$image_separator" == "-" ]] &&
   "${compose[@]}" config --format json >"$config_json" 2>/dev/null; then
@@ -285,7 +283,7 @@ lock_dir=${COMPOSE_K3S_LOCK_DIR:-${XDG_RUNTIME_DIR:-/tmp}}
 mkdir -p "$lock_dir"
 lock_file="${lock_dir}/compose-k3s-sync-${kube_project}.lock"
 exec 9>"$lock_file"
-lock_wait=${COMPOSE_K3S_LOCK_WAIT:-1800}
+lock_wait=${COMPOSE_K3S_LOCK_WAIT:-0}
 clear_orphan=${COMPOSE_K3S_CLEAR_ORPHAN_LOCK:-1}
 acquire_deploy_lock() {
   if flock -n 9; then
@@ -319,10 +317,7 @@ with open(sys.argv[1], encoding="utf-8") as stream:
 
 project = config["name"]
 separator = sys.argv[2]
-has_builds = any("build" in service for service in config["services"].values())
 for name, service in config["services"].items():
-    if has_builds and "build" not in service:
-        continue
     if "build" not in service and not service.get("image"):
         continue
     explicit_image = "1" if service.get("image") else "0"
@@ -358,23 +353,14 @@ compose_image_exists() {
 compose_build_service() {
   local service=$1
   local source_image=$2
-  local found build_log status=0
-  build_log=$(mktemp)
-  "${compose[@]}" build "${build_args[@]}" "$service" 2>&1 | tee "$build_log" || status=$?
-  if ((status == 0)); then
-    rm -f "$build_log"
+  local found
+  if "${compose[@]}" build "${build_args[@]}" "$service"; then
     return 0
   fi
-  # Only tolerate the known flake where the image was exported but compose
-  # cannot read back its buildx metadata file; any other failure is fatal so
-  # a stale image from a previous deploy is never rolled out.
-  if grep -q 'compose-build-metadataFile.*no such file or directory' "$build_log" &&
-    found=$(compose_image_exists "$service" "$source_image"); then
-    rm -f "$build_log"
+  if found=$(compose_image_exists "$service" "$source_image"); then
     log "compose build exited non-zero but image exists ($found); continuing (metadata-file flake)"
     return 0
   fi
-  rm -f "$build_log"
   return 1
 }
 
@@ -382,23 +368,26 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   log "building Compose project $project_name"
   build_args=()
   [[ "$no_cache" == true ]] && build_args+=(--no-cache)
-  # Compose writes its buildx metadata file to TMPDIR; a shared /tmp can be
-  # cleaned mid-build ("open /tmp/.tmp-compose-build-metadataFile-...: no such
-  # file or directory"), so always build in a private per-run temp dir, even
-  # when the caller exports TMPDIR=/tmp.
-  build_tmp_root=${COMPOSE_K3S_TMPDIR:-${HOME:-/tmp}/.cache/compose-k3s-sync}
-  mkdir -p "$build_tmp_root"
-  build_tmp=$(mktemp -d "${build_tmp_root}/build.XXXXXX")
-  export TMPDIR="$build_tmp"
+  export TMPDIR="${TMPDIR:-/tmp}"
   export COMPOSE_BAKE="${COMPOSE_BAKE:-0}"
   export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
+  mkdir -p "$TMPDIR"
   build_services=()
   for row in "${sync_services[@]}"; do
     IFS=$'\t' read -r service _ _ _ <<<"$row"
     build_services+=("$service")
   done
   for row in "${sync_services[@]}"; do
-    IFS=$'\t' read -r service source_image _ _ <<<"$row"
+    IFS=$'\t' read -r service source_image _ explicit_image <<<"$row"
+    if [[ "$explicit_image" == 1 ]]; then
+      if docker image inspect "$source_image" >/dev/null 2>&1; then
+        log "image already present for $service ($source_image)"
+      else
+        log "pulling image for service $service ($source_image)"
+        docker pull "$source_image" || die "docker pull failed for $source_image"
+      fi
+      continue
+    fi
     log "building service $service"
     compose_build_service "$service" "$source_image" || die "compose build failed for $service"
   done

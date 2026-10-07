@@ -29,7 +29,6 @@ Environment:
   TMPDIR                          Default /tmp for compose build temp files
   COMPOSE_K3S_LOCK_WAIT           Seconds to wait for per-project flock (0 = fail immediately)
   COMPOSE_K3S_CLEAR_ORPHAN_LOCK   Set to 1 to fuser -k stale lock holders after wait (default 1)
-  COMPOSE_K3S_SKIP_PRUNE          Set to 1 to skip Docker/k3s disk cleanup around builds
 EOF
 }
 
@@ -105,24 +104,27 @@ fix_maildev_container_command() {
   local workdir
   workdir=$(docker image inspect "$inspect_img" --format '{{.Config.WorkingDir}}')
   [[ -n "$workdir" ]] || workdir=/home/node/app
-  # Compose→k8s often sets command: ["bin/maildev"] without WORKDIR → CrashLoopBackOff.
+  # Compose→k8s: command ["bin/maildev"] without WORKDIR, or args ["-c","exec node …"] vs entrypoint node.
   "${kube[@]}" patch deployment "$deployment" -n "$namespace" --type=json \
     -p='[{"op":"remove","path":"/spec/template/spec/containers/0/command"}]' \
     >/dev/null 2>&1 || true
-  # Patch workingDir on every container (smtp Deployments are single-container).
-  local containers
-  containers=$("${kube[@]}" get deployment "$deployment" -n "$namespace" \
-    -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{"\n"}{end}')
-  while IFS= read -r cname; do
-    [[ -n "$cname" ]] || continue
-    local one
-    one=$(WD="$workdir" CN="$cname" python3 -c '
-import json, os
-print(json.dumps({"spec": {"template": {"spec": {"containers": [{"name": os.environ["CN"], "workingDir": os.environ["WD"]}]}}}}))
+  local merge_patch
+  merge_patch=$("${kube[@]}" get deployment "$deployment" -n "$namespace" -o json | WD="$workdir" python3 -c '
+import json, os, sys
+deploy = json.load(sys.stdin)
+wd = os.environ["WD"]
+out = []
+for c in deploy["spec"]["template"]["spec"]["containers"]:
+    entry = {"name": c["name"], "workingDir": wd}
+    args = c.get("args") or []
+    if len(args) >= 2 and args[0] == "-c" and "maildev" in str(args[1]):
+        entry["command"] = ["/bin/sh", "-c"]
+        entry["args"] = [args[1]]
+    out.append(entry)
+print(json.dumps({"spec": {"template": {"spec": {"containers": out}}}}))
 ')
-    "${kube[@]}" patch deployment "$deployment" -n "$namespace" --type merge \
-      -p "$one" >/dev/null 2>&1 || true
-  done <<<"$containers"
+  "${kube[@]}" patch deployment "$deployment" -n "$namespace" --type merge \
+    -p "$merge_patch" >/dev/null 2>&1 || true
   log "Maildev command/workdir fix for $namespace/$deployment (workdir=$workdir)"
 }
 
@@ -383,33 +385,6 @@ compose_image_exists() {
   return 1
 }
 
-log_disk_usage() {
-  df -h /var/lib/docker / 2>/dev/null | sed 's/^/[compose-k3s-sync]   /' || true
-}
-
-# Free disk before/after builds. Default mode drops dangling images/cache and
-# stale compose-sync tags; "aggressive" also drops all build cache and
-# k3s images no container uses.
-reclaim_disk_space() {
-  local mode=${1:-default}
-  [[ "${COMPOSE_K3S_SKIP_PRUNE:-}" == 1 ]] && return 0
-  log "reclaiming disk space ($mode)"
-  local tag
-  while read -r tag; do
-    [[ -n "$tag" ]] && docker image rm "$tag" >/dev/null 2>&1 || true
-  done < <(docker image ls --format '{{.Repository}}:{{.Tag}}' \
-    --filter "reference=compose-sync/${kube_project}-*" 2>/dev/null || true)
-  docker image prune -f >/dev/null 2>&1 || true
-  if [[ "$mode" == aggressive ]]; then
-    docker builder prune -af >/dev/null 2>&1 || true
-    "$k3s_bin" crictl rmi --prune >/dev/null 2>&1 ||
-      sudo -n "$k3s_bin" crictl rmi --prune >/dev/null 2>&1 || true
-  else
-    docker builder prune -f >/dev/null 2>&1 || true
-  fi
-  log_disk_usage
-}
-
 compose_build_service() {
   local service=$1
   local source_image=$2
@@ -421,9 +396,7 @@ compose_build_service() {
     log "compose build exited non-zero but image exists ($found); continuing (metadata-file flake)"
     return 0
   fi
-  log "compose build failed for $service; reclaiming disk space and retrying once"
-  reclaim_disk_space aggressive
-  "${compose[@]}" build "${build_args[@]}" "$service"
+  return 1
 }
 
 if [[ "$skip_build" != true && "$dry_run" != true ]]; then
@@ -434,7 +407,6 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   export COMPOSE_BAKE="${COMPOSE_BAKE:-0}"
   export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
   mkdir -p "$TMPDIR"
-  reclaim_disk_space
   build_services=()
   for row in "${sync_services[@]}"; do
     IFS=$'\t' read -r service _ _ _ <<<"$row"

@@ -331,14 +331,23 @@ compose_image_exists() {
 compose_build_service() {
   local service=$1
   local source_image=$2
-  local found
-  if "${compose[@]}" build "${build_args[@]}" "$service"; then
+  local found build_log status=0
+  build_log=$(mktemp)
+  "${compose[@]}" build "${build_args[@]}" "$service" 2>&1 | tee "$build_log" || status=$?
+  if ((status == 0)); then
+    rm -f "$build_log"
     return 0
   fi
-  if found=$(compose_image_exists "$service" "$source_image"); then
+  # Only tolerate the known flake where the image was exported but compose
+  # cannot read back its buildx metadata file; any other failure is fatal so
+  # a stale image from a previous deploy is never rolled out.
+  if grep -q 'compose-build-metadataFile.*no such file or directory' "$build_log" &&
+    found=$(compose_image_exists "$service" "$source_image"); then
+    rm -f "$build_log"
     log "compose build exited non-zero but image exists ($found); continuing (metadata-file flake)"
     return 0
   fi
+  rm -f "$build_log"
   return 1
 }
 

@@ -28,7 +28,7 @@ Environment:
   BUILDX_NO_DEFAULT_ATTESTATIONS  Default 1 — skip provenance attestation (metadata-file flake)
   COMPOSE_K3S_TMPDIR              Parent of the private per-run build TMPDIR
                                   (default: $HOME/.cache/compose-k3s-sync)
-  COMPOSE_K3S_LOCK_WAIT           Seconds to wait for per-project flock (0 = fail immediately)
+  COMPOSE_K3S_LOCK_WAIT           Seconds to wait for per-project flock (default 1800; 0 = fail immediately)
   COMPOSE_K3S_CLEAR_ORPHAN_LOCK   Set to 1 to fuser -k stale lock holders after wait (default 1)
 EOF
 }
@@ -285,7 +285,7 @@ lock_dir=${COMPOSE_K3S_LOCK_DIR:-${XDG_RUNTIME_DIR:-/tmp}}
 mkdir -p "$lock_dir"
 lock_file="${lock_dir}/compose-k3s-sync-${kube_project}.lock"
 exec 9>"$lock_file"
-lock_wait=${COMPOSE_K3S_LOCK_WAIT:-0}
+lock_wait=${COMPOSE_K3S_LOCK_WAIT:-1800}
 clear_orphan=${COMPOSE_K3S_CLEAR_ORPHAN_LOCK:-1}
 acquire_deploy_lock() {
   if flock -n 9; then

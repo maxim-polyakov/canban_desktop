@@ -26,8 +26,7 @@ Environment:
   COMPOSE_K3S_STRICT_ROLLOUT      Set to 1 to fail when kubectl rollout status fails
   COMPOSE_BAKE                    Default 0 — avoid compose bake metadata-file races on build
   BUILDX_NO_DEFAULT_ATTESTATIONS  Default 1 — skip provenance attestation (metadata-file flake)
-  COMPOSE_K3S_TMPDIR              Parent of the private per-run build TMPDIR
-                                  (default: $HOME/.cache/compose-k3s-sync)
+  TMPDIR                          Default /tmp for compose build temp files
 EOF
 }
 
@@ -212,8 +211,7 @@ fi
 cd "$project_dir"
 config_json=$(mktemp)
 config_yaml=$(mktemp)
-build_tmp=
-trap 'rm -rf "$config_json" "$config_yaml" ${build_tmp:+"$build_tmp"}' EXIT
+trap 'rm -f "$config_json" "$config_yaml"' EXIT
 config_ready=false
 if [[ "$image_separator" == "-" ]] &&
   "${compose[@]}" config --format json >"$config_json" 2>/dev/null; then
@@ -314,14 +312,31 @@ if [[ "$dry_run" != true && "$skip_build" != true && "$patch_only" != true ]]; t
   "${compose[@]}" down --remove-orphans
 fi
 
+compose_image_exists() {
+  local service=$1
+  local source_image=$2
+  local candidate
+  for candidate in \
+    "$source_image" \
+    "${project_name}${image_separator}${service}" \
+    "${project_name}-${service}"; do
+    if docker image inspect "$candidate" >/dev/null 2>&1; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
 compose_build_service() {
   local service=$1
   local source_image=$2
+  local found
   if "${compose[@]}" build "${build_args[@]}" "$service"; then
     return 0
   fi
-  if docker image inspect "$source_image" >/dev/null 2>&1; then
-    log "compose build exited non-zero but image exists ($source_image); continuing (metadata-file flake)"
+  if found=$(compose_image_exists "$service" "$source_image"); then
+    log "compose build exited non-zero but image exists ($found); continuing (metadata-file flake)"
     return 0
   fi
   return 1
@@ -331,31 +346,20 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   log "building Compose project $project_name"
   build_args=()
   [[ "$no_cache" == true ]] && build_args+=(--no-cache)
-  # Compose writes its buildx metadata file to TMPDIR; a shared /tmp can be
-  # cleaned mid-build ("open /tmp/.tmp-compose-build-metadataFile-...: no such
-  # file or directory"), so always build in a private per-run temp dir, even
-  # when the caller exports TMPDIR=/tmp.
-  build_tmp_root=${COMPOSE_K3S_TMPDIR:-${HOME:-/tmp}/.cache/compose-k3s-sync}
-  mkdir -p "$build_tmp_root"
-  build_tmp=$(mktemp -d "${build_tmp_root}/build.XXXXXX")
-  export TMPDIR="$build_tmp"
+  export TMPDIR="${TMPDIR:-/tmp}"
   export COMPOSE_BAKE="${COMPOSE_BAKE:-0}"
   export BUILDX_NO_DEFAULT_ATTESTATIONS="${BUILDX_NO_DEFAULT_ATTESTATIONS:-1}"
+  mkdir -p "$TMPDIR"
   build_services=()
   for row in "${sync_services[@]}"; do
     IFS=$'\t' read -r service _ _ _ <<<"$row"
     build_services+=("$service")
   done
-  if ((${#build_services[@]} <= 1)); then
-    IFS=$'\t' read -r service source_image _ _ <<<"${sync_services[0]}"
+  for row in "${sync_services[@]}"; do
+    IFS=$'\t' read -r service source_image _ _ <<<"$row"
+    log "building service $service"
     compose_build_service "$service" "$source_image" || die "compose build failed for $service"
-  else
-    for row in "${sync_services[@]}"; do
-      IFS=$'\t' read -r service source_image _ _ <<<"$row"
-      log "building service $service"
-      compose_build_service "$service" "$source_image" || die "compose build failed for $service"
-    done
-  fi
+  done
 fi
 
 local_ips=" $(hostname -I 2>/dev/null || true) "

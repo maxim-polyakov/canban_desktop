@@ -55,6 +55,14 @@ pod = d["spec"]["template"]["spec"]
 selector = dict(pod.get("nodeSelector") or {})
 selector.pop("kubernetes.io/hostname", None)
 selector["baxic.ru/workload-pool"] = "main"
+is_smtp = (
+    "smtp" in d["metadata"]["name"].lower()
+    or any("maildev" in c.get("image", "").lower() for c in pod.get("containers") or [])
+)
+if is_smtp:
+    selector["kubernetes.io/hostname"] = os.environ.get(
+        "COMPOSE_K3S_SMTP_NODE", "worker-146"
+    )
 tolerations = [
     item for item in (pod.get("tolerations") or [])
     if item.get("key") not in {

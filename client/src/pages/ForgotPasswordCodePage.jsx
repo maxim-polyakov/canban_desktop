@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import './AuthPages.css';
 
 export default function ForgotPasswordCodePage() {

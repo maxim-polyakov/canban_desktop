@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from '../i18n/navigation.jsx';
 import { boards, quests } from '../api.js';
+import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import AssigneeSummary from '../components/AssigneeSummary.jsx';
 import './BoardPage.css';
 
 export default function BoardArchivePage() {
+  const { locale } = useLocalization();
   const { boardId } = useParams();
   const [board, setBoard] = useState(null);
   const [archiveQuests, setArchiveQuests] = useState([]);
@@ -62,8 +64,8 @@ export default function BoardArchivePage() {
               {quest.description && <p className="board-archive-description">{quest.description}</p>}
               <div className="board-archive-meta">
                 <AssigneeSummary assignees={quest.assignees} label="Исполнители:" />
-                {quest.completedAt && <span>Выполнено: {new Date(quest.completedAt).toLocaleString()}</span>}
-                {quest.dueDate && <span>Срок: {new Date(quest.dueDate).toLocaleDateString()}</span>}
+                {quest.completedAt && <span>Выполнено: {new Date(quest.completedAt).toLocaleString(locale)}</span>}
+                {quest.dueDate && <span>Срок: {new Date(quest.dueDate).toLocaleDateString(locale)}</span>}
               </div>
             </li>
           ))}

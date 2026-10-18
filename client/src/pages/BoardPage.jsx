@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from '../i18n/navigation.jsx';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { boards, columns, quests, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
 import AssigneeSelect from '../components/AssigneeSelect.jsx';
@@ -23,6 +24,7 @@ export default function BoardPage() {
   const { boardId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { locale, t } = useLocalization();
   const [board, setBoard] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -158,7 +160,7 @@ export default function BoardPage() {
     } catch (e) {
       console.error(e);
       await loadBoard();
-      window.alert(e.message || 'Не удалось изменить исполнителей задачи.');
+      window.alert(t(e.message || 'Не удалось изменить исполнителей задачи.'));
     }
   };
 
@@ -200,11 +202,11 @@ export default function BoardPage() {
   };
 
   const handleDeleteBoard = async () => {
-    if (!boardId || !window.confirm('Удалить доску? Это действие нельзя отменить.')) return;
+    if (!boardId || !window.confirm(t('Удалить доску? Это действие нельзя отменить.'))) return;
     try {
       const result = await boards.delete(boardId);
       if (result === true) navigate('/');
-      else if (result?.status === 403) window.alert('Удалить доску может только тот, кто её создал.');
+      else if (result?.status === 403) window.alert(t('Удалить доску может только тот, кто её создал.'));
       else console.error('Не удалось удалить доску');
     } catch (e) {
       console.error(e);
@@ -262,7 +264,7 @@ export default function BoardPage() {
   };
 
   const handleDeleteColumn = async (columnId) => {
-    if (!window.confirm('Удалить колонку и все квесты в ней?')) return;
+    if (!window.confirm(t('Удалить колонку и все квесты в ней?'))) return;
     try {
       const ok = await columns.delete(columnId);
       if (ok) await loadBoard();
@@ -272,7 +274,7 @@ export default function BoardPage() {
   };
 
   const handleDeleteQuest = async (questId) => {
-    if (!window.confirm('Удалить квест?')) return;
+    if (!window.confirm(t('Удалить квест?'))) return;
     try {
       const ok = await quests.delete(questId);
       if (ok) { setQuestDetailId(null); setQuestDetail(null); await loadBoard(); }
@@ -379,7 +381,7 @@ export default function BoardPage() {
   };
 
   const handleDeleteAttachment = async (attachment) => {
-    if (!questDetailId || !window.confirm(`Удалить файл «${attachment.fileName}»?`)) return;
+    if (!questDetailId || !window.confirm(t('Удалить файл «${attachment.fileName}»?', { 'attachment.fileName': attachment.fileName }))) return;
     const targetQuestId = questDetailId;
     setDeletingAttachmentId(attachment.id);
     setAttachmentError('');
@@ -436,7 +438,7 @@ export default function BoardPage() {
   };
 
   const handleDeleteComment = async (comment) => {
-    if (!questDetailId || !window.confirm('Удалить комментарий?')) return;
+    if (!questDetailId || !window.confirm(t('Удалить комментарий?'))) return;
     try {
       await quests.deleteComment(questDetailId, comment.id);
       setComments((current) => current.filter((item) => item.id !== comment.id));
@@ -542,7 +544,7 @@ export default function BoardPage() {
                     placeholder="— не назначены —"
                   />
                 </label>
-                {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString()}</p>}
+                {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString(locale)}</p>}
                 <fieldset className="board-quest-notifications">
                   <legend>Email-уведомления получают</legend>
                   <NotificationRecipientPicker
@@ -584,7 +586,7 @@ export default function BoardPage() {
                             <span className="board-quest-attachment-meta">
                               {formatFileSize(attachment.sizeBytes)}
                               {attachment.uploadedByName ? ` · ${attachment.uploadedByName}` : ''}
-                              {attachment.createdAt ? ` · ${new Date(attachment.createdAt).toLocaleString()}` : ''}
+                              {attachment.createdAt ? ` · ${new Date(attachment.createdAt).toLocaleString(locale)}` : ''}
                             </span>
                           </div>
                           <div className="board-quest-attachment-actions">
@@ -613,7 +615,7 @@ export default function BoardPage() {
                         <li key={comment.id}>
                           <div className="board-quest-comment-header">
                             <strong>{comment.authorName}</strong>
-                            <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                            <span>{new Date(comment.createdAt).toLocaleString(locale)}</span>
                             {comment.authorUserId === user?.id && (
                               <button type="button" onClick={() => handleDeleteComment(comment)}>Удалить</button>
                             )}
@@ -644,7 +646,7 @@ export default function BoardPage() {
                     onChange={(e) => setEditQuestXpReward(Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)))}
                   />
                 </label>
-                <p className="board-quest-modal-meta">Создан: {questDetail.createdAt ? new Date(questDetail.createdAt).toLocaleString() : ''}</p>
+                <p className="board-quest-modal-meta">Создан: {questDetail.createdAt ? new Date(questDetail.createdAt).toLocaleString(locale) : ''}</p>
                 <div className="board-quest-modal-actions">
                   <button type="button" onClick={handleSaveQuest} disabled={savingQuest || !editQuestTitle.trim()}>{savingQuest ? 'Сохранение…' : 'Сохранить'}</button>
                 </div>

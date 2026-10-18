@@ -1,6 +1,7 @@
 import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate } from '../i18n/navigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import LanguageSelector from './LanguageSelector.jsx';
 import './Layout.css';
 
 export default function Layout() {
@@ -22,6 +23,7 @@ export default function Layout() {
           <Link to="/profile">Профиль</Link>
         </nav>
         <div className="layout-user">
+          <LanguageSelector className="language-selector-layout" />
           {user?.avatarUrl ? (
             <img src={user.avatarUrl} alt="" className="layout-avatar" />
           ) : (

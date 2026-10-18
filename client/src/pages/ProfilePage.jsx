@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from '../i18n/navigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { auth, character, achievements, skills, users } from '../api.js';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
   const { userId: routeUserId } = useParams();
   const { user, setUserFromResponse } = useAuth();
+  const { locale, t } = useLocalization();
   const fileInputRef = useRef(null);
   const [profileUser, setProfileUser] = useState(null);
   const [char, setChar] = useState(null);
@@ -102,7 +104,7 @@ export default function ProfilePage() {
 
   const handleDeleteAvatar = async () => {
     if (!user?.avatarUrl) return;
-    if (!window.confirm('Удалить аватар?')) return;
+    if (!window.confirm(t('Удалить аватар?'))) return;
     setAvatarError('');
     setAvatarDeleting(true);
     try {
@@ -203,7 +205,7 @@ export default function ProfilePage() {
                 <span className="profile-xp-amount">{tx.amount > 0 ? '+' : ''}{tx.amount}</span>
                 <span className="profile-xp-source">{tx.source}</span>
                 {tx.description && <span className="profile-xp-desc"> — {tx.description}</span>}
-                <span className="profile-xp-date">{tx.createdAt ? new Date(tx.createdAt).toLocaleString() : ''}</span>
+                <span className="profile-xp-date">{tx.createdAt ? new Date(tx.createdAt).toLocaleString(locale) : ''}</span>
               </li>
             ))}
           </ul>
@@ -228,7 +230,7 @@ export default function ProfilePage() {
                     <p className="profile-achievement-how">Как получить: {(a.howToObtain ?? a.howtoobtain)}</p>
                   )}
                   {a.xpBonus > 0 && <span className="profile-achievement-xp">+{a.xpBonus} XP</span>}
-                  {unlocked && userAch?.unlockedAt && <span className="profile-achievement-date">Получено: {new Date(userAch.unlockedAt).toLocaleDateString()}</span>}
+                  {unlocked && userAch?.unlockedAt && <span className="profile-achievement-date">Получено: {new Date(userAch.unlockedAt).toLocaleDateString(locale)}</span>}
                   {!unlocked && <span className="profile-achievement-locked">Не получено</span>}
                 </div>
               </li>

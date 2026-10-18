@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '../i18n/navigation.jsx';
 import { auth } from '../api.js';
 import './AuthPages.css';
 

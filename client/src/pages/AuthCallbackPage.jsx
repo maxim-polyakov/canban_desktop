@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '../i18n/navigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { auth } from '../api.js';
 
@@ -35,7 +35,7 @@ export default function AuthCallbackPage() {
     return (
       <div className="auth-page">
         <p className="auth-error">{error}</p>
-        <a href="/login">Вернуться ко входу</a>
+        <Link to="/login">Вернуться ко входу</Link>
       </div>
     );
   }

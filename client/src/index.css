@@ -23,6 +23,39 @@ body {
   min-height: 100vh;
 }
 
+.language-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: inherit;
+  font-size: 0.85rem;
+}
+
+.language-selector select {
+  max-width: 11rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.language-selector-public {
+  position: fixed;
+  z-index: 20;
+  inset-block-start: 1rem;
+  inset-inline-end: 1rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.6rem;
+  background: var(--surface);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 720px) {
+  .language-selector-label { display: none; }
+  .language-selector-layout select { max-width: 7rem; }
+}
+
 a {
   color: var(--accent);
   text-decoration: none;

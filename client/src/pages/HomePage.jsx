@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '../i18n/navigation.jsx';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { boards, teams, character, leaderboard, activity } from '../api.js';
 import './HomePage.css';
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { locale, t } = useLocalization();
   const [myTeamsWithBoards, setMyTeamsWithBoards] = useState([]);
   const [char, setChar] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -161,18 +163,18 @@ export default function HomePage() {
   };
 
   const handleRemoveMember = async (teamId, userId) => {
-    if (!window.confirm('Исключить участника из команды?')) return;
+    if (!window.confirm(t('Исключить участника из команды?'))) return;
     try {
       const result = await teams.removeMember(teamId, userId);
       if (result === true) loadTeamMembers(teamId);
-      else if (result?.status === 403) window.alert('Исключать участников может только создатель команды.');
+      else if (result?.status === 403) window.alert(t('Исключать участников может только создатель команды.'));
     } catch (err) {
       console.error(err);
     }
   };
 
   const handleLeaveTeam = async (teamId) => {
-    if (!window.confirm('Выйти из команды? Вы сможете вернуться только по повторному приглашению.')) return;
+    if (!window.confirm(t('Выйти из команды? Вы сможете вернуться только по повторному приглашению.'))) return;
     try {
       const ok = await teams.leaveTeam(teamId);
       if (ok) await loadTeams();
@@ -182,7 +184,7 @@ export default function HomePage() {
   };
 
   const handleDeleteTeam = async (teamId) => {
-    if (!window.confirm('Удалить команду и все её доски? Это действие нельзя отменить.')) return;
+    if (!window.confirm(t('Удалить команду и все её доски? Это действие нельзя отменить.'))) return;
     try {
       const ok = await teams.delete(teamId);
       if (ok) loadTeams();
@@ -244,7 +246,7 @@ export default function HomePage() {
       const list = await leaderboard.getTeamKpi(teamId, from.toISOString(), to.toISOString());
       const data = Array.isArray(list) ? list : [];
       setTeamKpi((prev) => ({ ...prev, [teamId]: data.map((p) => ({
-        date: new Date(p.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
+        date: p.date,
         dateFull: p.date,
         xp: p.totalXpGained ?? 0,
         quests: p.questsCompleted ?? 0,
@@ -504,9 +506,9 @@ export default function HomePage() {
                             <ResponsiveContainer width="100%" height={180}>
                               <AreaChart data={teamKpi[item.team?.id] || []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                                <XAxis dataKey="date" tickFormatter={(value) => new Date(value).toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })} tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
                                 <YAxis tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
-                                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)' }} labelStyle={{ color: 'var(--text)' }} />
+                                <Tooltip labelFormatter={(value) => new Date(value).toLocaleDateString(locale)} contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)' }} labelStyle={{ color: 'var(--text)' }} />
                                 <Area type="monotone" dataKey="xp" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.3} name="XP" />
                               </AreaChart>
                             </ResponsiveContainer>
@@ -516,9 +518,9 @@ export default function HomePage() {
                             <ResponsiveContainer width="100%" height={180}>
                               <BarChart data={teamKpi[item.team?.id] || []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
+                                <XAxis dataKey="date" tickFormatter={(value) => new Date(value).toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })} tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
                                 <YAxis tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
-                                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)' }} labelStyle={{ color: 'var(--text)' }} />
+                                <Tooltip labelFormatter={(value) => new Date(value).toLocaleDateString(locale)} contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)' }} labelStyle={{ color: 'var(--text)' }} />
                                 <Bar dataKey="quests" fill="var(--accent)" name="Квесты" radius={[4, 4, 0, 0]} />
                               </BarChart>
                             </ResponsiveContainer>

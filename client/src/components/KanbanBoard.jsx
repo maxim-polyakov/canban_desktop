@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import KanbanColumn from './KanbanColumn.jsx';
 import AssigneeSummary from './AssigneeSummary.jsx';
 import { quests } from '../api.js';
+import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import './KanbanBoard.css';
 
 const COLUMN_PREFIX = 'col-';
@@ -39,6 +40,7 @@ function SortableColumn({ column, onColumnReorder, children }) {
 }
 
 export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAssignQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick }) {
+  const { t } = useLocalization();
   const [activeId, setActiveId] = useState(null);
   const [newQuestColumnId, setNewQuestColumnId] = useState(null);
   const [newQuestTitle, setNewQuestTitle] = useState('');
@@ -132,7 +134,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
       if (onRefreshColumnQuests) onRefreshColumnQuests(columnId);
       else onRefresh();
       if (failedFiles.length > 0) {
-        window.alert(`Задача создана, но не удалось загрузить: ${failedFiles.join(', ')}`);
+        window.alert(t('Задача создана, но не удалось загрузить: ${failedFiles.join(\', \')}', { "failedFiles.join(', ')": failedFiles.join(', ') }));
       }
     } catch (e) {
       console.error(e);

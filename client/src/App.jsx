@@ -1,6 +1,8 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from './i18n/navigation.jsx';
 import { useAuth } from './context/AuthContext.jsx';
+import { useLocalization } from './i18n/LocalizationContext.jsx';
+import LanguageSelector from './components/LanguageSelector.jsx';
 import Layout from './components/Layout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
@@ -17,14 +19,17 @@ import UsersPage from './pages/UsersPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="page">Загрузка...</div>;
+  const { t } = useLocalization();
+  if (loading) return <div className="page">{t('Загрузка...')}</div>;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
 
 export default function App() {
+  const { user } = useAuth();
   return (
     <div className="app">
+      {!user && <LanguageSelector className="language-selector-public" />}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />

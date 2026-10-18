@@ -1,0 +1,382 @@
+{
+  "en": {
+    "title": "Kanban — Quests and levels",
+    "description": "Kanban with quests, levels, team boards, and analytics.",
+    "locale": "en"
+  },
+  "ru": {
+    "title": "Канбан — Квесты и уровни",
+    "description": "Канбан с квестами, уровнями, командными досками и аналитикой.",
+    "locale": "ru"
+  },
+  "de": {
+    "title": "Kanban — Quests und Level",
+    "description": "Kanban mit Quests, Levels, Teamboards und Analysen.",
+    "locale": "de"
+  },
+  "ar": {
+    "title": "Kanban — المهام والمستويات",
+    "description": "كانبان مع المهام والمستويات ولوحات الفريق والتحليلات.",
+    "locale": "ar"
+  },
+  "sq": {
+    "title": "Kanban — Kërkimet dhe nivelet",
+    "description": "Kanban me kërkime, nivele, borde ekipore dhe analitikë.",
+    "locale": "sq"
+  },
+  "am": {
+    "title": "Kanban — ተልዕኮዎች እና ደረጃዎች",
+    "description": "ካንባን በተልዕኮዎች፣ ደረጃዎች፣ የቡድን ሰሌዳዎች እና ትንታኔዎች።",
+    "locale": "am"
+  },
+  "hy": {
+    "title": "Kanban — Որոնումներ և մակարդակներ",
+    "description": "Kanban որոնումներով, մակարդակներով, թիմային տախտակներով և վերլուծություններով:",
+    "locale": "hy"
+  },
+  "az": {
+    "title": "Kanban — Tapşırıqlar və səviyyələr",
+    "description": "Tapşırıqlar, səviyyələr, komanda lövhələri və analitika ilə Kanban.",
+    "locale": "az"
+  },
+  "eu": {
+    "title": "Kanban — Bilaketak eta mailak",
+    "description": "Kanban bilaketak, mailak, talde-taulak eta analitikak.",
+    "locale": "eu"
+  },
+  "be": {
+    "title": "Kanban — Квэсты і ўзроўні",
+    "description": "Канбан з квэстамі, узроўнямі, дошкамі каманд і аналітыкай.",
+    "locale": "be"
+  },
+  "bn": {
+    "title": "Kanban — কোয়েস্ট এবং স্তর",
+    "description": "অনুসন্ধান, স্তর, টিম বোর্ড এবং বিশ্লেষণ সহ কানবান।",
+    "locale": "bn"
+  },
+  "bg": {
+    "title": "Kanban — Мисии и нива",
+    "description": "Kanban с куестове, нива, екипни табла и анализи.",
+    "locale": "bg"
+  },
+  "my": {
+    "title": "Kanban — Quest များနှင့်အဆင့်များ",
+    "description": "စူးစမ်းမှုများ၊ အဆင့်များ၊ အဖွဲ့ဘုတ်များနှင့် ခွဲခြမ်းစိတ်ဖြာမှုများပါရှိသော Kanban။",
+    "locale": "my"
+  },
+  "ca": {
+    "title": "Kanban — Missions i nivells",
+    "description": "Kanban amb missions, nivells, taulers d'equip i analítiques.",
+    "locale": "ca"
+  },
+  "zh": {
+    "title": "Kanban — 任务和等级",
+    "description": "带有任务、级别、团队板和分析的看板。",
+    "locale": "zh-CN"
+  },
+  "zh-TW": {
+    "title": "Kanban — 任務和等級",
+    "description": "帶有任務、等級、團隊板和分析的看板。",
+    "locale": "zh-TW"
+  },
+  "hr": {
+    "title": "Kanban — Misije i razine",
+    "description": "Kanban s misijama, razinama, timskim pločama i analitikom.",
+    "locale": "hr"
+  },
+  "cs": {
+    "title": "Kanban — Úkoly a úrovně",
+    "description": "Kanban s úkoly, úrovněmi, týmovými deskami a analytiky.",
+    "locale": "cs"
+  },
+  "da": {
+    "title": "Kanban — Quests og niveauer",
+    "description": "Kanban med quests, niveauer, teamboards og analyser.",
+    "locale": "da"
+  },
+  "nl": {
+    "title": "Kanban — Quests en niveaus",
+    "description": "Kanban met speurtochten, niveaus, teamborden en analyses.",
+    "locale": "nl"
+  },
+  "et": {
+    "title": "Kanban — Ülesanded ja tasemed",
+    "description": "Kanban ülesannete, tasemete, meeskonnatahvlite ja analüütikaga.",
+    "locale": "et"
+  },
+  "fi": {
+    "title": "Kanban — Tehtävät ja tasot",
+    "description": "Kanban, jossa on tehtäviä, tasoja, ryhmätauluja ja analytiikkaa.",
+    "locale": "fi"
+  },
+  "fr": {
+    "title": "Kanban — Quêtes et niveaux",
+    "description": "Kanban avec quêtes, niveaux, tableaux d'équipe et analyses.",
+    "locale": "fr"
+  },
+  "gl": {
+    "title": "Kanban — Misións e niveis",
+    "description": "Kanban con misións, niveis, taboleiros de equipos e análises.",
+    "locale": "gl"
+  },
+  "ka": {
+    "title": "Kanban — სტუმარი და დონეები",
+    "description": "კანბანი ქვესტებით, დონეებით, გუნდის დაფებით და ანალიტიკით.",
+    "locale": "ka"
+  },
+  "el": {
+    "title": "Kanban — Αποστολές και επίπεδα",
+    "description": "Kanban με αποστολές, επίπεδα, πίνακες ομάδων και αναλυτικά στοιχεία.",
+    "locale": "el"
+  },
+  "he": {
+    "title": "Kanban — קווסטים ורמות",
+    "description": "Kanban עם קווסטים, רמות, לוחות צוות וניתוח.",
+    "locale": "he"
+  },
+  "hi": {
+    "title": "Kanban — खोज और स्तर",
+    "description": "खोज, स्तर, टीम बोर्ड और विश्लेषण के साथ कानबन।",
+    "locale": "hi"
+  },
+  "hu": {
+    "title": "Kanban — Küldetések és szintek",
+    "description": "Kanban küldetésekkel, szintekkel, csapattáblákkal és elemzésekkel.",
+    "locale": "hu"
+  },
+  "is": {
+    "title": "Kanban — Leggja inn beiðni og stig",
+    "description": "Kanban með verkefnum, stigum, teymisborðum og greiningu.",
+    "locale": "is"
+  },
+  "id": {
+    "title": "Kanban — Misi dan level",
+    "description": "Kanban dengan misi, level, papan tim, dan analitik.",
+    "locale": "id"
+  },
+  "ga": {
+    "title": "Kanban — Quests agus leibhéil",
+    "description": "Kanban le quests, leibhéil, boird foirne, agus analytics.",
+    "locale": "ga"
+  },
+  "it": {
+    "title": "Kanban — Missioni e livelli",
+    "description": "Kanban con missioni, livelli, schede del team e analisi.",
+    "locale": "it"
+  },
+  "ja": {
+    "title": "Kanban — クエストとレベル",
+    "description": "クエスト、レベル、チームボード、分析を備えたカンバン。",
+    "locale": "ja"
+  },
+  "kn": {
+    "title": "Kanban — ಪ್ರಶ್ನೆಗಳು ಮತ್ತು ಮಟ್ಟಗಳು",
+    "description": "ಕ್ವೆಸ್ಟ್‌ಗಳು, ಲೆವೆಲ್‌ಗಳು, ಟೀಮ್ ಬೋರ್ಡ್‌ಗಳು ಮತ್ತು ಅನಾಲಿಟಿಕ್ಸ್‌ನೊಂದಿಗೆ ಕಾನ್ಬನ್.",
+    "locale": "kn"
+  },
+  "kk": {
+    "title": "Kanban — Квесттер мен деңгейлер",
+    "description": "Квесттері, деңгейлері, командалық тақталары және аналитикасы бар Канбан.",
+    "locale": "kk"
+  },
+  "km": {
+    "title": "Kanban — ដំណើរស្វែងរក និងកម្រិត",
+    "description": "Kanban ជាមួយនឹងដំណើរស្វែងរក កម្រិត ក្រុមប្រឹក្សាក្រុម និងការវិភាគ។",
+    "locale": "km"
+  },
+  "ko": {
+    "title": "Kanban — 퀘스트와 레벨",
+    "description": "퀘스트, 레벨, 팀 보드 및 분석이 포함된 Kanban입니다.",
+    "locale": "ko"
+  },
+  "lo": {
+    "title": "Kanban — Quests ແລະ​ລະ​ດັບ​",
+    "description": "Kanban ກັບ quests, ລະດັບ, ຄະນະທີມງານ, ແລະການວິເຄາະ.",
+    "locale": "lo"
+  },
+  "lv": {
+    "title": "Kanban — Uzdevumi un līmeņi",
+    "description": "Kanban ar uzdevumiem, līmeņiem, komandu dēļiem un analīzi.",
+    "locale": "lv"
+  },
+  "lt": {
+    "title": "Kanban — Užduotys ir lygiai",
+    "description": "Kanban su užduotimis, lygiais, komandos lentomis ir analize.",
+    "locale": "lt"
+  },
+  "mk": {
+    "title": "Kanban — Потраги и нивоа",
+    "description": "Канбан со потраги, нивоа, тимски табли и аналитика.",
+    "locale": "mk"
+  },
+  "ms": {
+    "title": "Kanban — Pencarian dan tahap",
+    "description": "Kanban dengan pencarian, tahap, papan pasukan dan analitik.",
+    "locale": "ms"
+  },
+  "ml": {
+    "title": "Kanban — ക്വസ്റ്റുകളും ലെവലുകളും",
+    "description": "ക്വസ്റ്റുകൾ, ലെവലുകൾ, ടീം ബോർഡുകൾ, അനലിറ്റിക്‌സ് എന്നിവയുള്ള കാൻബൻ.",
+    "locale": "ml"
+  },
+  "mt": {
+    "title": "Kanban — Tfittxijiet u livelli",
+    "description": "Kanban bi quests, livelli, bordijiet tat-timijiet, u analytics.",
+    "locale": "mt"
+  },
+  "mr": {
+    "title": "Kanban — शोध आणि स्तर",
+    "description": "शोध, स्तर, टीम बोर्ड आणि विश्लेषणासह कानबान.",
+    "locale": "mr"
+  },
+  "mn": {
+    "title": "Kanban — Даалгавар ба түвшин",
+    "description": "Даалгавар, түвшин, багийн самбар, аналитик бүхий Канбан.",
+    "locale": "mn"
+  },
+  "ne": {
+    "title": "Kanban — खोज र स्तरहरू",
+    "description": "क्वेस्टहरू, स्तरहरू, टोली बोर्डहरू, र विश्लेषणहरूको साथ Kanban।",
+    "locale": "ne"
+  },
+  "nb": {
+    "title": "Kanban — Oppdrag og nivåer",
+    "description": "Kanban med oppdrag, nivåer, lagtavler og analyser.",
+    "locale": "nb-NO"
+  },
+  "fa": {
+    "title": "Kanban — ماموریت ها و سطوح",
+    "description": "Kanban با ماموریت ها، سطوح، تابلوهای تیمی و تجزیه و تحلیل.",
+    "locale": "fa"
+  },
+  "pl": {
+    "title": "Kanban — Zadania i poziomy",
+    "description": "Kanban z zadaniami, poziomami, tablicami zespołów i statystykami.",
+    "locale": "pl"
+  },
+  "pt": {
+    "title": "Kanban — Missões e níveis",
+    "description": "Kanban com missões, níveis, quadros de equipe e análises.",
+    "locale": "pt-BR"
+  },
+  "pa": {
+    "title": "Kanban — ਖੋਜ ਅਤੇ ਪੱਧਰ",
+    "description": "ਖੋਜਾਂ, ਪੱਧਰਾਂ, ਟੀਮ ਬੋਰਡਾਂ ਅਤੇ ਵਿਸ਼ਲੇਸ਼ਣਾਂ ਨਾਲ ਕਨਬਨ।",
+    "locale": "pa-IN"
+  },
+  "ro": {
+    "title": "Kanban — Misiuni și niveluri",
+    "description": "Kanban cu misiuni, niveluri, panouri de echipă și analize.",
+    "locale": "ro"
+  },
+  "sr": {
+    "title": "Kanban — Задаци и нивои",
+    "description": "Канбан са мисијама, нивоима, тимским таблама и аналитиком.",
+    "locale": "sr"
+  },
+  "si": {
+    "title": "Kanban — Quests සහ මට්ටම්",
+    "description": "ගවේෂණ, මට්ටම්, කණ්ඩායම් පුවරු සහ විශ්ලේෂණ සහිත කන්බන්.",
+    "locale": "si"
+  },
+  "sk": {
+    "title": "Kanban — Úlohy a úrovne",
+    "description": "Kanban s úlohami, úrovňami, tímovými tabuľami a analýzami.",
+    "locale": "sk"
+  },
+  "sl": {
+    "title": "Kanban — Naloge in stopnje",
+    "description": "Kanban z nalogami, ravnmi, ekipnimi tablami in analitiko.",
+    "locale": "sl"
+  },
+  "es": {
+    "title": "Kanban — Misiones y niveles",
+    "description": "Kanban con misiones, niveles, tableros de equipo y análisis.",
+    "locale": "es"
+  },
+  "sw": {
+    "title": "Kanban — Maswali na viwango",
+    "description": "Kanban na Jumuia, viwango, bodi za timu na uchanganuzi.",
+    "locale": "sw"
+  },
+  "tl": {
+    "title": "Kanban — Quests at mga antas\n<",
+    "description": "Kanban na may mga quest, level, team board, at analytics.",
+    "locale": "tl"
+  },
+  "tg": {
+    "title": "Kanban — Квестҳо ва сатҳҳо",
+    "description": "Канбан бо квестҳо, сатҳҳо, тахтаҳои гурӯҳӣ ва таҳлил.",
+    "locale": "tg"
+  },
+  "th": {
+    "title": "Kanban — ภารกิจและระดับ",
+    "description": "คัมบังพร้อมภารกิจ ระดับ กระดานทีม และการวิเคราะห์",
+    "locale": "th"
+  },
+  "tr": {
+    "title": "Kanban — Görevler ve seviyeler",
+    "description": "Görevler, seviyeler, ekip panoları ve analizler içeren Kanban.",
+    "locale": "tr"
+  },
+  "uk": {
+    "title": "Kanban — Квести та рівні",
+    "description": "Канбан із квестами, рівнями, дошками команд і аналітикою.",
+    "locale": "uk"
+  },
+  "ur": {
+    "title": "Kanban — سوالات اور سطحیں۔",
+    "description": "جستجو، لیولز، ٹیم بورڈز اور تجزیات کے ساتھ کنبان۔",
+    "locale": "ur"
+  },
+  "uz": {
+    "title": "Kanban — Kvestlar va darajalar",
+    "description": "Kvestlar, darajalar, jamoalar taxtasi va tahlillari bilan Kanban.",
+    "locale": "uz"
+  },
+  "vi": {
+    "title": "Kanban — Nhiệm vụ và cấp độ",
+    "description": "Kanban với các nhiệm vụ, cấp độ, bảng nhóm và phân tích.",
+    "locale": "vi"
+  },
+  "cy": {
+    "title": "Kanban — Quests a lefelau",
+    "description": "Kanban gyda quests, lefelau, byrddau tîm, a dadansoddeg.",
+    "locale": "cy"
+  },
+  "xh": {
+    "title": "Kanban — Imibuzo kunye namanqanaba",
+    "description": "I-Kanban eneemfuno, amanqanaba, iibhodi zeqela, kunye nohlalutyo.",
+    "locale": "xh"
+  },
+  "yi": {
+    "title": "Kanban — קוועסץ און לעוועלס",
+    "description": "קאַנבאַן מיט קוועסץ, לעוועלס, מאַנשאַפֿט באָרדז און אַנאַליטיקס.",
+    "locale": "yi"
+  },
+  "yo": {
+    "title": "Kanban — Awọn ibeere ati awọn ipele",
+    "description": "Kanban pẹlu awọn ibeere, awọn ipele, awọn igbimọ ẹgbẹ, ati awọn atupale.",
+    "locale": "yo"
+  },
+  "zu": {
+    "title": "Kanban — Izimfuno kanye namazinga",
+    "description": "I-Kanban enezimfuno, amaleveli, amabhodi weqembu, nezibalo.",
+    "locale": "zu"
+  },
+  "gu": {
+    "title": "Kanban — ક્વેસ્ટ્સ અને સ્તરો",
+    "description": "ક્વેસ્ટ્સ, લેવલ, ટીમ બોર્ડ અને એનાલિટિક્સ સાથે કાનબન.",
+    "locale": "gu"
+  },
+  "haw": {
+    "title": "Kanban — ʻimi a me nā pae",
+    "description": "Kanban me nā ʻimi, nā pae, nā papa hui, a me nā ʻikepili.",
+    "locale": "haw"
+  },
+  "ig": {
+    "title": "Kanban — Ajụjụ na ọkwa",
+    "description": "Kanban nwere ajụjụ, ọkwa, bọọdụ otu na nyocha.",
+    "locale": "ig"
+  }
+}

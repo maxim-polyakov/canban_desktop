@@ -177,6 +177,15 @@ apply_schema_patches() {
   "${kube[@]}" patch deployment "$deployment" -n "$namespace" --type=json \
     -p='[{"op":"remove","path":"/spec/template/spec/hostAliases"}]' >/dev/null 2>&1 || true
 
+  if [[ "$service" == client ]]; then
+    "${kube[@]}" patch deployment "$deployment" -n "$namespace" --type=json \
+      -p='[
+        {"op":"add","path":"/spec/template/spec/containers/0/command","value":["node"]},
+        {"op":"add","path":"/spec/template/spec/containers/0/args","value":["server.cjs"]}
+      ]' >/dev/null
+    log "Dynamic preview server enabled for $namespace/$deployment"
+  fi
+
   local is_maildev=false
   if [[ "$service" == *smtp* ]] || [[ "$deployment" == *smtp* ]] || [[ "$source_image" == *maildev* ]]; then
     is_maildev=true

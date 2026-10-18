@@ -6,7 +6,7 @@ const previews = require('./previewTranslations.json');
 const port = Number(process.env.PORT || 3000);
 const buildDirectory = path.join(__dirname, 'build');
 const publicUrl = (process.env.PUBLIC_SITE_URL || 'https://canban.baxic.ru').replace(/\/$/, '');
-const imageUrl = `${publicUrl}/favicon.png`;
+const imageUrl = `${publicUrl}/canban-preview.png`;
 const rtlLanguages = new Set(['ar', 'he', 'fa', 'ur', 'yi']);
 
 const contentTypes = {
@@ -80,6 +80,7 @@ const renderIndex = (template, request, url) => {
   html = replaceMeta(html, 'property', 'og:description', preview.description);
   html = replaceMeta(html, 'property', 'og:url', pageUrl);
   html = replaceMeta(html, 'property', 'og:image', imageUrl);
+  html = replaceMeta(html, 'property', 'og:image:secure_url', imageUrl);
   html = replaceMeta(html, 'property', 'og:image:alt', preview.title);
   html = replaceMeta(html, 'name', 'twitter:title', preview.title);
   html = replaceMeta(html, 'name', 'twitter:description', preview.description);

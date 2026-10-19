@@ -85,6 +85,8 @@
 
   .layout-nav {
     min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
     gap: 0.55rem;
     font-size: 0.82rem;
     white-space: nowrap;

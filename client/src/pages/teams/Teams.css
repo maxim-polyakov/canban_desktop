@@ -211,6 +211,89 @@
 
 .layout-main:has(.teams-page) { background: var(--surface); }
 
+.teams-filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.teams-filter-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-subtle);
+  font-size: 13px;
+}
+.teams-filter-chip:hover { background: var(--surface-hover); }
+.teams-filter-chip.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.teams-filter-chip select { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; outline: none; }
+
+.teams-results-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 12px; font-size: 14px; }
+.teams-view-toggle { display: inline-flex; gap: 2px; }
+.teams-view-toggle button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-subtle);
+  cursor: pointer;
+}
+.teams-view-toggle button:hover { background: var(--nav-hover); }
+.teams-view-toggle button.is-active { background: var(--accent-soft); color: var(--accent); }
+
+.teams-people-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.teams-person-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  box-shadow: var(--raised-shadow);
+  color: var(--text);
+  font-size: 13px;
+}
+.teams-person-tile:hover { background: var(--surface-hover); text-decoration: none; }
+.teams-person-tile img,
+.teams-person-tile-letter { flex: none; width: 44px; height: 44px; object-fit: cover; }
+.teams-person-tile-letter { display: grid; place-items: center; background: var(--brand); color: #fff; font-weight: 650; }
+.teams-person-tile-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline-end: 8px; }
+
+.teams-people-list { display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.teams-people-list-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+
+.teams-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 48px auto; max-width: 420px; text-align: center; }
+.teams-empty h2 { margin: 16px 0 0; font-size: 16px; font-weight: 650; }
+.teams-empty p { margin: 0 0 8px; color: var(--text-subtle); font-size: 13px; line-height: 1.5; }
+.teams-empty-art { position: relative; display: grid; place-items: center; color: var(--text-subtle); }
+.teams-empty-art.is-teams { width: 64px; height: 64px; border-radius: 10px; background: var(--chip-bg); transform: rotate(-8deg); color: var(--text); }
+.teams-empty-art.is-teams i {
+  position: absolute;
+  inset-inline-end: -12px;
+  bottom: -12px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand, #0c66e4);
+  color: #fff;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 700;
+  transform: rotate(8deg);
+}
+.teams-empty-art.is-search { width: 96px; height: 96px; border-radius: 50%; border: 6px solid var(--border); }
+.teams-empty-art.is-search b { position: absolute; color: var(--border-strong); font-size: 18px; }
+.teams-empty-art.is-search b:first-of-type { top: -14px; inset-inline-end: -14px; }
+.teams-empty-art.is-search b:last-of-type { bottom: 4px; inset-inline-start: -18px; }
+
 .invite-picked { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .invite-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 12px; background: var(--nav-selected-bg); color: var(--nav-selected-text); font-size: 0.85rem; }
 .invite-chip button { display: inline-flex; padding: 2px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }

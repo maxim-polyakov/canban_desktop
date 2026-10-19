@@ -228,6 +228,11 @@ public static partial class DatabaseSchemaInitializer
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailOwnChanges" boolean NOT NULL DEFAULT FALSE;
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailFormat" character varying(8) NOT NULL DEFAULT 'html';
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AutoWatch" boolean NOT NULL DEFAULT TRUE;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "JobTitle" character varying(120) NULL;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "Department" character varying(120) NULL;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "Organization" character varying(120) NULL;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "Location" character varying(120) NULL;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AboutMe" character varying(2000) NULL;
 
             DO $$
             BEGIN

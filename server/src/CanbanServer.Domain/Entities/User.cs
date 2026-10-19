@@ -28,6 +28,13 @@ public class User
     /// <summary>Start watching issues you comment on, edit or move.</summary>
     public bool AutoWatch { get; set; } = true;
 
+    public string? JobTitle { get; set; }
+    public string? Department { get; set; }
+    public string? Organization { get; set; }
+    public string? Location { get; set; }
+    /// <summary>"Работа со мной": how colleagues should reach and work with this person.</summary>
+    public string? AboutMe { get; set; }
+
     public Character Character { get; set; } = null!;
     public ICollection<TeamMember> TeamMemberships { get; set; } = new List<TeamMember>();
     public ICollection<Quest> AssignedQuests { get; set; } = new List<Quest>();

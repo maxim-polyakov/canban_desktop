@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocalization } from '../../i18n/LocalizationContext.jsx';
-import { kudos as kudosApi, teams as teamsApi, users as usersApi } from '../../api.js';
+import { kudos as kudosApi, people as peopleApi, teams as teamsApi, users as usersApi } from '../../api.js';
 import NavIcon from '../../components/NavIcons.jsx';
 import { suggestSpaceKey } from '../../utils/spaceKey.js';
 
@@ -27,6 +27,76 @@ function Modal({ title, onClose, onSubmit, children, footer }) {
         <div className="app-modal-footer">{footer}</div>
       </form>
     </div>
+  );
+}
+
+const PROFILE_FIELDS = [
+  ['jobTitle', 'Должность', 120],
+  ['department', 'Отдел', 120],
+  ['organization', 'Организация', 120],
+  ['location', 'Местоположение', 120],
+];
+
+export function EditProfileDialog({ open, profile, focusAbout = false, onClose, onSaved }) {
+  const { t } = useLocalization();
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    if (!open) return;
+    setError('');
+    setForm({
+      jobTitle: profile?.jobTitle || '',
+      department: profile?.department || '',
+      organization: profile?.organization || '',
+      location: profile?.location || '',
+      aboutMe: profile?.aboutMe || '',
+    });
+  }, [open, profile]);
+  if (!open) return null;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      onSaved?.(await peopleApi.saveMyProfile(form));
+    } catch (err) {
+      setError(err?.message || t('Не удалось сохранить'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={focusAbout ? t('Работа со мной') : t('Сведения о роли')}
+      onClose={onClose}
+      onSubmit={submit}
+      footer={<>
+        <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Отмена')}</button>
+        <button type="submit" className="app-btn app-btn-primary" disabled={saving}>{saving ? '…' : t('Сохранить')}</button>
+      </>}
+    >
+      {!focusAbout && PROFILE_FIELDS.map(([key, label, max], index) => (
+        <label key={key} className="app-field">
+          <span>{t(label)}</span>
+          <input value={form[key] ?? ''} maxLength={max} autoFocus={index === 0} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
+        </label>
+      ))}
+      <label className="app-field">
+        <span>{t('Работа со мной')}</span>
+        <textarea
+          rows={4}
+          value={form.aboutMe ?? ''}
+          maxLength={2000}
+          autoFocus={focusAbout}
+          placeholder={t('Например: предпочитаю асинхронные обновления в задачах. По срочным вопросам пишите с 9:00 до 18:00.')}
+          onChange={(e) => setForm((f) => ({ ...f, aboutMe: e.target.value }))}
+        />
+      </label>
+      {error && <p className="app-modal-error" role="alert">{error}</p>}
+    </Modal>
   );
 }
 

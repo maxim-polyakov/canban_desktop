@@ -29,7 +29,7 @@ import SpacesPage from './pages/SpacesPage.jsx';
 import SpaceTemplatesPage from './pages/spaces/SpaceTemplatesPage.jsx';
 import { CreatePlanPage, PlanPage, PlansListPage } from './pages/plans/PlansPages.jsx';
 import { SpaceCalendarPage, SpaceFeaturesPage, SpaceListPage, SpaceSummaryPage } from './pages/spaces/SpaceViews.jsx';
-import { KudosPage, PeoplePage, PersonPage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
+import { KudosPage, PeoplePage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
 import { HomeDirectoryPage, HomeItemPage, HomeUpdatesPage } from './pages/home/HomePages.jsx';
 import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
@@ -91,7 +91,7 @@ export default function App() {
           <Route path="teams/manage" element={<HomePage />} />
           <Route path="teams/:teamId" element={<TeamPage />} />
           <Route path="people" element={<PeoplePage />} />
-          <Route path="people/:userId" element={<PersonPage />} />
+          <Route path="people/:userId" element={<ProfilePage />} />
           <Route path="kudos" element={<KudosPage />} />
           <Route path="projects" element={<HomeDirectoryPage key="projects" kind="projects" />} />
           <Route path="projects/following" element={<HomeDirectoryPage key="projects-following" kind="projects" view="following" />} />

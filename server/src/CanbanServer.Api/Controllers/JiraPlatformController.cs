@@ -373,6 +373,100 @@ public class JiraPlatformController : ControllerBase
             .OrderByDescending(p => p.sharedTeams).ThenBy(p => p.displayName));
     }
 
+    public record SaveProfileRequest(string? JobTitle, string? Department, string? Organization, string? Location, string? AboutMe);
+
+    [HttpGet("people/{userId:guid}/profile")]
+    public async Task<ActionResult> GetPersonProfile(Guid userId, CancellationToken ct)
+    {
+        var me = RequireUser();
+        var person = await _db.Users.AsNoTracking().Where(u => u.Id == userId)
+            .Select(u => new { u.Id, u.DisplayName, u.AvatarUrl, u.Email, u.JobTitle, u.Department, u.Organization, u.Location, u.AboutMe, u.CreatedAt })
+            .FirstOrDefaultAsync(ct);
+        if (person == null) return NotFound();
+
+        var personTeamIds = _db.Teams.Where(t => t.OwnerId == userId || t.Members.Any(m => m.UserId == userId)).Select(t => t.Id);
+        var teams = await _db.Teams.AsNoTracking()
+            .Where(t => personTeamIds.Contains(t.Id) && (t.OwnerId == me || t.Members.Any(m => m.UserId == me)))
+            .OrderBy(t => t.Name)
+            .Select(t => new { id = t.Id, name = t.Name, memberCount = t.Members.Count })
+            .ToListAsync(ct);
+
+        var since = DateTime.UtcNow.AddDays(-90);
+        var visibleChanges = _db.QuestChanges.AsNoTracking()
+            .Where(c => c.UserId == userId && c.CreatedAt >= since)
+            .Where(c => _db.Quests.Any(q => q.Id == c.QuestId && (q.Board.Team.OwnerId == me || q.Board.Team.Members.Any(m => m.UserId == me))));
+        var recentIds = await visibleChanges.GroupBy(c => c.QuestId)
+            .Select(g => new { QuestId = g.Key, At = g.Max(c => c.CreatedAt) })
+            .OrderByDescending(x => x.At).Take(5)
+            .ToListAsync(ct);
+        var ids = recentIds.Select(x => x.QuestId).ToList();
+        var quests = await _db.Quests.AsNoTracking().Where(q => ids.Contains(q.Id))
+            .Select(q => new
+            {
+                q.Id, q.BoardId, BoardName = q.Board.Name, q.IssueKey, q.Title, q.IssueType,
+                Status = q.Column.Title, Done = q.CompletedAt != null || q.Column.Kind == ColumnKind.Done
+            })
+            .ToDictionaryAsync(q => q.Id, ct);
+        var recentWork = recentIds.Where(x => quests.ContainsKey(x.QuestId)).Select(x =>
+        {
+            var q = quests[x.QuestId];
+            return new MyWorkItemDto(q.Id, q.BoardId, q.BoardName, q.IssueKey, q.Title, q.IssueType, q.Status, q.Done, x.At);
+        }).ToList();
+
+        var spaceCounts = await visibleChanges.Join(_db.Quests, c => c.QuestId, q => q.Id, (c, q) => q.BoardId)
+            .GroupBy(boardId => boardId)
+            .Select(g => new { BoardId = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count).Take(5)
+            .ToListAsync(ct);
+        var spaceIds = spaceCounts.Select(x => x.BoardId).ToList();
+        var spaceInfo = await _db.Boards.AsNoTracking().Where(b => spaceIds.Contains(b.Id))
+            .Select(b => new { b.Id, b.Name, b.KeyPrefix, b.Template })
+            .ToDictionaryAsync(b => b.Id, ct);
+        var frequentSpaces = spaceCounts.Where(x => spaceInfo.ContainsKey(x.BoardId))
+            .Select(x => new { id = x.BoardId, name = spaceInfo[x.BoardId].Name, keyPrefix = spaceInfo[x.BoardId].KeyPrefix, template = spaceInfo[x.BoardId].Template, changes = x.Count })
+            .ToList();
+
+        var showEmail = userId == me || teams.Count > 0;
+        return Ok(new
+        {
+            id = person.Id,
+            displayName = person.DisplayName,
+            avatarUrl = person.AvatarUrl,
+            email = showEmail ? person.Email : null,
+            jobTitle = person.JobTitle,
+            department = person.Department,
+            organization = person.Organization,
+            location = person.Location,
+            aboutMe = person.AboutMe,
+            joinedAt = person.CreatedAt,
+            teams,
+            recentWork,
+            frequentSpaces,
+        });
+    }
+
+    [HttpPut("me/profile")]
+    public async Task<ActionResult> SaveMyProfile([FromBody] SaveProfileRequest request, CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        if (u == null) return NotFound();
+        static string? Clean(string? value, int max)
+        {
+            var trimmed = value?.Trim();
+            if (string.IsNullOrEmpty(trimmed)) return null;
+            if (trimmed.Length > max) throw new ArgumentException($"Value is longer than {max} characters");
+            return trimmed;
+        }
+        u.JobTitle = Clean(request.JobTitle, 120);
+        u.Department = Clean(request.Department, 120);
+        u.Organization = Clean(request.Organization, 120);
+        u.Location = Clean(request.Location, 120);
+        u.AboutMe = Clean(request.AboutMe, 2000);
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { jobTitle = u.JobTitle, department = u.Department, organization = u.Organization, location = u.Location, aboutMe = u.AboutMe });
+    }
+
     [HttpGet("kudos")]
     public async Task<ActionResult> GetKudos([FromQuery] string scope = "all", [FromQuery] Guid? userId = null, CancellationToken ct = default)
     {

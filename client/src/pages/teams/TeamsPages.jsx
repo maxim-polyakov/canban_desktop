@@ -14,23 +14,26 @@ import './Teams.css';
 export const TEAMS_HUB_NAV = [
   ['/teams', 'forYou', 'Для вас', (p) => p === '/teams'],
   ['/teams/list', 'teams', 'Команды', (p) => p === '/teams/list' || /^\/teams\/(?!list$|manage$)[^/]+/.test(p)],
-  ['/people', 'person', 'Люди', (p) => p.startsWith('/people')],
+  ['/people', 'person', 'Люди', (p) => p.startsWith('/people') || p.startsWith('/profile')],
   ['/kudos', 'sparkle', 'Похвала', (p) => p.startsWith('/kudos')],
   ['/goals', 'goals', 'Цели', () => false],
   ['/projects', 'projects', 'Проекты', () => false],
 ];
 
-export const isTeamsHubPath = (pathname) => /^\/(teams|people|kudos)(\/|$)/.test(pathname) && pathname !== '/teams/manage';
+export const isTeamsHubPath = (pathname) => /^\/(teams|people|kudos|profile)(\/|$)/.test(pathname) && pathname !== '/teams/manage';
 
 export function TeamsHubSidebar({ pathname, onNavigate }) {
   const { t } = useLocalization();
   return (
     <nav className="app-sidebar-nav" aria-label={t('Команды')}>
       {TEAMS_HUB_NAV.map(([to, icon, label, isActive]) => (
-        <Link key={to} to={to} className={`app-nav-item app-nav-link ${isActive(pathname) ? 'is-active' : ''}`} onClick={onNavigate}>
-          <NavIcon name={icon} />
-          <span className="app-nav-label">{t(label)}</span>
-        </Link>
+        <React.Fragment key={to}>
+          {to === '/goals' && <div className="app-nav-divider" />}
+          <Link to={to} className={`app-nav-item app-nav-link ${isActive(pathname) ? 'is-active' : ''}`} onClick={onNavigate}>
+            <NavIcon name={icon} />
+            <span className="app-nav-label">{t(label)}</span>
+          </Link>
+        </React.Fragment>
       ))}
       <div className="app-nav-divider" />
       <Link to="/for-you" className="app-nav-item app-nav-link" onClick={onNavigate}>
@@ -41,7 +44,7 @@ export function TeamsHubSidebar({ pathname, onNavigate }) {
   );
 }
 
-function Avatar({ url, name, size = 32 }) {
+export function Avatar({ url, name, size = 32 }) {
   return url
     ? <img src={url} alt="" className="teams-avatar" style={{ width: size, height: size }} />
     : <span className="teams-avatar teams-avatar-placeholder" style={{ width: size, height: size, fontSize: size * 0.4 }}>{(name || '?').charAt(0).toUpperCase()}</span>;
@@ -245,7 +248,15 @@ export function TeamsListPage() {
       <div className="teams-team-grid" style={{ marginTop: 16 }}>
         {rows.map((team) => <TeamCard key={team.id} team={team} members={members[team.id]} />)}
       </div>
-      {teams && rows.length === 0 && <p className="settings-empty">{teams.length ? t('Нет команд, соответствующих поиску.') : t('Вы пока не состоите ни в одной команде.')}</p>}
+      {teams && teams.length === 0 && (
+        <div className="teams-empty">
+          <span className="teams-empty-art is-teams" aria-hidden="true"><NavIcon name="teams" size={28} /><i>+</i></span>
+          <h2>{t('Объедините всех в одну команду')}</h2>
+          <p>{t('Не работайте в одиночку. Создайте команду, чтобы объединить задачи в разных разделах и радоваться общему успеху.')}</p>
+          <button type="button" className="app-btn app-btn-primary" onClick={() => setCreateOpen(true)}>{t('Создать команду')}</button>
+        </div>
+      )}
+      {teams && teams.length > 0 && rows.length === 0 && <p className="settings-empty">{t('Нет команд, соответствующих поиску.')}</p>}
       {!teams && <p className="settings-empty">{t('Загрузка...')}</p>}
       <CreateTeamDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreated={(team) => { setCreateOpen(false); window.dispatchEvent(new CustomEvent('canban:spaces-changed')); navigate(`/teams/${team.id}`); }} />
     </div>
@@ -391,9 +402,11 @@ export function TeamPage() {
 export function PeoplePage() {
   const { t } = useLocalization();
   const { user } = useAuth();
-  const { teams } = useMyTeams();
+  const { teams, members } = useMyTeams();
   const [list, setList] = useState(null);
   const [query, setQuery] = useState('');
+  const [teamId, setTeamId] = useState('');
+  const [view, setView] = useState(() => localStorage.getItem('canban:people-view') || 'grid');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [kudosFor, setKudosFor] = useState(null);
   const [notice, setNotice] = useState('');
@@ -401,10 +414,15 @@ export function PeoplePage() {
   useEffect(() => {
     usersApi.getAll().then((data) => setList(Array.isArray(data) ? data : [])).catch(() => setList([]));
   }, []);
+  useEffect(() => { localStorage.setItem('canban:people-view', view); }, [view]);
 
-  const rows = useMemo(() => (list || [])
-    .filter((p) => !query.trim() || p.displayName.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => a.displayName.localeCompare(b.displayName)), [list, query]);
+  const rows = useMemo(() => {
+    const teamMembers = teamId ? new Set((members[teamId] || []).map((m) => m.userId)) : null;
+    return (list || [])
+      .filter((p) => !query.trim() || p.displayName.toLowerCase().includes(query.trim().toLowerCase()))
+      .filter((p) => !teamMembers || teamMembers.has(p.id))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [list, query, teamId, members]);
 
   return (
     <div className="teams-page">
@@ -418,10 +436,42 @@ export function PeoplePage() {
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Поиск людей')} aria-label={t('Поиск людей')} />
         </label>
       </div>
-      {notice && <p className="app-modal-success">{notice}</p>}
-      <div className="teams-people-grid" style={{ marginTop: 16 }}>
-        {rows.map((p) => <PersonCard key={p.id} person={p} onKudos={p.id === user?.id ? null : setKudosFor} />)}
+      <div className="teams-filter-chips">
+        <label className={`teams-filter-chip ${teamId ? 'is-active' : ''}`}>
+          <NavIcon name="teams" size={14} />
+          <select value={teamId} onChange={(e) => setTeamId(e.target.value)} aria-label={t('Команда')}>
+            <option value="">{t('Команда')}</option>
+            {(teams || []).map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+          </select>
+        </label>
       </div>
+      {notice && <p className="app-modal-success">{notice}</p>}
+      <div className="teams-results-bar">
+        <strong>{rows.length} {t('чел.')}</strong>
+        <div className="teams-view-toggle" role="group" aria-label={t('Вид')}>
+          <button type="button" className={view === 'grid' ? 'is-active' : ''} aria-pressed={view === 'grid'} onClick={() => setView('grid')} title={t('Сетка')}><NavIcon name="apps" size={14} /></button>
+          <button type="button" className={view === 'list' ? 'is-active' : ''} aria-pressed={view === 'list'} onClick={() => setView('list')} title={t('Список')}><NavIcon name="list" size={14} /></button>
+        </div>
+      </div>
+      {view === 'grid' ? (
+        <div className="teams-people-tiles">
+          {rows.map((p) => (
+            <Link key={p.id} to={`/people/${p.id}`} className="teams-person-tile">
+              {p.avatarUrl ? <img src={p.avatarUrl} alt="" /> : <span className="teams-person-tile-letter">{(p.displayName || '?').charAt(0).toUpperCase()}</span>}
+              <span className="teams-person-tile-name">{p.displayName}</span>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="teams-people-list">
+          {rows.map((p) => (
+            <div key={p.id} className="teams-people-list-row">
+              <Link to={`/people/${p.id}`} className="settings-table-person"><Avatar url={p.avatarUrl} name={p.displayName} size={32} />{p.displayName}</Link>
+              {p.id !== user?.id && <button type="button" className="app-btn app-btn-subtle teams-small-btn" onClick={() => setKudosFor(p)}><NavIcon name="sparkle" size={12} />{t('Похвалить')}</button>}
+            </div>
+          ))}
+        </div>
+      )}
       {list && rows.length === 0 && <p className="settings-empty">{t('Никого не найдено.')}</p>}
       {!list && <p className="settings-empty">{t('Загрузка...')}</p>}
       <InvitePeopleDialog open={inviteOpen} teams={teams || []} onClose={() => setInviteOpen(false)} />
@@ -430,45 +480,16 @@ export function PeoplePage() {
   );
 }
 
-export function PersonPage() {
-  const { userId } = useParams();
-  const { t, locale } = useLocalization();
-  const { user } = useAuth();
-  const [person, setPerson] = useState(null);
-  const [received, setReceived] = useState([]);
-  const [kudosOpen, setKudosOpen] = useState(false);
-
-  const load = useCallback(() => {
-    usersApi.getPublic(userId).then(setPerson).catch(() => setPerson({ id: userId, displayName: '?' }));
-    kudosApi.get('received', userId).then((list) => setReceived(Array.isArray(list) ? list : [])).catch(() => {});
-  }, [userId]);
-  useEffect(() => { load(); }, [load]);
-
-  if (!person) return <div className="teams-page"><p className="settings-empty">{t('Загрузка...')}</p></div>;
-  return (
-    <div className="teams-page">
-      <div className="teams-profile-header">
-        <Avatar url={person.avatarUrl} name={person.displayName} size={128} />
-        <div>
-          <h1 className="settings-title">{person.displayName}</h1>
-          <div className="settings-actions" style={{ marginTop: 12 }}>
-            <Link to={`/profile/${userId}`} className="app-btn">{t('Профиль и достижения')}</Link>
-            {userId !== user?.id && <button type="button" className="app-btn app-btn-primary" onClick={() => setKudosOpen(true)}><NavIcon name="sparkle" size={14} />{t('Похвалить')}</button>}
-          </div>
-        </div>
-      </div>
-      <section className="teams-section">
-        <div className="teams-section-header"><h2>{t('Полученная похвала')} ({received.length})</h2></div>
-        <KudosList items={received} locale={locale} />
-      </section>
-      <SendKudosDialog open={kudosOpen} defaultUserId={userId} currentUserId={user?.id} onClose={() => setKudosOpen(false)} onSent={() => { setKudosOpen(false); load(); }} />
-    </div>
-  );
-}
-
-function KudosList({ items, locale }) {
+export function KudosList({ items, locale }) {
   const { t } = useLocalization();
-  if (items.length === 0) return <p className="settings-row-desc">{t('Пока нет похвалы.')}</p>;
+  if (items.length === 0) {
+    return (
+      <div className="teams-empty">
+        <span className="teams-empty-art is-search" aria-hidden="true"><NavIcon name="search" size={40} /><b>?</b><b>?</b></span>
+        <p>{t('Похвал пока нет.')}</p>
+      </div>
+    );
+  }
   return (
     <div className="kudos-list">
       {items.map((k) => {

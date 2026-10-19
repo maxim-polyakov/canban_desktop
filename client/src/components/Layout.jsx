@@ -9,6 +9,14 @@ import AppSidebar, { CREATE_SPACE_EVENT, SPACES_CHANGED_EVENT } from './AppSideb
 import CreateSpaceDialog from './CreateSpaceDialog.jsx';
 import { isTeamsHubPath, TeamsHubSidebar } from '../pages/teams/TeamsPages.jsx';
 import { HomeHubSidebar, isHomeHubPath } from '../pages/home/HomePages.jsx';
+
+const APP_SWITCHER = [
+  ['/for-you', 'board', 'Канбан', (p) => !isTeamsHubPath(p) && !isHomeHubPath(p) && !p.startsWith('/assets')],
+  ['/teams', 'teams', 'Команды', (p) => isTeamsHubPath(p)],
+  ['/goals', 'goals', 'Цели', (p) => p.startsWith('/goals')],
+  ['/projects', 'projects', 'Проекты', (p) => p.startsWith('/projects')],
+  ['/assets', 'assets', 'Активы', (p) => p.startsWith('/assets')],
+];
 import NotificationsPanel from './NotificationsPanel.jsx';
 import HelpPanel from './HelpPanel.jsx';
 import CreateIssueDialog from './CreateIssueDialog.jsx';
@@ -227,6 +235,7 @@ export default function Layout() {
   const searchRef = useRef(null);
   const settingsRef = useRef(null);
   const profileRef = useRef(null);
+  const appsRef = useRef(null);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.localStorage.getItem('canban.nav.collapsed') === '1');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -338,6 +347,7 @@ export default function Layout() {
   const closeMenu = useCallback(() => setMenu(null), []);
   useOutsideClose(settingsRef, menu === 'settings', closeMenu);
   useOutsideClose(profileRef, menu === 'profile', closeMenu);
+  useOutsideClose(appsRef, menu === 'apps', closeMenu);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -387,11 +397,26 @@ export default function Layout() {
           <button type="button" className="app-icon-btn" aria-label={t('Боковая панель')} title={t('Боковая панель')} onClick={toggleSidebar}>
             <NavIcon name="sidebar" />
           </button>
-          <Link to="/" className="layout-logo" aria-label="Канбан">
+          <div className="layout-menu-anchor" ref={appsRef}>
+            <button type="button" className={`app-icon-btn ${menu === 'apps' ? 'is-active' : ''}`} aria-label={t('Приложения')} title={t('Приложения')} aria-expanded={menu === 'apps'} onClick={() => toggleMenu('apps')}>
+              <NavIcon name="apps" />
+            </button>
+            {menu === 'apps' && (
+              <div className="app-menu layout-apps-menu" role="menu">
+                {APP_SWITCHER.map(([to, icon, label, isActive]) => (
+                  <Link key={to} to={to} role="menuitem" className={`app-menu-item ${isActive(location.pathname) ? 'is-active' : ''}`} onClick={closeMenu}>
+                    <span className="layout-apps-icon"><NavIcon name={icon} size={14} /></span>
+                    {t(label)}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+          <Link to={isTeamsHubPath(location.pathname) ? '/teams' : '/'} className="layout-logo" aria-label="Канбан">
             <span className="layout-logo-mark" aria-hidden="true">
               <svg viewBox="0 0 16 16" width="14" height="14"><path d="M3 3h3v10H3zM7.5 3h3v6h-3zM12 3h1.5v8H12z" fill="#fff" /></svg>
             </span>
-            <span className="layout-logo-text">Канбан</span>
+            <span className="layout-logo-text">{isTeamsHubPath(location.pathname) ? t('Команды') : 'Канбан'}</span>
           </Link>
         </div>
 

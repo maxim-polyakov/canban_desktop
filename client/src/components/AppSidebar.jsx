@@ -441,6 +441,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
       {shown('filters') && <FiltersNav onNavigate={navigate} />}
       {shown('dashboards') && <DashboardsNav onNavigate={navigate} />}
       {shown('assets') && item('/assets', 'assets', 'Активы', { badge: tryBadge })}
+      {(shown('teams') || shown('goals') || shown('projects')) && <div className="app-nav-divider" />}
       {shown('teams') && item('/teams', 'teams', 'Команды', { external: true })}
       {shown('goals') && item('/goals', 'goals', 'Цели', { external: true })}
       {shown('projects') && item('/projects', 'projects', 'Проекты', { external: true })}

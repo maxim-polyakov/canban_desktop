@@ -51,6 +51,8 @@ export const spaces = {
 
 export const people = {
   workWith: () => apiJson('/api/me/people'),
+  getProfile: (userId) => apiJson(`/api/people/${userId}/profile`),
+  saveMyProfile: (data) => apiJson('/api/me/profile', json('PUT', data)),
 };
 
 export const kudos = {

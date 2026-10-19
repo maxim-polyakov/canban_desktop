@@ -50,8 +50,19 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [labels, setLabels] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [sprintId, setSprintId] = useState('');
+  const [component, setComponent] = useState('');
+  const [fixVersion, setFixVersion] = useState('');
+  const [storyPoints, setStoryPoints] = useState('');
   const [notificationRecipientIds, setNotificationRecipientIds] = useState([]);
+  const [watcherSaving, setWatcherSaving] = useState(false);
+  const [watcherError, setWatcherError] = useState('');
+  const [movingColumn, setMovingColumn] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Backend contract fields are optional during rollout: only show/send them when present on the quest.
+  const supportsComponent = !!quest && Object.prototype.hasOwnProperty.call(quest, 'component');
+  const supportsFixVersion = !!quest && Object.prototype.hasOwnProperty.call(quest, 'fixVersion');
+  const supportsStoryPoints = !!quest && Object.prototype.hasOwnProperty.call(quest, 'storyPoints');
 
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');

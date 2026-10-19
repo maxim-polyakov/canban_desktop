@@ -49,7 +49,7 @@ public class SmtpEmailSender : IEmailSender
             message.From.Add(new MailboxAddress(_fromName, _fromAddress));
             message.To.Add(new MailboxAddress(toName, toEmail.Trim()));
             message.Subject = subject;
-            message.Body = new BodyBuilder { HtmlBody = bodyHtml }.ToMessageBody();
+            message.Body = new BodyBuilder { HtmlBody = bodyHtml, TextBody = HtmlToText(bodyHtml) }.ToMessageBody();
 
             using var client = new SmtpClient();
             var secureSocketOptions = _useSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.None;
@@ -66,5 +66,16 @@ public class SmtpEmailSender : IEmailSender
             _logger.LogError(ex, "Ошибка отправки письма на {To}: {Subject}", toEmail, subject);
             return false;
         }
+    }
+
+    // HTML-only messages are a common spam signal, so every email carries a text/plain alternative.
+    public static string HtmlToText(string html)
+    {
+        var text = System.Text.RegularExpressions.Regex.Replace(html, @"<(head|style|script)[^>]*>.*?</\1>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"<br\s*/?>|</(p|h\d|div|li|tr)>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        text = System.Text.RegularExpressions.Regex.Replace(text, "<[^>]+>", "");
+        text = System.Net.WebUtility.HtmlDecode(text);
+        var lines = text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0);
+        return string.Join("\n", lines);
     }
 }

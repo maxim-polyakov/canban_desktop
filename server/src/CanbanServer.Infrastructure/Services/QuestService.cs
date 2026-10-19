@@ -182,6 +182,21 @@ public class QuestService : IQuestService
         if (assigneesChanged) changes.Add("изменены исполнители");
         if (request.DueDate != null && request.DueDate != q.DueDate) changes.Add("изменён срок");
         if (request.XpReward != null && request.XpReward != q.XpReward) changes.Add("изменена награда XP");
+        if (request.IssueType != null && request.IssueType != q.IssueType) changes.Add("изменён тип задачи");
+        if (request.Priority != null && request.Priority != q.Priority) changes.Add("изменён приоритет");
+        if (request.Labels != null && NormalizeLabels(request.Labels) != (q.Labels ?? string.Empty)) changes.Add("изменены метки");
+        if (request.StoryPointsSet && NormalizeStoryPoints(request.StoryPoints) != q.StoryPoints) changes.Add("изменена оценка");
+        if ((request.OriginalEstimateMinutesSet && NormalizeEstimate(request.OriginalEstimateMinutes) != q.OriginalEstimateMinutes)
+            || (request.RemainingEstimateMinutesSet && NormalizeEstimate(request.RemainingEstimateMinutes) != q.RemainingEstimateMinutes))
+            changes.Add("изменена оценка времени");
+        if (request.ParentQuestIdSet && request.ParentQuestId != q.ParentQuestId) changes.Add("изменена родительская задача");
+        if (request.SprintIdSet && request.SprintId != q.SprintId) changes.Add("изменён спринт");
+        if ((request.Component != null && NormalizeOptionalText(request.Component) != q.Component)
+            || (request.ComponentIdsSet && !SameIds(request.ComponentIds, q.QuestComponents.Select(x => x.ComponentId))))
+            changes.Add("изменены компоненты");
+        if ((request.FixVersion != null && NormalizeOptionalText(request.FixVersion) != q.FixVersion)
+            || (request.ReleaseIdsSet && !SameIds(request.ReleaseIds, q.QuestReleases.Select(x => x.ReleaseId))))
+            changes.Add("изменены релизы");
         if (request.Title != null) { auditChanges.Add(("title", q.Title, request.Title)); q.Title = request.Title; }
         if (request.Description != null) { auditChanges.Add(("description", q.Description, request.Description)); q.Description = request.Description; }
         if (requestedAssigneeIds != null && assigneesChanged)
@@ -588,6 +603,9 @@ public class QuestService : IQuestService
     }
 
     private static QuestDto Map(Quest q) => BoardService.MapQuest(q);
+
+    private static bool SameIds(IEnumerable<Guid>? requested, IEnumerable<Guid> current) =>
+        (requested ?? Enumerable.Empty<Guid>()).ToHashSet().SetEquals(current);
 
     private static string NormalizeLabels(string? labels)
     {

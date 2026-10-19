@@ -157,4 +157,47 @@ export function PriorityIcon({ priority = 2, size = 16, className = '', title })
   );
 }
 
+// Watchers: Jira-like "eye" glyph used on cards/rows to show how many people get notified.
+function EyeGlyph({ size }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path
+        d="M12 5.5c-5.1 0-9.1 4.3-10.2 6.5 1.1 2.2 5.1 6.5 10.2 6.5s9.1-4.3 10.2-6.5c-1.1-2.2-5.1-6.5-10.2-6.5z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="2.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function WatcherIcon({ size = 14, className = '' }) {
+  return (
+    <span className={`watcher-icon ${className}`.trim()} style={{ width: size, height: size }}>
+      <EyeGlyph size={size} />
+    </span>
+  );
+}
+
+function watcherCountLabel(count) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${count} наблюдатель`;
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return `${count} наблюдателя`;
+  return `${count} наблюдателей`;
+}
+
+/** Small eye + count badge; renders nothing when there are no watchers. */
+export function WatcherBadge({ count = 0, size = 13, title, className = '' }) {
+  if (!count) return null;
+  return (
+    <span className={`watcher-badge ${className}`.trim()} title={title ?? watcherCountLabel(count)}>
+      <WatcherIcon size={size} />
+      <span className="watcher-badge-count">{count}</span>
+    </span>
+  );
+}
+
 export default IssueTypeIcon;

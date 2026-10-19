@@ -145,7 +145,10 @@ public class BoardService : IBoardService
         q.Priority,
         q.Labels ?? string.Empty,
         q.SprintId,
-        q.Sprint?.Name);
+        q.Sprint?.Name,
+        q.Component,
+        q.FixVersion,
+        q.StoryPoints);
 
     private static string NormalizeKey(string? key)
     {

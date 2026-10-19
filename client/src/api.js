@@ -135,6 +135,8 @@ export const quests = {
       assigneeId: filter.assigneeId,
       text: filter.text,
       label: filter.label,
+      component: filter.component,
+      fixVersion: filter.fixVersion,
     })}`),
   filter: (boardId, filter = {}) =>
     apiJson(`/api/quests/board/${boardId}/filter${buildQuery({
@@ -145,6 +147,8 @@ export const quests = {
       assigneeId: filter.assigneeId,
       text: filter.text,
       label: filter.label,
+      component: filter.component,
+      fixVersion: filter.fixVersion,
       columnId: filter.columnId,
       backlogOnly: filter.backlogOnly,
     })}`),

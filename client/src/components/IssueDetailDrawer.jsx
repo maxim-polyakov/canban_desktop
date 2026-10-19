@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { quests, sprints as sprintsApi } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { IssueTypeIcon, PriorityIcon } from './IssueIcons.jsx';
+import { IssueTypeIcon, PriorityIcon, WatcherBadge } from './IssueIcons.jsx';
 import AssigneeAvatar from './AssigneeAvatar.jsx';
 import AssigneeSelect from './AssigneeSelect.jsx';
 import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
@@ -34,7 +34,7 @@ function formatFileSize(sizeBytes) {
  * Jira-like issue detail: desktop right-hand drawer, mobile fullscreen sheet.
  * Self-contained data loading/saving so it can be reused from the board and the backlog.
  */
-export default function IssueDetailDrawer({ questId, members = [], onClose, onChanged, canDelete = true }) {
+export default function IssueDetailDrawer({ questId, members = [], columns = [], onClose, onChanged, canDelete = true }) {
   const { user } = useAuth();
   const { locale, t } = useLocalization();
   const [quest, setQuest] = useState(null);

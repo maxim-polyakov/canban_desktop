@@ -11,3 +11,26 @@
 .priority-icon svg {
   display: block;
 }
+
+.watcher-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+  color: var(--text-muted);
+}
+
+.watcher-icon svg {
+  display: block;
+}
+
+.watcher-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}

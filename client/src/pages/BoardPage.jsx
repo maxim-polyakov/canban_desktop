@@ -3,9 +3,10 @@ import { useParams, useNavigate } from '../i18n/navigation.jsx';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { boards, columns, quests, teams } from '../api.js';
+import { boards, columns, quests, sprints as sprintsApi, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
+import { buildQuestFilter } from '../utils/jqlFilter.js';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -36,6 +37,7 @@ export default function BoardPage() {
   const { t } = useLocalization();
   const [board, setBoard] = useState(null);
   const [members, setMembers] = useState([]);
+  const [boardSprints, setBoardSprints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editBoardOpen, setEditBoardOpen] = useState(false);
@@ -44,7 +46,7 @@ export default function BoardPage() {
   const [archiving, setArchiving] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [searchText, setSearchText] = useState('');
+  const [queryText, setQueryText] = useState('');
   const [filterAssigneeId, setFilterAssigneeId] = useState('');
   const [filterIssueType, setFilterIssueType] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
@@ -113,6 +115,13 @@ export default function BoardPage() {
     if (!board?.teamId) return;
     loadMembers(board.teamId);
   }, [board?.teamId, loadMembers]);
+
+  useEffect(() => {
+    if (!boardId) { setBoardSprints([]); return; }
+    sprintsApi.getByBoard(boardId)
+      .then((list) => setBoardSprints(Array.isArray(list) ? list : []))
+      .catch(() => setBoardSprints([]));
+  }, [boardId]);
 
   const handleMoveQuest = async (questIdMoved, targetColumnId, newOrder) => {
     const col = board?.columns?.find((c) => c.id === targetColumnId);
@@ -268,19 +277,14 @@ export default function BoardPage() {
     .filter((column) => column.kind === DONE_COLUMN_KIND)
     .reduce((total, column) => total + ((column.quests ?? column.Quests ?? []).length), 0);
 
-  const activeFilterCount = [searchText, filterAssigneeId, filterIssueType, filterPriority].filter(Boolean).length;
+  const activeFilterCount = [queryText, filterAssigneeId, filterIssueType, filterPriority].filter(Boolean).length;
 
-  const questMatchesFilter = (quest) => {
-    if (searchText) {
-      const needle = searchText.trim().toLowerCase();
-      const haystack = `${quest.issueKey ?? ''} ${quest.title ?? ''}`.toLowerCase();
-      if (!haystack.includes(needle)) return false;
-    }
-    if (filterAssigneeId && !(quest.assigneeIds ?? []).includes(filterAssigneeId)) return false;
-    if (filterIssueType !== '' && String(quest.issueType) !== filterIssueType) return false;
-    if (filterPriority !== '' && String(quest.priority) !== filterPriority) return false;
-    return true;
-  };
+  const questMatchesFilter = buildQuestFilter(queryText, {
+    currentUserId: user?.id,
+    members,
+    sprints: boardSprints,
+    fallback: { assigneeId: filterAssigneeId, issueType: filterIssueType, priority: filterPriority },
+  });
 
   return (
     <div className="page board-page">
@@ -320,13 +324,32 @@ export default function BoardPage() {
       )}
 
       <div className="board-toolbar">
-        <input
-          type="text"
-          className="board-toolbar-search"
-          placeholder="Поиск по названию или ключу"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
+        <div className="board-toolbar-search-wrap">
+          <input
+            type="text"
+            className="board-toolbar-search"
+            placeholder='Поиск: assignee:me priority:high type:bug label:… sprint:active текст'
+            value={queryText}
+            onChange={(e) => setQueryText(e.target.value)}
+          />
+          <button
+            type="button"
+            className="board-toolbar-help-btn"
+            aria-label="Справка по синтаксису поиска"
+            title={[
+              'Поддерживаемый синтаксис поиска (можно сочетать с обычным текстом):',
+              'assignee:me — мои задачи',
+              'assignee:имя или email — задачи участника',
+              'priority:highest|high|medium|low|lowest — приоритет',
+              'type:epic|story|task|bug|subtask — тип задачи',
+              'label:значение — задачи с меткой',
+              'sprint:active — задачи активного спринта',
+              'Остальной текст ищется по ключу и названию задачи.',
+            ].join('\n')}
+          >
+            ?
+          </button>
+        </div>
         <button
           type="button"
           className={`board-toolbar-filter-btn ${filtersOpen ? 'is-open' : ''}`}
@@ -360,7 +383,7 @@ export default function BoardPage() {
             <button
               type="button"
               className="board-toolbar-filters-clear"
-              onClick={() => { setSearchText(''); setFilterAssigneeId(''); setFilterIssueType(''); setFilterPriority(''); }}
+              onClick={() => { setQueryText(''); setFilterAssigneeId(''); setFilterIssueType(''); setFilterPriority(''); }}
             >
               Сбросить
             </button>
@@ -390,6 +413,7 @@ export default function BoardPage() {
         <IssueDetailDrawer
           questId={questId}
           members={members}
+          columns={boardColumns}
           onClose={closeIssue}
           onChanged={loadBoard}
         />

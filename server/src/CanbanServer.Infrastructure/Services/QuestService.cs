@@ -107,7 +107,10 @@ public class QuestService : IQuestService
             IssueType = issueType,
             Priority = request.Priority ?? IssuePriority.Medium,
             Labels = NormalizeLabels(request.Labels),
-            SprintId = request.SprintId
+            SprintId = request.SprintId,
+            Component = NormalizeOptionalText(request.Component),
+            FixVersion = NormalizeOptionalText(request.FixVersion),
+            StoryPoints = NormalizeStoryPoints(request.StoryPoints)
         };
         quest.Assignees = assigneeIds.Select((id, index) => new QuestAssignee
         {
@@ -172,6 +175,9 @@ public class QuestService : IQuestService
         }
         if (request.Priority != null) q.Priority = request.Priority.Value;
         if (request.Labels != null) q.Labels = NormalizeLabels(request.Labels);
+        if (request.Component != null) q.Component = NormalizeOptionalText(request.Component);
+        if (request.FixVersion != null) q.FixVersion = NormalizeOptionalText(request.FixVersion);
+        if (request.StoryPointsSet) q.StoryPoints = NormalizeStoryPoints(request.StoryPoints);
         if (request.ParentEpicIdSet) q.ParentEpicId = request.ParentEpicId;
         if (request.SprintIdSet)
         {
@@ -384,6 +390,16 @@ public class QuestService : IQuestService
             var label = filter.Label.Trim().ToLowerInvariant();
             query = query.Where(q => q.Labels.ToLower().Contains(label));
         }
+        if (!string.IsNullOrWhiteSpace(filter.Component))
+        {
+            var component = filter.Component.Trim().ToLowerInvariant();
+            query = query.Where(q => q.Component != null && q.Component.ToLower().Contains(component));
+        }
+        if (!string.IsNullOrWhiteSpace(filter.FixVersion))
+        {
+            var version = filter.FixVersion.Trim().ToLowerInvariant();
+            query = query.Where(q => q.FixVersion != null && q.FixVersion.ToLower().Contains(version));
+        }
         if (!string.IsNullOrWhiteSpace(filter.Text))
         {
             var text = filter.Text.Trim().ToLowerInvariant();
@@ -503,6 +519,21 @@ public class QuestService : IQuestService
             .Select(x => x.Trim())
             .Where(x => x.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var trimmed = value.Trim();
+        return trimmed.Length > 200 ? trimmed[..200] : trimmed;
+    }
+
+    private static int? NormalizeStoryPoints(int? storyPoints)
+    {
+        if (!storyPoints.HasValue) return null;
+        if (storyPoints is < 0 or > 100)
+            throw new ArgumentException("Story points must be between 0 and 100");
+        return storyPoints;
     }
 
     private static List<Guid> NormalizeAssigneeIds(IEnumerable<Guid>? assigneeIds, Guid? legacyAssigneeId)

@@ -32,7 +32,10 @@ public record QuestDto(
     IssuePriority Priority,
     string Labels,
     Guid? SprintId,
-    string? SprintName
+    string? SprintName,
+    string? Component,
+    string? FixVersion,
+    int? StoryPoints
 );
 
 public record CreateQuestRequest(
@@ -51,7 +54,10 @@ public record CreateQuestRequest(
     IssueType? IssueType = null,
     IssuePriority? Priority = null,
     string? Labels = null,
-    Guid? SprintId = null
+    Guid? SprintId = null,
+    string? Component = null,
+    string? FixVersion = null,
+    int? StoryPoints = null
 );
 
 /// <summary>AssigneeIds имеет приоритет над legacy AssigneeId. Set-флаги позволяют явно очистить список.</summary>
@@ -74,7 +80,11 @@ public record UpdateQuestRequest(
     bool SprintIdSet = false,
     Guid? ParentEpicId = null,
     bool ParentEpicIdSet = false,
-    bool? IsEpic = null
+    bool? IsEpic = null,
+    string? Component = null,
+    string? FixVersion = null,
+    int? StoryPoints = null,
+    bool StoryPointsSet = false
 );
 
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>
@@ -93,6 +103,8 @@ public record QuestFilterRequest(
     Guid? AssigneeId = null,
     string? Text = null,
     string? Label = null,
+    string? Component = null,
+    string? FixVersion = null,
     Guid? ColumnId = null,
     bool? BacklogOnly = null
 );

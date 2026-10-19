@@ -24,6 +24,9 @@ public class SprintAndIssueMetaTests
             IssueType = IssueType.Story,
             Priority = IssuePriority.High,
             Labels = "frontend,ux",
+            Component = "Web client",
+            FixVersion = "2.0",
+            StoryPoints = 5,
             XpReward = 40,
             Category = QuestCategory.Frontend
         };
@@ -31,6 +34,9 @@ public class SprintAndIssueMetaTests
         Assert.Equal("KAN-12", quest.IssueKey);
         Assert.Equal(IssueType.Story, quest.IssueType);
         Assert.Equal(IssuePriority.High, quest.Priority);
+        Assert.Equal("Web client", quest.Component);
+        Assert.Equal("2.0", quest.FixVersion);
+        Assert.Equal(5, quest.StoryPoints);
         Assert.Equal(40, quest.XpReward);
         Assert.Equal(QuestCategory.Frontend, quest.Category);
     }

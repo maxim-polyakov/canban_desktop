@@ -8,6 +8,10 @@ public static class DatabaseSchemaInitializer
         CanbanDbContext db,
         CancellationToken ct = default)
     {
+        // Add model columns before any EF query. EF selects every mapped Quest column,
+        // so querying existing rows first would crash during a rolling schema upgrade.
+        await EnsureJiraLikeSchemaAsync(db, ct);
+
         await db.Database.ExecuteSqlRawAsync(
             """
             CREATE TABLE IF NOT EXISTS "QuestAssignees" (
@@ -168,7 +172,6 @@ public static class DatabaseSchemaInitializer
             """,
             ct);
 
-        await EnsureJiraLikeSchemaAsync(db, ct);
     }
 
     public static async Task EnsureJiraLikeSchemaAsync(
@@ -203,6 +206,9 @@ public static class DatabaseSchemaInitializer
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueType" integer NOT NULL DEFAULT 2;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "Priority" integer NOT NULL DEFAULT 2;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "Labels" character varying(1000) NOT NULL DEFAULT '';
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "Component" character varying(200) NULL;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "FixVersion" character varying(200) NULL;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "StoryPoints" integer NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "SprintId" uuid NULL;
 
             DO $$

@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import AssigneeAvatar from './AssigneeAvatar.jsx';
-import { IssueTypeIcon, PriorityIcon } from './IssueIcons.jsx';
+import { IssueTypeIcon, PriorityIcon, WatcherBadge } from './IssueIcons.jsx';
 import './QuestCard.css';
 
 function labelList(labels) {
@@ -66,6 +66,7 @@ export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hi
         <span className="quest-card-key">{quest.issueKey || '—'}</span>
         <span className="quest-card-bottom-spacer" />
         {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}
+        <WatcherBadge count={(quest.notificationRecipientIds ?? []).length} />
         <PriorityIcon priority={quest.priority} size={14} />
         <span
           className="quest-card-assignees"

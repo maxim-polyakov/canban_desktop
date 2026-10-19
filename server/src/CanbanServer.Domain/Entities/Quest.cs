@@ -29,6 +29,9 @@ public class Quest
     public IssuePriority Priority { get; set; } = IssuePriority.Medium;
     /// <summary>Comma-separated labels for filtering.</summary>
     public string Labels { get; set; } = string.Empty;
+    public string? Component { get; set; }
+    public string? FixVersion { get; set; }
+    public int? StoryPoints { get; set; }
     public Guid? SprintId { get; set; }
 
     public Column Column { get; set; } = null!;

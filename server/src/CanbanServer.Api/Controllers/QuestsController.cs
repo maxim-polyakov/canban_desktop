@@ -3,6 +3,7 @@ using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 using CanbanServer.Domain.Entities;
+using System.Text.RegularExpressions;
 
 namespace CanbanServer.Api.Controllers;
 
@@ -156,6 +157,9 @@ public class QuestsController : ControllerBase
         [FromQuery] Guid? assigneeId,
         [FromQuery] string? text,
         [FromQuery] string? label,
+        [FromQuery] string? component,
+        [FromQuery] string? fixVersion,
+        [FromQuery] string? jql,
         CancellationToken ct)
     {
         var filter = new QuestFilterRequest(
@@ -166,7 +170,10 @@ public class QuestsController : ControllerBase
             AssigneeId: assigneeId,
             Text: text,
             Label: label,
+            Component: component,
+            FixVersion: fixVersion,
             BacklogOnly: true);
+        filter = ApplyJql(filter, jql, User.GetUserId());
         var list = await _questService.GetBacklogByBoardIdAsync(boardId, filter, ct);
         return Ok(list);
     }
@@ -181,8 +188,11 @@ public class QuestsController : ControllerBase
         [FromQuery] Guid? assigneeId,
         [FromQuery] string? text,
         [FromQuery] string? label,
+        [FromQuery] string? component,
+        [FromQuery] string? fixVersion,
         [FromQuery] Guid? columnId,
         [FromQuery] bool? backlogOnly,
+        [FromQuery] string? jql,
         CancellationToken ct)
     {
         var filter = new QuestFilterRequest(
@@ -193,10 +203,62 @@ public class QuestsController : ControllerBase
             AssigneeId: assigneeId,
             Text: text,
             Label: label,
+            Component: component,
+            FixVersion: fixVersion,
             ColumnId: columnId,
             BacklogOnly: backlogOnly);
+        filter = ApplyJql(filter, jql, User.GetUserId());
         var list = await _questService.FilterByBoardIdAsync(boardId, filter, ct);
         return Ok(list);
+    }
+
+    private static QuestFilterRequest ApplyJql(QuestFilterRequest filter, string? jql, Guid? currentUserId)
+    {
+        if (string.IsNullOrWhiteSpace(jql)) return filter;
+
+        var plainText = new List<string>();
+        foreach (Match match in Regex.Matches(jql, @"(?<field>[a-zA-Z]+):(?:""(?<quoted>[^""]+)""|(?<value>\S+))|(?<plain>\S+)"))
+        {
+            if (match.Groups["plain"].Success)
+            {
+                plainText.Add(match.Groups["plain"].Value);
+                continue;
+            }
+
+            var field = match.Groups["field"].Value.ToLowerInvariant();
+            var value = (match.Groups["quoted"].Success
+                ? match.Groups["quoted"].Value
+                : match.Groups["value"].Value).Trim();
+            switch (field)
+            {
+                case "assignee" when value.Equals("me", StringComparison.OrdinalIgnoreCase):
+                    filter = filter with { AssigneeId = currentUserId };
+                    break;
+                case "priority" when Enum.TryParse<IssuePriority>(value, true, out var priority):
+                    filter = filter with { Priority = priority };
+                    break;
+                case "type" when Enum.TryParse<IssueType>(value, true, out var issueType):
+                    filter = filter with { IssueType = issueType };
+                    break;
+                case "label":
+                    filter = filter with { Label = value };
+                    break;
+                case "component":
+                    filter = filter with { Component = value };
+                    break;
+                case "version":
+                case "fixversion":
+                    filter = filter with { FixVersion = value };
+                    break;
+                default:
+                    plainText.Add(match.Value);
+                    break;
+            }
+        }
+
+        if (plainText.Count > 0)
+            filter = filter with { Text = string.Join(' ', plainText) };
+        return filter;
     }
 
     [HttpPost]

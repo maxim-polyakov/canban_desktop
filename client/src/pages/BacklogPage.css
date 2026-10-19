@@ -135,12 +135,20 @@
   padding: 0;
 }
 
+.backlog-dnd-hint {
+  margin: 0 0 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
 .backlog-issue-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 0.85rem;
   border-bottom: 1px solid var(--border);
+  cursor: grab;
+  touch-action: none; /* нужно для перетаскивания на мобильных */
 }
 
 .backlog-issue-row:last-child {
@@ -149,6 +157,30 @@
 
 .backlog-issue-row:hover {
   background: var(--bg);
+}
+
+.backlog-issue-row:active {
+  cursor: grabbing;
+}
+
+.backlog-issue-row-dragging {
+  opacity: 0.4;
+}
+
+.backlog-issue-row-overlay {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  cursor: grabbing;
+  transform: rotate(1deg);
+}
+
+.backlog-issue-list-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
 }
 
 .backlog-issue-key {
@@ -306,5 +338,21 @@
   .backlog-create-sprint-btn {
     font-size: 0.78rem;
     padding: 0.35rem 0.6rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .backlog-dnd-hint {
+    font-size: 0.7rem;
+  }
+
+  .backlog-issue-move-btn,
+  .backlog-issue-move-select {
+    flex: 1 1 100%;
+    order: 2;
+  }
+
+  .backlog-issue-assignees {
+    order: 1;
   }
 }

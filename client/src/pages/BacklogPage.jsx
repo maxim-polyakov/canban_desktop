@@ -1,17 +1,32 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { useParams, useNavigate } from '../i18n/navigation.jsx';
 import { boards, quests, sprints as sprintsApi, teams } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { IssueTypeIcon, PriorityIcon } from '../components/IssueIcons.jsx';
+import { WatcherBadge } from '../components/IssueIcons.jsx';
 import AssigneeAvatar from '../components/AssigneeAvatar.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import './BacklogPage.css';
 
 const BACKLOG_COLUMN_KIND = 0;
+const BACKLOG_DRAG_PREFIX = 'backlog-quest-';
+const SPRINT_DROP_PREFIX = 'sprint-drop-';
+const BACKLOG_DROP_ID = 'backlog-drop';
 
-function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklog }) {
+function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklog, dragDisabled }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: BACKLOG_DRAG_PREFIX + quest.id,
+    data: { type: 'backlog-quest', questId: quest.id },
+    disabled: dragDisabled,
+  });
   return (
-    <li className="backlog-issue-row">
+    <li
+      ref={setNodeRef}
+      className={`backlog-issue-row ${isDragging ? 'backlog-issue-row-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
       <IssueTypeIcon issueType={quest.issueType} size={16} />
       <button type="button" className="backlog-issue-key" onClick={() => onOpen(quest.id)}>{quest.issueKey}</button>
       <button type="button" className="backlog-issue-title" onClick={() => onOpen(quest.id)} title={quest.title}>
@@ -22,6 +37,7 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
         <span key={label} className="backlog-issue-label">{label.trim()}</span>
       ))}
       {quest.xpReward > 0 && <span className="backlog-issue-xp">+{quest.xpReward} XP</span>}
+      <WatcherBadge count={(quest.notificationRecipientIds ?? []).length} />
       <PriorityIcon priority={quest.priority} size={14} />
       <span className="backlog-issue-assignees">
         {(quest.assignees ?? []).slice(0, 3).map((a) => (
@@ -29,12 +45,20 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
         ))}
       </span>
       {onMoveToBacklog ? (
-        <button type="button" className="backlog-issue-move-btn" onClick={() => onMoveToBacklog(quest.id)}>В бэклог</button>
+        <button
+          type="button"
+          className="backlog-issue-move-btn"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => onMoveToBacklog(quest.id)}
+        >
+          В бэклог
+        </button>
       ) : (
         sprintOptions && sprintOptions.length > 0 && (
           <select
             className="backlog-issue-move-select"
             defaultValue=""
+            onPointerDown={(e) => e.stopPropagation()}
             onChange={(e) => { if (e.target.value) { onMoveToSprint(quest.id, e.target.value); e.target.value = ''; } }}
           >
             <option value="" disabled>В спринт…</option>
@@ -43,6 +67,32 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
         )
       )}
     </li>
+  );
+}
+
+/** Droppable wrapper around a sprint's issue list; accepts dragged backlog issues. */
+function SprintDropList({ sprintId, children }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: SPRINT_DROP_PREFIX + sprintId,
+    data: { type: 'sprint', sprintId },
+  });
+  return (
+    <ul ref={setNodeRef} className={`backlog-issue-list ${isOver ? 'backlog-issue-list-over' : ''}`}>
+      {children}
+    </ul>
+  );
+}
+
+/** Droppable wrapper around the backlog's issue list; accepts dragged sprint issues. */
+function BacklogDropList({ children }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: BACKLOG_DROP_ID,
+    data: { type: 'backlog' },
+  });
+  return (
+    <ul ref={setNodeRef} className={`backlog-issue-list ${isOver ? 'backlog-issue-list-over' : ''}`}>
+      {children}
+    </ul>
   );
 }
 
@@ -63,6 +113,12 @@ export default function BacklogPage() {
   const [creatingSprint, setCreatingSprint] = useState(false);
   const [newIssueTitle, setNewIssueTitle] = useState('');
   const [creatingIssue, setCreatingIssue] = useState(false);
+  const [activeDragId, setActiveDragId] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  );
 
   const loadAll = useCallback(async () => {
     if (!boardId) return;
@@ -194,6 +250,28 @@ export default function BacklogPage() {
 
   const futureAndActiveSprints = sprintList;
 
+  const allVisibleQuests = [...backlogQuests, ...Object.values(sprintQuests).flat()];
+  const draggedQuest = activeDragId
+    ? allVisibleQuests.find((q) => BACKLOG_DRAG_PREFIX + q.id === activeDragId)
+    : null;
+
+  const handleDragStart = (event) => setActiveDragId(String(event.active.id));
+
+  const handleDragEnd = (event) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const dragData = active.data?.current;
+    if (!dragData || dragData.type !== 'backlog-quest') return;
+    const overData = over.data?.current;
+    if (!overData) return;
+    if (overData.type === 'sprint') {
+      moveQuestToSprint(dragData.questId, overData.sprintId);
+    } else if (overData.type === 'backlog') {
+      moveQuestToBacklog(dragData.questId);
+    }
+  };
+
   if (loading) return <div className="page">Загрузка бэклога...</div>;
   if (error) return <div className="page">Ошибка: {error}</div>;
 
@@ -228,64 +306,80 @@ export default function BacklogPage() {
         </form>
       )}
 
-      {futureAndActiveSprints.map((sprint) => (
-        <section key={sprint.id} className="backlog-sprint-panel">
-          <header className="backlog-sprint-header">
-            <span className="backlog-sprint-name">{sprint.name}</span>
-            {sprint.status === 1 && <span className="chip chip-accent">Активный</span>}
-            {sprint.goal && <span className="backlog-sprint-goal">{sprint.goal}</span>}
-            <span className="backlog-sprint-count">{(sprintQuests[sprint.id] ?? []).length} задач</span>
-            <span className="backlog-issue-spacer" />
-            {sprint.status === 0 && (
-              <button type="button" className="backlog-sprint-action" onClick={() => handleStartSprint(sprint.id)}>Начать спринт</button>
-            )}
-            {sprint.status === 1 && (
-              <button type="button" className="backlog-sprint-action" onClick={() => handleCompleteSprint(sprint.id)}>Завершить спринт</button>
-            )}
-            <button type="button" className="backlog-sprint-action backlog-sprint-delete" onClick={() => handleDeleteSprint(sprint.id)}>Удалить</button>
-          </header>
-          <ul className="backlog-issue-list">
-            {(sprintQuests[sprint.id] ?? []).map((q) => (
-              <IssueRow key={q.id} quest={q} onOpen={openIssue} onMoveToBacklog={moveQuestToBacklog} />
-            ))}
-            {(sprintQuests[sprint.id] ?? []).length === 0 && <li className="backlog-empty">Нет задач в этом спринте.</li>}
-          </ul>
-        </section>
-      ))}
+      <p className="backlog-dnd-hint">
+        Перетащите задачу между бэклогом и спринтом (поддерживается касание), либо используйте кнопку/список «В спринт…» / «В бэклог».
+      </p>
 
-      <section className="backlog-sprint-panel backlog-backlog-panel">
-        <header className="backlog-sprint-header">
-          <span className="backlog-sprint-name">Бэклог</span>
-          <span className="backlog-sprint-count">{backlogQuests.length} задач</span>
-        </header>
-        <ul className="backlog-issue-list">
-          {backlogQuests.map((q) => (
-            <IssueRow
-              key={q.id}
-              quest={q}
-              onOpen={openIssue}
-              sprintOptions={futureAndActiveSprints}
-              onMoveToSprint={moveQuestToSprint}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        {futureAndActiveSprints.map((sprint) => (
+          <section key={sprint.id} className="backlog-sprint-panel">
+            <header className="backlog-sprint-header">
+              <span className="backlog-sprint-name">{sprint.name}</span>
+              {sprint.status === 1 && <span className="chip chip-accent">Активный</span>}
+              {sprint.goal && <span className="backlog-sprint-goal">{sprint.goal}</span>}
+              <span className="backlog-sprint-count">{(sprintQuests[sprint.id] ?? []).length} задач</span>
+              <span className="backlog-issue-spacer" />
+              {sprint.status === 0 && (
+                <button type="button" className="backlog-sprint-action" onClick={() => handleStartSprint(sprint.id)}>Начать спринт</button>
+              )}
+              {sprint.status === 1 && (
+                <button type="button" className="backlog-sprint-action" onClick={() => handleCompleteSprint(sprint.id)}>Завершить спринт</button>
+              )}
+              <button type="button" className="backlog-sprint-action backlog-sprint-delete" onClick={() => handleDeleteSprint(sprint.id)}>Удалить</button>
+            </header>
+            <SprintDropList sprintId={sprint.id}>
+              {(sprintQuests[sprint.id] ?? []).map((q) => (
+                <IssueRow key={q.id} quest={q} onOpen={openIssue} onMoveToBacklog={moveQuestToBacklog} />
+              ))}
+              {(sprintQuests[sprint.id] ?? []).length === 0 && <li className="backlog-empty">Нет задач в этом спринте. Перетащите сюда задачу из бэклога.</li>}
+            </SprintDropList>
+          </section>
+        ))}
+
+        <section className="backlog-sprint-panel backlog-backlog-panel">
+          <header className="backlog-sprint-header">
+            <span className="backlog-sprint-name">Бэклог</span>
+            <span className="backlog-sprint-count">{backlogQuests.length} задач</span>
+          </header>
+          <BacklogDropList>
+            {backlogQuests.map((q) => (
+              <IssueRow
+                key={q.id}
+                quest={q}
+                onOpen={openIssue}
+                sprintOptions={futureAndActiveSprints}
+                onMoveToSprint={moveQuestToSprint}
+              />
+            ))}
+            {backlogQuests.length === 0 && <li className="backlog-empty">Бэклог пуст.</li>}
+          </BacklogDropList>
+          <form className="backlog-create-issue-form" onSubmit={handleCreateBacklogIssue}>
+            <input
+              type="text"
+              placeholder="+ Создать задачу в бэклоге"
+              value={newIssueTitle}
+              onChange={(e) => setNewIssueTitle(e.target.value)}
+              disabled={creatingIssue}
             />
-          ))}
-          {backlogQuests.length === 0 && <li className="backlog-empty">Бэклог пуст.</li>}
-        </ul>
-        <form className="backlog-create-issue-form" onSubmit={handleCreateBacklogIssue}>
-          <input
-            type="text"
-            placeholder="+ Создать задачу в бэклоге"
-            value={newIssueTitle}
-            onChange={(e) => setNewIssueTitle(e.target.value)}
-            disabled={creatingIssue}
-          />
-          <button type="submit" disabled={creatingIssue || !newIssueTitle.trim()}>{creatingIssue ? '…' : 'Создать'}</button>
-        </form>
-      </section>
+            <button type="submit" disabled={creatingIssue || !newIssueTitle.trim()}>{creatingIssue ? '…' : 'Создать'}</button>
+          </form>
+        </section>
+
+        <DragOverlay>
+          {draggedQuest ? (
+            <div className="backlog-issue-row backlog-issue-row-overlay">
+              <IssueTypeIcon issueType={draggedQuest.issueType} size={16} />
+              <span className="backlog-issue-title">{draggedQuest.title}</span>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {questId && (
         <IssueDetailDrawer
           questId={questId}
           members={members}
+          columns={board?.columns}
           onClose={closeIssue}
           onChanged={loadAll}
         />

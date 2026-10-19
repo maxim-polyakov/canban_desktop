@@ -20,14 +20,37 @@ export async function api(url, options = {}) {
   return response;
 }
 
+const STATUS_MESSAGES = {
+  400: 'Некорректный запрос.',
+  401: 'Сессия истекла. Войдите снова.',
+  403: 'Недостаточно прав для этого действия.',
+  404: 'Не найдено.',
+  409: 'Конфликт данных. Обновите страницу.',
+};
+
+export function responseErrorMessage(status, text, statusText = '') {
+  if (text) {
+    try {
+      const body = JSON.parse(text);
+      const message = typeof body === 'string' ? body : body?.error || body?.message || body?.detail || body?.title;
+      if (message) return String(message);
+    } catch {
+      return text;
+    }
+  }
+  return STATUS_MESSAGES[status] || statusText || (status >= 500 ? 'Ошибка сервера. Попробуйте позже.' : `Ошибка ${status}`);
+}
+
+function responseError(response, text) {
+  const error = new Error(responseErrorMessage(response.status, text, response.statusText));
+  error.status = response.status;
+  return error;
+}
+
 export async function apiJson(url, options = {}) {
   const response = await api(url, options);
   const text = await response.text();
-  if (!response.ok) {
-    const error = new Error(text || response.statusText);
-    error.status = response.status;
-    throw error;
-  }
+  if (!response.ok) throw responseError(response, text);
   return text ? JSON.parse(text) : null;
 }
 
@@ -38,11 +61,7 @@ export async function apiForm(url, formData, options = {}) {
   const response = await fetch(API_BASE + url, { ...options, method: options.method || 'POST', headers, body: formData });
   handleUnauthorized(response);
   const text = await response.text();
-  if (!response.ok) {
-    const error = new Error(text || response.statusText);
-    error.status = response.status;
-    throw error;
-  }
+  if (!response.ok) throw responseError(response, text);
   return text ? JSON.parse(text) : null;
 }
 

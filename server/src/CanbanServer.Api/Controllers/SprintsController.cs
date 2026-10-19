@@ -48,7 +48,7 @@ public class SprintsController : ControllerBase
     [HttpPost("board/{boardId:guid}")]
     public async Task<ActionResult<SprintDto>> Create(Guid boardId, [FromBody] CreateSprintRequest request, CancellationToken ct)
     {
-        if (!await CanBoard(boardId, BoardPermission.Manage, ct)) return Forbid();
+        if (!await CanBoard(boardId, BoardPermission.Work, ct)) return Forbid();
         try
         {
             var sprint = await _sprintService.CreateAsync(boardId, request, ct);
@@ -63,7 +63,7 @@ public class SprintsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<SprintDto>> Update(Guid id, [FromBody] UpdateSprintRequest request, CancellationToken ct)
     {
-        var existing = await _sprintService.GetByIdAsync(id, ct); if (existing != null && !await CanBoard(existing.BoardId, BoardPermission.Manage, ct)) return Forbid();
+        var existing = await _sprintService.GetByIdAsync(id, ct); if (existing != null && !await CanBoard(existing.BoardId, BoardPermission.Work, ct)) return Forbid();
         var sprint = await _sprintService.UpdateAsync(id, request, ct);
         return sprint == null ? NotFound() : Ok(sprint);
     }
@@ -71,7 +71,7 @@ public class SprintsController : ControllerBase
     [HttpPost("{id:guid}/start")]
     public async Task<ActionResult<SprintDto>> Start(Guid id, [FromBody] StartSprintRequest? request, CancellationToken ct)
     {
-        var existing = await _sprintService.GetByIdAsync(id, ct); if (existing != null && !await CanBoard(existing.BoardId, BoardPermission.Manage, ct)) return Forbid();
+        var existing = await _sprintService.GetByIdAsync(id, ct); if (existing != null && !await CanBoard(existing.BoardId, BoardPermission.Work, ct)) return Forbid();
         try
         {
             var sprint = await _sprintService.StartAsync(id, request ?? new StartSprintRequest(null, null), ct);
@@ -86,7 +86,7 @@ public class SprintsController : ControllerBase
     [HttpPost("{id:guid}/complete")]
     public async Task<ActionResult<SprintDto>> Complete(Guid id, [FromBody] CompleteSprintRequest? request, CancellationToken ct)
     {
-        var existing = await _sprintService.GetByIdAsync(id, ct); if (existing != null && !await CanBoard(existing.BoardId, BoardPermission.Manage, ct)) return Forbid();
+        var existing = await _sprintService.GetByIdAsync(id, ct); if (existing != null && !await CanBoard(existing.BoardId, BoardPermission.Work, ct)) return Forbid();
         try
         {
             var sprint = await _sprintService.CompleteAsync(

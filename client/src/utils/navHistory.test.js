@@ -1,7 +1,13 @@
 import {
   getRecentBoards, getStarredBoards, getViewedIssues, isBoardStarred,
-  rememberBoard, rememberIssue, toggleStarredBoard,
+  rememberBoard, rememberIssue, rememberTeam, toggleStarredBoard,
 } from './navHistory.js';
+
+test('teams join the recent spaces list tagged as teams', () => {
+  rememberBoard({ id: 'b1', name: 'Board' });
+  rememberTeam({ id: 't1', name: 'Canban', ownerId: 'x' });
+  expect(getRecentBoards().map(({ id, kind }) => [id, kind])).toEqual([['t1', 'team'], ['b1', undefined]]);
+});
 
 beforeEach(() => window.localStorage.clear());
 

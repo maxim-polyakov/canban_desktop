@@ -6,6 +6,7 @@ import { kudos as kudosApi, people as peopleApi, teams as teamsApi, users as use
 import NavIcon from '../../components/NavIcons.jsx';
 import SpaceAvatar from '../../components/SpaceAvatar.jsx';
 import { timeAgo } from '../../utils/timeAgo.js';
+import { rememberTeam } from '../../utils/navHistory.js';
 import { CreateTeamDialog, InvitePeopleDialog, kudosKindMeta, SendKudosDialog } from './TeamsDialogs.jsx';
 import '../settings/Settings.css';
 import '../ForYouPage.css';
@@ -280,7 +281,7 @@ export function TeamPage() {
   const [error, setError] = useState('');
 
   const load = useCallback(() => {
-    teamsApi.get(teamId).then((data) => { setTeam(data); setForm({ name: data.name, description: data.description || '' }); }).catch((e) => setError(e.message || t('Команда не найдена')));
+    teamsApi.get(teamId).then((data) => { setTeam(data); rememberTeam(data); setForm({ name: data.name, description: data.description || '' }); }).catch((e) => setError(e.message || t('Команда не найдена')));
     teamsApi.getMembers(teamId).then(setMembers).catch(() => setMembers([]));
     teamsApi.getMyTeamsWithBoards().then((list) => {
       const entry = (list || []).find((x) => (x.team ?? x.Team)?.id === teamId);

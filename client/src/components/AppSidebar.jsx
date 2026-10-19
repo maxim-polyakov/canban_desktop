@@ -97,20 +97,25 @@ function SpaceSearch({ boards, teams = [], activeBoardId, starredIds, onNavigate
       {teamResults.length > 0 && (
         <>
           <div className="app-nav-section">{t('Команды')}</div>
-          {teamResults.map((team) => (
-            <Link key={team.id} to={`/teams/${team.id}`} className="app-nav-item app-nav-link" onClick={onNavigate} title={team.name}>
-              <NavIcon name="teams" />
-              <span className="app-nav-text">
-                <span className="app-nav-label">{team.name}</span>
-                <span className="app-nav-sub">{t('Команда')} · {team.boardCount} {t('разд.')}</span>
-              </span>
-            </Link>
-          ))}
+          {teamResults.map((team) => <TeamRow key={team.id} team={team} onNavigate={onNavigate} />)}
         </>
       )}
       {needle && results.length === 0 && teamResults.length === 0 && <p className="app-flyout-empty">{t('Разделы не найдены')}</p>}
       <Link to="/spaces" className="app-flyout-footer app-flyout-footer-icon" onClick={onNavigate}><NavIcon name="list" size={14} />{t('Просмотреть все разделы')}</Link>
     </>
+  );
+}
+
+function TeamRow({ team, active, onNavigate }) {
+  const { t } = useLocalization();
+  return (
+    <Link to={`/teams/${team.id}`} className={`app-nav-item app-nav-link ${active ? 'is-active' : ''}`} onClick={onNavigate} title={team.name}>
+      <span className="app-nav-team-mark"><NavIcon name="teams" size={14} /></span>
+      <span className="app-nav-text">
+        <span className="app-nav-label">{team.name}</span>
+        <span className="app-nav-sub">{t('Команда')}{team.boardCount != null ? ` · ${team.boardCount} ${t('разд.')}` : ''}</span>
+      </span>
+    </Link>
   );
 }
 
@@ -336,7 +341,11 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
   const allBoards = teamsWithBoards.flatMap(({ team, boards }) => boards.map((b) => ({ ...b, teamName: team.name, teamId: team.id })));
   const boardById = new Map(allBoards.map((b) => [b.id, b]));
   const starredIds = new Set(starredBoards.map((b) => b.id));
-  const recent = recentBoards.map((b) => boardById.get(b.id)).filter(Boolean);
+  const teamById = new Map(teamsWithBoards.map(({ team, boards }) => [team.id, { id: team.id, name: team.name, boardCount: boards.length, kind: 'team' }]));
+  const recent = recentBoards.map((b) => (b.kind === 'team' ? teamById.get(b.id) : boardById.get(b.id))).filter(Boolean);
+  const recentRow = (entry, showTeam) => (entry.kind === 'team'
+    ? <TeamRow key={`team-${entry.id}`} team={entry} active={pathname.startsWith(`/teams/${entry.id}`)} onNavigate={navigate} />
+    : <BoardRow key={entry.id} board={entry} active={entry.id === activeBoardId} starred={starredIds.has(entry.id)} onNavigate={navigate} showTeam={showTeam} />);
   const sidebarRecent = (recent.length ? recent : allBoards).slice(0, 4);
   const starred = starredBoards.map((b) => boardById.get(b.id)).filter(Boolean);
 
@@ -378,7 +387,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
   const recentContent = (
     <>
       <div className="app-flyout-section">{t('Разделы')}</div>
-      {recent.slice(0, 5).map((b) => <BoardRow key={b.id} board={b} active={b.id === activeBoardId} starred={starredIds.has(b.id)} onNavigate={navigate} showTeam />)}
+      {recent.slice(0, 5).map((entry) => recentRow(entry, true))}
       {recent.length === 0 && <p className="app-flyout-empty">{t('Здесь появятся недавно открытые разделы.')}</p>}
       <div className="app-flyout-section">{t('Задачи')}</div>
       {viewedIssues.slice(0, 6).map((issue) => (
@@ -442,10 +451,8 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
             </span>
           </div>
           <div className="app-nav-section">{t('Недавние')}</div>
-          {sidebarRecent.map((b) => (
-            <BoardRow key={b.id} board={b} active={b.id === activeBoardId} starred={starredIds.has(b.id)} onNavigate={navigate} />
-          ))}
-          {allBoards.length === 0 && <p className="app-flyout-empty">{t('Нет досок')}</p>}
+          {sidebarRecent.map((entry) => recentRow(entry, false))}
+          {sidebarRecent.length === 0 && <p className="app-flyout-empty">{t('Нет досок')}</p>}
           {flyoutItem('spaces', 'backlog', 'Другие разделы', otherSpacesContent, 'Разделы')}
         </>
       )}

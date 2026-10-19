@@ -37,6 +37,7 @@ public class DashboardTests
     [InlineData("space-team", 9)]
     [InlineData("devops", 6)]
     [InlineData("my-work", 6)]
+    [InlineData(DashboardService.DefaultTemplate, 4)]
     public void Templates_BuildExpectedWidgets(string template, int widgets)
     {
         var layout = DashboardService.BuildTemplateLayout(template, Array.Empty<string>());

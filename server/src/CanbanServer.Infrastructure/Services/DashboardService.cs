@@ -34,6 +34,9 @@ public class DashboardService
     public const int MaxRows = 30;
     public const int MaxWidgetsPerRow = 3;
     public static readonly string[] Templates = { "blank", "space-team", "devops", "my-work" };
+    /// <summary>Every user gets one undeletable dashboard with this template; it can't be chosen when creating.</summary>
+    public const string DefaultTemplate = "default";
+    public const string DefaultName = "Дашборд по умолчанию";
     public static readonly string[] Categories = { "jira", "devops", "goals", "service" };
     public static readonly string[] WidgetTypes =
     {
@@ -98,6 +101,7 @@ public class DashboardService
             _db.Dashboards.RemoveRange(stale);
             await _db.SaveChangesAsync(ct);
         }
+        if (!trash) await EnsureDefaultAsync(userId, ct);
 
         var colleagues = await ColleaguesAsync(userId, ct);
         var colleagueIds = colleagues.ToList();
@@ -107,6 +111,33 @@ public class DashboardService
             : query.Where(d => d.DeletedAt == null && (d.OwnerUserId == userId || (d.Viewers == Org && colleagueIds.Contains(d.OwnerUserId))));
         var items = await query.OrderBy(d => d.Name).Take(1000).ToListAsync(ct);
         return await SummariesAsync(items, userId, colleagues, ct);
+    }
+
+    private async Task EnsureDefaultAsync(Guid userId, CancellationToken ct)
+    {
+        if (await _db.Dashboards.AnyAsync(d => d.OwnerUserId == userId && d.Template == DefaultTemplate, ct)) return;
+        var now = DateTime.UtcNow;
+        var dashboard = new Dashboard
+        {
+            Id = Guid.NewGuid(),
+            OwnerUserId = userId,
+            Name = DefaultName,
+            Template = DefaultTemplate,
+            FiltersJson = JsonSerializer.Serialize(new DashboardFilters(), Json),
+            LayoutJson = BuildTemplateLayout(DefaultTemplate, Array.Empty<string>()).ToJsonString(),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        _db.Dashboards.Add(dashboard);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent request created it first (unique index on the default template).
+            _db.Entry(dashboard).State = EntityState.Detached;
+        }
     }
 
     private async Task<List<object>> SummariesAsync(List<Dashboard> items, Guid userId, ISet<Guid> colleagues, CancellationToken ct)
@@ -136,6 +167,7 @@ public class DashboardService
                 starCount = star?.Count ?? 0,
                 starred = star?.Mine ?? false,
                 isOwner = d.OwnerUserId == userId,
+                isDefault = d.Template == DefaultTemplate,
                 canEdit = CanEdit(d, userId, colleagues),
                 boardIds = ParseFilters(d.FiltersJson).BoardIds,
                 createdAt = d.CreatedAt,
@@ -254,7 +286,7 @@ public class DashboardService
             OwnerUserId = userId,
             Name = Truncate(string.IsNullOrWhiteSpace(name) ? $"Копия: {source.Name}" : name.Trim(), 200)!,
             Description = source.Description,
-            Template = source.Template,
+            Template = source.Template == DefaultTemplate ? "blank" : source.Template,
             FiltersJson = source.FiltersJson,
             LayoutJson = source.LayoutJson,
             CreatedAt = now,
@@ -269,6 +301,7 @@ public class DashboardService
     {
         var (dashboard, _) = await RequireAsync(id, userId, false, ct);
         if (dashboard.OwnerUserId != userId) throw new UnauthorizedAccessException("Only the owner can move a dashboard to trash");
+        if (dashboard.Template == DefaultTemplate) throw new InvalidOperationException("The default dashboard can't be deleted");
         dashboard.DeletedAt ??= DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
     }
@@ -422,6 +455,13 @@ public class DashboardService
                     W("dev_trend", "Количество сборок с течением времени", new { kind = "check_run", chart = "line" }),
                     W("dev_trend", "Количество коммитов с течением времени", new { kind = "commit", chart = "bar" }, 2)));
                 rows.Add(Row(W("issue_table", "Сведения о задачах", new { limit = 10 }, 3)));
+                break;
+            case DefaultTemplate:
+                rows.Add(Row(
+                    W("count_by", "Количество задач (по статусам)", new { groupBy = "status", measure = "count", chart = "donut" }),
+                    W("created_vs_resolved", "Задачи: созданные и выполненные", new { chart = "line" }),
+                    W("count_by", "Количество задач (по исполнителям)", new { groupBy = "assignee", measure = "count", chart = "donut" })));
+                rows.Add(Row(W("issue_table", "Последние задачи", new { limit = 10, sort = "created" }, 3)));
                 break;
             case "my-work":
                 rows.Add(Row(

@@ -12,12 +12,13 @@ public static partial class DatabaseSchemaInitializer
             ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "Template" varchar(32) NOT NULL DEFAULT 'blank';
             ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "Viewers" varchar(16) NOT NULL DEFAULT 'private';
             ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "Editors" varchar(16) NOT NULL DEFAULT 'private';
-            ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "FiltersJson" text NOT NULL DEFAULT '{}';
+            ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "FiltersJson" text NOT NULL DEFAULT '{{}}';
             ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "CreatedAt" timestamptz NOT NULL DEFAULT now();
             ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "UpdatedAt" timestamptz NOT NULL DEFAULT now();
             ALTER TABLE "Dashboards" ADD COLUMN IF NOT EXISTS "DeletedAt" timestamptz NULL;
             UPDATE "Dashboards" SET "Viewers" = 'org' WHERE "Shared" AND "Viewers" = 'private';
             CREATE INDEX IF NOT EXISTS "IX_Dashboards_OwnerUserId" ON "Dashboards"("OwnerUserId");
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_Dashboards_OwnerUserId_Default" ON "Dashboards"("OwnerUserId") WHERE "Template" = 'default';
 
             CREATE TABLE IF NOT EXISTS "DashboardStars" (
               "DashboardId" uuid NOT NULL, "UserId" uuid NOT NULL, "CreatedAt" timestamptz NOT NULL DEFAULT now(),

@@ -198,7 +198,7 @@ export function DashboardsListPage() {
     .filter((d) => owners.length === 0 || owners.includes(d.ownerUserId))
     .filter((d) => spacesFilter.length === 0 || (d.boardIds || []).some((id) => spacesFilter.includes(id)))
     .filter((d) => teamsFilter.length === 0 || (d.boardIds || []).some((id) => teamsFilter.includes(spaceById.get(id)?.teamId)))
-    .sort((a, b) => (sortDir === 'asc' ? 1 : -1) * a.name.localeCompare(b.name));
+    .sort((a, b) => (b.isDefault - a.isDefault) || (sortDir === 'asc' ? 1 : -1) * a.name.localeCompare(b.name));
 
   return (
     <div className="page dash-page">
@@ -263,6 +263,7 @@ export function DashboardsListPage() {
                 </td>
                 <td>
                   {tab === 'all' ? <Link to={`/dashboards/${d.id}`} className="dash-name">{d.name}</Link> : <span className="dash-name">{d.name}</span>}
+                  {d.isDefault && <span className="dash-badge">{t('По умолчанию')}</span>}
                   {d.description && <div className="dash-muted dash-desc">{d.description}</div>}
                 </td>
                 <td><span className="dash-person"><Avatar name={d.ownerName} url={d.ownerAvatarUrl} />{d.ownerName || t('Пользователь')}</span></td>
@@ -274,7 +275,7 @@ export function DashboardsListPage() {
                     { label: t('Открыть'), onClick: () => navigate(`/dashboards/${d.id}`) },
                     d.canEdit && { label: t('Изменить'), onClick: () => navigate(`/dashboards/${d.id}/edit`) },
                     { label: t('Копировать'), onClick: () => copy(d) },
-                    d.isOwner && { label: t('Переместить в корзину'), danger: true, onClick: () => trash(d) },
+                    d.isOwner && !d.isDefault && { label: t('Переместить в корзину'), danger: true, onClick: () => trash(d) },
                   ] : [
                     { label: t('Восстановить'), onClick: () => restore(d) },
                     { label: t('Удалить навсегда'), danger: true, onClick: () => purge(d) },
@@ -834,7 +835,7 @@ export function DashboardPage({ editing = false }) {
           <Menu label={t('Другие действия')} items={[
             { label: t('Копировать дашборд'), onClick: copyDashboard },
             dashboard.isOwner && { label: t('Доступ'), onClick: () => setAccessOpen(true) },
-            dashboard.isOwner && { label: t('Переместить в корзину'), danger: true, onClick: trash },
+            dashboard.isOwner && !dashboard.isDefault && { label: t('Переместить в корзину'), danger: true, onClick: trash },
           ]} />
         </div>
       </div>

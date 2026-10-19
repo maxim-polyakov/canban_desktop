@@ -1775,7 +1775,9 @@
       "Запросы (по приоритетам)": "Requests (by priority)",
       "Тенденция создания запросов": "Request creation trend",
       "Запросы (по исполнителям)": "Requests (by assignee)",
-      "Фильтры по умолчанию": "Default filters"
+      "Фильтры по умолчанию": "Default filters",
+      "Дашборд по умолчанию": "Default dashboard",
+      "Последние задачи": "Latest work items"
     }
   },
   "de": {

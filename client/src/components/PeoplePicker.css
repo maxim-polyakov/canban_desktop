@@ -1,0 +1,12 @@
+.people-picker { display: flex; flex-direction: column; min-width: 0; }
+.people-picker > input { width: 100%; box-sizing: border-box; }
+
+.invite-picked { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.invite-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 12px; background: var(--nav-selected-bg); color: var(--nav-selected-text); font-size: 0.85rem; }
+.invite-chip button { display: inline-flex; padding: 2px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.invite-chip button:hover { background: var(--nav-hover); }
+.invite-options { margin: 4px 0 0; padding: 4px 0; list-style: none; max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-overlay); box-shadow: var(--overlay-shadow); }
+.invite-options button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border: 0; background: transparent; color: var(--text); font-size: 0.9rem; text-align: start; cursor: pointer; }
+.invite-options button:hover { background: var(--nav-hover); }
+.invite-options img, .invite-avatar { width: 24px; height: 24px; border-radius: 50%; flex: none; object-fit: cover; }
+.invite-avatar { display: inline-flex; align-items: center; justify-content: center; background: var(--nav-pressed, #dfe1e6); font-size: 0.75rem; font-weight: 600; }

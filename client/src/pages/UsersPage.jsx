@@ -25,16 +25,17 @@ export default function UsersPage({ embedded = false }) {
     const needle = query.trim().toLowerCase();
     return list
       .map((u) => ({ id: u.id ?? u.Id, name: u.displayName ?? u.DisplayName ?? '—', email: u.email ?? u.Email ?? '', avatarUrl: u.avatarUrl ?? u.AvatarUrl }))
-      .filter((u) => !needle || u.name.toLowerCase().includes(needle) || u.email.toLowerCase().includes(needle))
+      .filter((u) => !needle || u.name.toLowerCase().includes(needle) || (embedded && u.email.toLowerCase().includes(needle)))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [list, query]);
+  }, [list, query, embedded]);
+  const searchLabel = embedded ? t('Поиск по имени или почте') : t('Поиск по имени');
 
   const content = (
     <>
       <div className="settings-toolbar">
         <label className="settings-search">
           <NavIcon name="search" size={14} />
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Поиск по имени или почте')} aria-label={t('Поиск по имени или почте')} />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={searchLabel} aria-label={searchLabel} />
         </label>
         <span className="settings-save-status">{t('Всего')}: {list.length}</span>
       </div>
@@ -44,7 +45,7 @@ export default function UsersPage({ embedded = false }) {
           <thead>
             <tr>
               <th>{t('Имя')}</th>
-              <th>{t('Почта')}</th>
+              {embedded && <th>{t('Почта')}</th>}
               <th className="is-narrow" aria-label={t('Действия')} />
             </tr>
           </thead>
@@ -57,7 +58,7 @@ export default function UsersPage({ embedded = false }) {
                     {u.name}
                   </Link>
                 </td>
-                <td style={{ wordBreak: 'break-all' }}>{u.email || '—'}</td>
+                {embedded && <td style={{ wordBreak: 'break-all' }}>{u.email || '—'}</td>}
                 <td className="is-narrow"><Link to={`/profile/${u.id}`} className="app-btn">{t('Профиль')}</Link></td>
               </tr>
             ))}

@@ -341,7 +341,7 @@ export default function BoardPage() {
             title={[
               'Поддерживаемый синтаксис поиска (можно сочетать с обычным текстом):',
               'assignee:me — мои задачи',
-              'assignee:имя или email — задачи участника',
+              'assignee:имя — задачи участника',
               'priority:highest|high|medium|low|lowest — приоритет',
               'type:epic|story|task|bug|subtask — тип задачи',
               'label:значение — задачи с меткой',

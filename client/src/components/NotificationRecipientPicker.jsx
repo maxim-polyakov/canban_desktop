@@ -9,9 +9,7 @@ export default function NotificationRecipientPicker({ members = [], selectedIds 
     if (!normalized) return [];
     return members
       .filter((member) => !selectedIds.includes(member.userId))
-      .filter((member) =>
-        member.displayName?.toLowerCase().includes(normalized)
-        || member.email?.toLowerCase().includes(normalized))
+      .filter((member) => member.displayName?.toLowerCase().includes(normalized))
       .slice(0, 6);
   }, [members, selectedIds, normalized]);
 
@@ -25,7 +23,7 @@ export default function NotificationRecipientPicker({ members = [], selectedIds 
       <div className="notification-recipient-tags">
         {selected.map((member) => (
           <span key={member.userId} className="notification-recipient-tag">
-            <span title={member.email}>{member.displayName}</span>
+            <span>{member.displayName}</span>
             <button type="button" disabled={disabled} onClick={() => onChange?.(selectedIds.filter((id) => id !== member.userId))}>✕</button>
           </span>
         ))}
@@ -34,7 +32,7 @@ export default function NotificationRecipientPicker({ members = [], selectedIds 
         type="text"
         value={query}
         disabled={disabled}
-        placeholder="Введите имя или email участника"
+        placeholder="Введите имя участника"
         onChange={(event) => setQuery(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' && matches.length > 0) {
@@ -49,7 +47,6 @@ export default function NotificationRecipientPicker({ members = [], selectedIds 
             <li key={member.userId}>
               <button type="button" onClick={() => add(member.userId)}>
                 <strong>{member.displayName}</strong>
-                <span>{member.email}</span>
               </button>
             </li>
           )) : <li className="notification-recipient-empty">Участник команды не найден</li>}

@@ -4,6 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { boards, teams, character, leaderboard, activity } from '../api.js';
+import PeoplePicker from '../components/PeoplePicker.jsx';
 import './HomePage.css';
 
 export default function HomePage() {
@@ -19,7 +20,7 @@ export default function HomePage() {
   const [createError, setCreateError] = useState('');
   const [creating, setCreating] = useState(false);
   const [inviteTeamId, setInviteTeamId] = useState(null);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePicked, setInvitePicked] = useState([]);
   const [inviteError, setInviteError] = useState('');
   const [inviting, setInviting] = useState(false);
   const [editTeamId, setEditTeamId] = useState(null);
@@ -124,19 +125,22 @@ export default function HomePage() {
 
   const handleInvite = async (e, teamId) => {
     e.preventDefault();
-    const email = inviteEmail.trim();
-    if (!email) return;
+    if (invitePicked.length === 0) return;
     setInviteError('');
     setInviting(true);
     try {
-      const result = await teams.inviteByEmail(teamId, email);
-      if (result.ok) {
-        setInviteEmail('');
+      const failed = [];
+      for (const person of invitePicked) {
+        const result = await teams.inviteUser(teamId, person.id);
+        if (!result.ok) failed.push(`${person.displayName}: ${result.error || 'Не удалось добавить.'}`);
+      }
+      if (failed.length === 0) {
+        setInvitePicked([]);
         setInviteTeamId(null);
         loadTeams();
         loadTeamMembers(teamId);
       } else {
-        setInviteError(result.error || 'Не удалось добавить.');
+        setInviteError(failed.join('; '));
       }
     } catch (err) {
       setInviteError(err.message || 'Ошибка.');
@@ -454,16 +458,10 @@ export default function HomePage() {
                   ) : (
                     <>
                       <form className="home-invite-form" onSubmit={(e) => handleInvite(e, item.team?.id)}>
-                        <input
-                          type="email"
-                          placeholder="Email участника"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          disabled={inviting}
-                        />
+                        <PeoplePicker id={`home-invite-${item.team?.id}`} value={invitePicked} onChange={setInvitePicked} autoFocus disabled={inviting} />
                         <div className="home-invite-actions">
-                          <button type="submit" disabled={inviting}>{inviting ? '…' : 'Добавить'}</button>
-                          <button type="button" onClick={() => { setInviteTeamId(null); setInviteEmail(''); setInviteError(''); }} disabled={inviting}>Отмена</button>
+                          <button type="submit" disabled={inviting || invitePicked.length === 0}>{inviting ? '…' : 'Добавить'}</button>
+                          <button type="button" onClick={() => { setInviteTeamId(null); setInvitePicked([]); setInviteError(''); }} disabled={inviting}>Отмена</button>
                         </div>
                         {inviteError && <p className="home-invite-error">{inviteError}</p>}
                       </form>

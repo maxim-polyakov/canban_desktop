@@ -27,9 +27,7 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
     if (!normalized) return [];
     return options
       .filter((member) => !selectedIds.includes(member.userId))
-      .filter((member) =>
-        member.displayName?.toLowerCase().includes(normalized)
-        || member.email?.toLowerCase().includes(normalized))
+      .filter((member) => member.displayName?.toLowerCase().includes(normalized))
       .slice(0, 8);
   }, [options, selectedIds, normalized]);
 
@@ -50,7 +48,7 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
           {selected.map((member) => (
             <span className="assignee-select-tag" key={member.userId}>
               <AssigneeAvatar displayName={member.displayName} avatarUrl={member.avatarUrl} size={22} />
-              <span title={member.email}>{member.displayName}</span>
+              <span>{member.displayName}</span>
               <button type="button" onClick={() => handleRemove(member.userId)} title={`Убрать ${member.displayName}`}>✕</button>
             </span>
           ))}
@@ -60,7 +58,7 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
         type="text"
         className="assignee-select-search"
         value={query}
-        placeholder={selected.length ? 'Добавить по имени или email' : `${placeholder} — имя или email`}
+        placeholder={selected.length ? 'Добавить по имени' : `${placeholder} — начните вводить имя`}
         onFocus={() => setOpen(true)}
         onChange={(event) => {
           setQuery(event.target.value);
@@ -91,7 +89,6 @@ export default function AssigneeSelect({ value, options = [], onChange, placehol
                 <AssigneeAvatar displayName={m.displayName} avatarUrl={m.avatarUrl} size={24} />
                 <span className="assignee-select-option-text">
                   <strong>{m.displayName}</strong>
-                  <small>{m.email}</small>
                 </span>
               </button>
             </li>

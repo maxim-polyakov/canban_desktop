@@ -279,7 +279,7 @@ export function AttributeInput({ attribute, value, onChange, users, schemaId }) 
     case ATTR.Status:
       return <select {...common}><option value="">—</option>{attribute.options.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
     case ATTR.User:
-      return <select {...common}><option value="">—</option>{users.map((u) => <option key={u.id} value={u.id}>{u.displayName}{u.email ? ` · ${u.email}` : ''}</option>)}</select>;
+      return <select {...common}><option value="">—</option>{users.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}</select>;
     case ATTR.Reference: return <ReferenceSelect schemaId={schemaId} attribute={attribute} value={value} onChange={onChange} />;
     case ATTR.Url: return <input type="url" placeholder="https://" {...common} />;
     case ATTR.Email: return <input type="email" {...common} />;

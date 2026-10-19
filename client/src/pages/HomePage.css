@@ -1,41 +1,43 @@
 .home-page {
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 .home-character {
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background: var(--surface);
-  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
 }
 
 .home-character h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  color: var(--text-muted);
 }
 
 .home-badge {
   display: inline-block;
-  margin-top: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.55rem;
   background: var(--accent);
-  color: var(--bg);
-  border-radius: 4px;
-  font-size: 0.85rem;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .home-invites-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   padding: 1rem;
   background: var(--surface);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
 }
 
 .home-invites-section h2 {
   margin: 0 0 1rem;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
 .home-invites-list {
@@ -50,7 +52,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 0.75rem 0;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -61,7 +63,7 @@
 .home-invite-text {
   flex: 1;
   min-width: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .home-invite-actions {
@@ -72,11 +74,10 @@
 .home-invite-accept-btn {
   padding: 0.4rem 0.75rem;
   background: var(--accent);
-  color: var(--bg);
+  color: #fff;
   border: none;
   border-radius: var(--radius);
   font-weight: 600;
-  cursor: pointer;
 }
 
 .home-invite-accept-btn:hover:not(:disabled) {
@@ -94,12 +95,11 @@
   color: var(--text-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
 }
 
 .home-invite-decline-btn:hover:not(:disabled) {
   color: var(--text);
-  border-color: var(--text-muted);
+  border-color: var(--border-strong);
 }
 
 .home-invite-decline-btn:disabled {
@@ -109,21 +109,24 @@
 
 .home-boards h2 {
   margin: 0 0 0.75rem;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
 .home-teams-list {
   list-style: none;
   padding: 0;
   margin: 0 0 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.85rem;
 }
 
 .home-team-block {
-  margin-bottom: 1rem;
   padding: 1rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .home-team-header {
@@ -134,7 +137,7 @@
 }
 
 .home-team-name {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1rem;
   color: var(--text);
 }
@@ -145,8 +148,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text-muted);
-  font-size: 0.85rem;
-  cursor: pointer;
+  font-size: 0.82rem;
 }
 
 .home-team-btn:hover {
@@ -155,13 +157,13 @@
 }
 
 .home-team-delete-btn:hover {
-  border-color: #c62828;
-  color: #c62828;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .home-team-leave-btn {
   margin-left: auto;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
 }
 
@@ -184,7 +186,7 @@
   border-radius: 4px;
   background: var(--bg);
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .home-team-edit-actions {
@@ -194,14 +196,14 @@
 
 .home-team-edit-actions button {
   padding: 0.35rem 0.6rem;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   border-radius: 4px;
 }
 
 .home-team-edit-actions button:first-child {
   background: var(--accent);
   border: none;
-  color: var(--bg);
+  color: #fff;
 }
 
 .home-team-expand {
@@ -216,8 +218,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text-muted);
-  font-size: 0.85rem;
-  cursor: pointer;
+  font-size: 0.82rem;
 }
 
 .home-expand-btn:hover {
@@ -238,11 +239,15 @@
   .home-team-details {
     grid-template-columns: 1fr;
   }
+
+  .home-teams-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .home-detail-section h4 {
   margin: 0 0 0.5rem;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
 }
 
@@ -269,7 +274,7 @@
 
 .home-kpi-chart h5 {
   margin: 0 0 0.5rem;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -280,7 +285,7 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .home-member-item {
@@ -310,7 +315,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   flex-shrink: 0;
 }
 
@@ -321,13 +326,12 @@
   border: none;
   border-radius: 4px;
   color: var(--text-muted);
-  cursor: pointer;
   font-size: 0.8rem;
 }
 
 .home-member-remove:hover {
-  background: rgba(197, 48, 48, 0.15);
-  color: var(--error, #c53030);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .home-leaderboard-list li {
@@ -338,7 +342,7 @@
   margin-bottom: 0.35rem;
   padding: 0.25rem 0;
   border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .home-team-refresh-boards {
@@ -347,12 +351,11 @@
 
 .home-member-level {
   padding: 0.15rem 0.4rem;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   background: var(--bg);
   border-radius: 4px;
   color: var(--text-muted);
   border: none;
-  cursor: pointer;
 }
 
 .home-member-level:hover {
@@ -360,7 +363,7 @@
 }
 
 .home-leaderboard-level {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
@@ -371,22 +374,49 @@
 }
 
 .home-team-boards li {
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 
-.home-team-boards a {
-  display: inline-block;
-  padding: 0.4rem 0.6rem;
+.home-board-card {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
   background: var(--bg);
   border-radius: var(--radius);
   border: 1px solid var(--border);
+}
+
+.home-board-card-main {
+  flex: 1;
+  min-width: 0;
   color: var(--text);
+  font-weight: 500;
   font-size: 0.9rem;
 }
 
-.home-team-boards a:hover {
+.home-board-card:hover {
   border-color: var(--accent);
+}
+
+.home-board-card-main:hover {
   text-decoration: none;
+  color: var(--accent);
+}
+
+.home-board-card-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.home-board-card-links a {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.home-board-card-links a:hover {
+  color: var(--accent);
 }
 
 .home-create-btn {
@@ -396,9 +426,9 @@
   background: var(--accent);
   border: none;
   border-radius: var(--radius);
-  color: var(--bg);
+  color: #fff;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 .home-create-btn:hover {
@@ -411,7 +441,7 @@
   padding: 1rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
 }
 
 .home-create-form h3 {
@@ -422,7 +452,7 @@
 .home-create-form label {
   display: block;
   margin-bottom: 0.75rem;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--text-muted);
 }
 
@@ -440,10 +470,10 @@
 .home-create-error {
   margin: 0 0 0.75rem;
   padding: 0.5rem;
-  background: rgba(247, 118, 142, 0.15);
+  background: var(--danger-soft);
   border-radius: var(--radius);
   color: var(--danger);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .home-create-actions {
@@ -457,7 +487,7 @@
   background: var(--accent);
   border: none;
   border-radius: var(--radius);
-  color: var(--bg);
+  color: #fff;
   font-weight: 600;
 }
 
@@ -481,11 +511,10 @@
 .home-add-board-btn {
   padding: 0.35rem 0.6rem;
   background: transparent;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--border-strong);
   border-radius: 4px;
   color: var(--text-muted);
-  font-size: 0.9rem;
-  cursor: pointer;
+  font-size: 0.88rem;
 }
 
 .home-add-board-btn:hover {
@@ -504,7 +533,7 @@
   padding: 0.4rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .home-add-board-actions {
@@ -514,21 +543,20 @@
 
 .home-add-board-actions button {
   padding: 0.35rem 0.6rem;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   border-radius: 4px;
-  cursor: pointer;
 }
 
 .home-add-board-actions button[type="submit"] {
   background: var(--accent);
   border: none;
-  color: var(--bg);
+  color: #fff;
 }
 
 .home-add-board-error {
   margin: 0;
-  font-size: 0.85rem;
-  color: #c62828;
+  font-size: 0.82rem;
+  color: var(--danger);
 }
 
 .home-team-invite {
@@ -543,11 +571,11 @@
   border: 1px solid var(--accent);
   border-radius: var(--radius);
   color: var(--accent);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .home-invite-btn:hover {
-  background: rgba(var(--accent-rgb, 100, 149, 237), 0.1);
+  background: var(--accent-soft);
 }
 
 .home-invite-form input {
@@ -561,7 +589,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .home-invite-actions {
@@ -575,8 +603,8 @@
   background: var(--accent);
   border: none;
   border-radius: var(--radius);
-  color: var(--bg);
-  font-size: 0.9rem;
+  color: #fff;
+  font-size: 0.88rem;
 }
 
 .home-invite-actions button:last-child {
@@ -585,16 +613,26 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .home-invite-error {
   margin: 0.5rem 0 0;
-  font-size: 0.85rem;
-  color: var(--danger, #c00);
+  font-size: 0.82rem;
+  color: var(--danger);
 }
 
 .home-empty {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 480px) {
+  .home-page {
+    padding: 0.7rem;
+  }
+
+  .home-team-block {
+    padding: 0.75rem;
+  }
 }

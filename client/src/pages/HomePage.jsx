@@ -410,8 +410,12 @@ export default function HomePage() {
                 </div>
                 <ul className="home-team-boards">
                   {(item.boards ?? []).map((b) => (
-                    <li key={b.id}>
-                      <Link to={`/board/${b.id}`}>{b.name}</Link>
+                    <li key={b.id} className="home-board-card">
+                      <Link to={`/board/${b.id}`} className="home-board-card-main">{b.name}</Link>
+                      <span className="home-board-card-links">
+                        <Link to={`/board/${b.id}/backlog`}>Backlog</Link>
+                        <Link to={`/board/${b.id}/reports`}>Отчёты</Link>
+                      </span>
                     </li>
                   ))}
                 </ul>

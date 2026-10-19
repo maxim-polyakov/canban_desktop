@@ -2,7 +2,7 @@ import React from 'react';
 import AssigneeAvatar from './AssigneeAvatar';
 import './AssigneeSummary.css';
 
-export default function AssigneeSummary({ assignees = [], maxNames = 2, label }) {
+export default function AssigneeSummary({ assignees = [], maxNames = 2, label, linkToProfile = false }) {
   if (!Array.isArray(assignees) || assignees.length === 0) return null;
 
   const visible = assignees.slice(0, maxNames);
@@ -19,6 +19,7 @@ export default function AssigneeSummary({ assignees = [], maxNames = 2, label })
             displayName={assignee.displayName}
             avatarUrl={assignee.avatarUrl}
             size={22}
+            userId={linkToProfile ? assignee.userId : undefined}
           />
         ))}
       </span>

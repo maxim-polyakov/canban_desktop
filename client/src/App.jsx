@@ -13,6 +13,8 @@ import ForgotPasswordResetPage from './pages/ForgotPasswordResetPage.jsx';
 import AuthCallbackPage from './pages/AuthCallbackPage.jsx';
 import BoardPage from './pages/BoardPage.jsx';
 import BoardArchivePage from './pages/BoardArchivePage.jsx';
+import BacklogPage from './pages/BacklogPage.jsx';
+import ProjectReportsPage from './pages/ProjectReportsPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
@@ -48,6 +50,10 @@ export default function App() {
         >
           <Route index element={<HomePage />} />
           <Route path="board/:boardId" element={<BoardPage />} />
+          <Route path="board/:boardId/issue/:questId" element={<BoardPage />} />
+          <Route path="board/:boardId/backlog" element={<BacklogPage />} />
+          <Route path="board/:boardId/backlog/issue/:questId" element={<BacklogPage />} />
+          <Route path="board/:boardId/reports" element={<ProjectReportsPage />} />
           <Route path="board/:boardId/archive" element={<BoardArchivePage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:userId" element={<ProfilePage />} />

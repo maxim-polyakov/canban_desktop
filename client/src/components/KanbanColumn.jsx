@@ -36,13 +36,13 @@ export default function KanbanColumn({
   creatingQuest,
   onSubmitNewQuest,
   onCancelAdd,
-  onAssignQuest,
   onUpdateColumn,
   onUpdateColumnKind,
   onRefreshColumn,
   onDeleteColumn,
   onDeleteQuest,
   onQuestClick,
+  questFilter,
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id, data: { type: 'column', columnId: column.id } });
   const [editingTitle, setEditingTitle] = useState(false);
@@ -101,10 +101,9 @@ export default function KanbanColumn({
           <KanbanQuestItem
             key={quest.id}
             quest={quest}
-            members={members || []}
-            onAssignQuest={onAssignQuest}
             onDeleteQuest={onDeleteQuest}
             onQuestClick={onQuestClick}
+            hidden={questFilter ? !questFilter(quest) : false}
           />
         ))}
       </div>

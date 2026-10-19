@@ -23,7 +23,7 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.2rem 0.4rem;
-  background: rgba(122, 162, 247, 0.15);
+  background: var(--accent-soft);
   border: 1px solid var(--accent);
   border-radius: 999px;
   font-size: 0.75rem;

@@ -112,10 +112,42 @@ export const columns = {
   delete: (id) => api(`/api/columns/${id}`, { method: 'DELETE' }).then((r) => r.ok),
 };
 
+function buildQuery(params) {
+  const usp = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    usp.set(key, value);
+  });
+  const qs = usp.toString();
+  return qs ? `?${qs}` : '';
+}
+
 export const quests = {
   get: (id) => apiJson(`/api/quests/${id}`),
   getByColumn: (columnId) => apiJson(`/api/quests/column/${columnId}`),
   getArchiveByBoard: (boardId) => apiJson(`/api/quests/board/${boardId}/archive`),
+  getBacklog: (boardId, filter = {}) =>
+    apiJson(`/api/quests/board/${boardId}/backlog${buildQuery({
+      sprintId: filter.sprintId,
+      unassignedSprint: filter.unassignedSprint,
+      issueType: filter.issueType,
+      priority: filter.priority,
+      assigneeId: filter.assigneeId,
+      text: filter.text,
+      label: filter.label,
+    })}`),
+  filter: (boardId, filter = {}) =>
+    apiJson(`/api/quests/board/${boardId}/filter${buildQuery({
+      sprintId: filter.sprintId,
+      unassignedSprint: filter.unassignedSprint,
+      issueType: filter.issueType,
+      priority: filter.priority,
+      assigneeId: filter.assigneeId,
+      text: filter.text,
+      label: filter.label,
+      columnId: filter.columnId,
+      backlogOnly: filter.backlogOnly,
+    })}`),
   create: (data) => apiJson('/api/quests', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/quests/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   move: (data) => apiJson('/api/quests/move', { method: 'POST', body: JSON.stringify(data) }),
@@ -230,6 +262,17 @@ export const leaderboard = {
     const query = params.length ? '?' + params.join('&') : '';
     return apiJson(`/api/leaderboard/team/${teamId}/kpi${query}`);
   },
+};
+
+export const sprints = {
+  getByBoard: (boardId) => apiJson(`/api/sprints/board/${boardId}`),
+  getActive: (boardId) => apiJson(`/api/sprints/board/${boardId}/active`),
+  get: (id) => apiJson(`/api/sprints/${id}`),
+  create: (boardId, data) => apiJson(`/api/sprints/board/${boardId}`, { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiJson(`/api/sprints/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  start: (id, data) => apiJson(`/api/sprints/${id}/start`, { method: 'POST', body: JSON.stringify(data || {}) }),
+  complete: (id, data) => apiJson(`/api/sprints/${id}/complete`, { method: 'POST', body: JSON.stringify(data || {}) }),
+  delete: (id) => api(`/api/sprints/${id}`, { method: 'DELETE' }).then((r) => r.ok),
 };
 
 export const activity = {

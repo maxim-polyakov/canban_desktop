@@ -14,8 +14,24 @@
 
 .assignee-avatar-initials {
   background: var(--accent);
-  color: var(--bg);
+  color: #fff;
   font-weight: 600;
   font-size: inherit;
   line-height: 1;
+}
+
+.assignee-avatar-link {
+  display: inline-flex;
+  line-height: 0;
+  border-radius: 50%;
+}
+
+.assignee-avatar-link:hover {
+  text-decoration: none;
+  filter: brightness(0.96);
+}
+
+.assignee-avatar-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }

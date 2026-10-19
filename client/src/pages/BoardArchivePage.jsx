@@ -3,6 +3,7 @@ import { Link, useParams } from '../i18n/navigation.jsx';
 import { boards, quests } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import AssigneeSummary from '../components/AssigneeSummary.jsx';
+import { IssueTypeIcon, PriorityIcon } from '../components/IssueIcons.jsx';
 import './BoardPage.css';
 
 export default function BoardArchivePage() {
@@ -58,12 +59,15 @@ export default function BoardArchivePage() {
           {archiveQuests.map((quest) => (
             <li key={quest.id} className="board-archive-item">
               <div className="board-archive-item-main">
+                <IssueTypeIcon issueType={quest.issueType} size={16} />
+                <span className="board-archive-item-key">{quest.issueKey}</span>
                 <span className="board-archive-item-title">{quest.title}</span>
+                <PriorityIcon priority={quest.priority} size={14} />
                 {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}
               </div>
               {quest.description && <p className="board-archive-description">{quest.description}</p>}
               <div className="board-archive-meta">
-                <AssigneeSummary assignees={quest.assignees} label="Исполнители:" />
+                <AssigneeSummary assignees={quest.assignees} label="Исполнители:" linkToProfile />
                 {quest.completedAt && <span>Выполнено: {new Date(quest.completedAt).toLocaleString(locale)}</span>}
                 {quest.dueDate && <span>Срок: {new Date(quest.dueDate).toLocaleDateString(locale)}</span>}
               </div>

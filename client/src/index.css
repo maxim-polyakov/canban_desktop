@@ -3,23 +3,46 @@
 }
 
 :root {
-  --bg: #1a1b26;
-  --surface: #24283b;
-  --border: #3b4261;
-  --text: #c0caf5;
-  --text-muted: #565f89;
-  --accent: #7aa2f7;
-  --accent-hover: #89b4fa;
-  --success: #9ece6a;
-  --danger: #f7768e;
-  --radius: 8px;
+  /* Jira-Cloud-like light theme tokens */
+  --bg: #F4F5F7;
+  --surface: #FFFFFF;
+  --surface-hover: #F4F5F7;
+  --border: #DFE1E6;
+  --border-strong: #C1C7D0;
+  --text: #172B4D;
+  --text-muted: #6B778C;
+  --accent: #0052CC;
+  --accent-rgb: 0, 82, 204;
+  --accent-hover: #0065FF;
+  --accent-soft: #E9F2FF;
+  --success: #00875A;
+  --success-soft: #E3FCEF;
+  --danger: #DE350B;
+  --danger-soft: #FFEBE6;
+  --warning: #FF991F;
+  --warning-soft: #FFF7E6;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 56px;
+  --topbar-height: 56px;
+  --shadow-sm: 0 1px 2px rgba(9, 30, 66, 0.08);
+  --shadow-md: 0 4px 12px rgba(9, 30, 66, 0.14);
+  --shadow-lg: 0 12px 32px rgba(9, 30, 66, 0.22);
+  /* legacy alias kept so --error references in older CSS still resolve */
+  --error: #DE350B;
+}
+
+html, body {
+  margin: 0;
+  font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
 }
 
 body {
-  margin: 0;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
   min-height: 100vh;
 }
 
@@ -48,7 +71,7 @@ body {
   padding: 0.45rem 0.6rem;
   border-radius: 0.6rem;
   background: var(--surface);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
 }
 
 @media (max-width: 720px) {
@@ -74,6 +97,18 @@ input, textarea, select {
   font: inherit;
 }
 
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .app {
   min-height: 100vh;
   display: flex;
@@ -86,4 +121,38 @@ input, textarea, select {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* Shared Jira-like chip helpers reused across pages */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.chip-accent {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: var(--accent);
+}
+
+.chip-xp {
+  background: var(--success-soft);
+  border-color: var(--success-soft);
+  color: var(--success);
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 0.65rem;
+  }
 }

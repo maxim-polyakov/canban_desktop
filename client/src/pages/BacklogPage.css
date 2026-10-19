@@ -1,0 +1,310 @@
+.backlog-page {
+  padding: 1rem;
+}
+
+.backlog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.backlog-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.backlog-create-sprint-btn {
+  margin-left: auto;
+  padding: 0.4rem 0.75rem;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.backlog-create-sprint-btn:hover {
+  background: var(--accent-hover);
+}
+
+.backlog-create-sprint-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.backlog-create-sprint-form input {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.4rem 0.55rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.backlog-create-sprint-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.backlog-create-sprint-actions button[type="submit"] {
+  padding: 0.4rem 0.8rem;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+}
+
+.backlog-create-sprint-actions button[type="button"] {
+  padding: 0.4rem 0.8rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+}
+
+.backlog-sprint-panel {
+  margin-bottom: 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.backlog-sprint-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.backlog-sprint-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.backlog-sprint-goal {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.backlog-sprint-count {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.backlog-sprint-action {
+  padding: 0.3rem 0.65rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.backlog-sprint-action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.backlog-sprint-delete:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.backlog-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.backlog-issue-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.backlog-issue-row:last-child {
+  border-bottom: none;
+}
+
+.backlog-issue-row:hover {
+  background: var(--bg);
+}
+
+.backlog-issue-key {
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.backlog-issue-key:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.backlog-issue-title {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.86rem;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backlog-issue-title:hover {
+  color: var(--accent);
+}
+
+.backlog-issue-spacer {
+  flex: 1;
+}
+
+.backlog-issue-label {
+  flex-shrink: 0;
+  padding: 0.05rem 0.45rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.backlog-issue-xp {
+  flex-shrink: 0;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.backlog-issue-assignees {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.backlog-issue-assignees .assignee-avatar-link + .assignee-avatar-link {
+  margin-left: -0.4rem;
+}
+
+.backlog-issue-move-btn,
+.backlog-issue-move-select {
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.backlog-issue-move-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.backlog-empty {
+  padding: 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.backlog-create-issue-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-top: 1px dashed var(--border);
+}
+
+.backlog-create-issue-form input {
+  flex: 1;
+  padding: 0.4rem 0.55rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.backlog-create-issue-form button {
+  padding: 0.4rem 0.8rem;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.backlog-create-issue-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .backlog-page {
+    padding: 0.65rem;
+  }
+
+  .backlog-issue-row {
+    flex-wrap: wrap;
+    padding: 0.6rem 0.65rem;
+  }
+
+  .backlog-issue-title {
+    flex: 1 1 100%;
+    order: 1;
+    white-space: normal;
+  }
+
+  .backlog-issue-spacer {
+    display: none;
+  }
+
+  .backlog-sprint-header {
+    gap: 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .backlog-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .backlog-create-sprint-btn {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.6rem;
+  }
+}

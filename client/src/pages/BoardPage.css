@@ -8,23 +8,43 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.board-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.board-key-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .board-actions {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
 .board-btn {
-  padding: 0.25rem 0.5rem;
+  padding: 0.4rem 0.65rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
 }
 
@@ -33,14 +53,9 @@
   cursor: not-allowed;
 }
 
-.board-btn:hover {
+.board-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
-}
-
-.board-btn:disabled:hover {
-  border-color: var(--border);
-  color: var(--text-muted);
 }
 
 .board-btn-link {
@@ -54,8 +69,8 @@
 }
 
 .board-btn-delete:hover {
-  border-color: var(--error, #c53030);
-  color: var(--error, #c53030);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .board-edit-form {
@@ -101,12 +116,12 @@
 .board-edit-actions button[type="submit"] {
   background: var(--accent);
   border: none;
-  color: var(--bg);
+  color: #fff;
   font-weight: 600;
 }
 
 .board-edit-actions button[type="submit"]:hover {
-  filter: brightness(1.1);
+  background: var(--accent-hover);
 }
 
 .board-edit-actions button[type="button"] {
@@ -120,15 +135,10 @@
   color: var(--accent);
 }
 
-.board-title {
-  margin: 0 0 0.25rem;
-  font-size: 1.5rem;
-}
-
 .board-desc {
   margin: 0 0 0.25rem;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .board-meta {
@@ -139,7 +149,7 @@
 
 .board-id {
   padding: 0.15rem 0.4rem;
-  background: var(--surface);
+  background: var(--bg);
   border-radius: 4px;
   font-size: 0.8rem;
   margin-right: 0.5rem;
@@ -159,348 +169,90 @@
   border-color: var(--accent);
 }
 
-.board-quest-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+/* Toolbar: search + filter toggle */
+.board-toolbar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
-.board-quest-modal {
+.board-toolbar-search {
+  flex: 1;
+  max-width: 320px;
+  padding: 0.4rem 0.65rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  max-width: 420px;
-  max-height: 90vh;
-  width: 90%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-}
-
-.board-quest-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.board-quest-modal-header h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.board-quest-modal-close {
-  padding: 0.25rem 0.5rem;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.board-quest-modal-close:hover {
-  background: var(--bg);
   color: var(--text);
+  font-size: 0.86rem;
 }
 
-.board-quest-modal-body {
-  padding: 1rem;
-  font-size: 0.9rem;
-  overflow-y: auto;
+.board-toolbar-search:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
-.board-quest-modal-body p {
-  margin: 0 0 0.5rem;
-}
-
-.board-quest-modal-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.board-quest-modal-field input,
-.board-quest-modal-field textarea {
-  padding: 0.4rem 0.5rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-  font-size: 0.9rem;
-}
-
-.board-quest-modal-field textarea {
-  resize: vertical;
-  min-height: 4em;
-}
-
-.board-quest-modal-actions {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-
-.board-quest-modal-actions button {
-  padding: 0.45rem 0.9rem;
-  background: var(--accent);
-  border: none;
-  border-radius: var(--radius);
-  color: var(--bg);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.board-quest-modal-actions button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.board-quest-modal-desc {
-  color: var(--text-muted);
-  white-space: pre-wrap;
-}
-
-.board-quest-modal-meta {
-  margin-top: 0.75rem !important;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.board-quest-attachments {
-  margin: 0.75rem 0;
-  padding: 0.75rem 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.board-quest-notifications {
-  margin: 0.75rem 0;
-  padding: 0.6rem;
+.board-toolbar-filter-btn {
+  padding: 0.4rem 0.75rem;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-}
-
-.board-quest-notifications legend {
   color: var(--text-muted);
   font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
-.board-quest-notifications label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
-}
-
-.board-quest-comments {
-  margin: 0.75rem 0;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.board-quest-comments h4 {
-  margin: 0 0 0.5rem;
-}
-
-.board-quest-comment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin: 0 0 0.6rem;
-  padding: 0;
-  list-style: none;
-}
-
-.board-quest-comment-list li {
-  padding: 0.5rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.board-quest-comment-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-.board-quest-comment-header strong {
-  color: var(--text);
-}
-
-.board-quest-comment-header button {
-  margin-left: auto;
-  background: transparent;
-  border: none;
-  color: var(--error, #c53030);
-  cursor: pointer;
-}
-
-.board-quest-comment-list p {
-  margin: 0.35rem 0 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.board-quest-comments textarea {
-  width: 100%;
-  padding: 0.45rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  resize: vertical;
-}
-
-.board-quest-comments > button {
-  margin-top: 0.4rem;
-  padding: 0.4rem 0.7rem;
-  background: var(--accent);
-  border: none;
-  border-radius: var(--radius);
-  color: var(--bg);
-  cursor: pointer;
-}
-
-.board-quest-comment-empty,
-.board-quest-comment-error {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-.board-quest-comment-error {
-  color: var(--error, #c53030);
-}
-
-.board-quest-attachments-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.board-quest-attachments-header h4 {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.board-quest-attachment-input {
-  display: none;
-}
-
-.board-quest-attachment-upload,
-.board-quest-attachment-actions button {
-  padding: 0.3rem 0.55rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.board-quest-attachment-upload:hover,
-.board-quest-attachment-actions button:hover {
+.board-toolbar-filter-btn:hover,
+.board-toolbar-filter-btn.is-open {
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.board-quest-attachment-upload:disabled,
-.board-quest-attachment-actions button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.board-quest-attachment-hint,
-.board-quest-attachment-empty {
-  margin: 0.35rem 0 0 !important;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-}
-
-.board-quest-attachment-error {
-  margin: 0.4rem 0 0 !important;
-  color: var(--error, #c53030);
-  font-size: 0.8rem;
-  overflow-wrap: anywhere;
-}
-
-.board-quest-attachment-list {
+.board-toolbar-filters {
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0.6rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.board-quest-attachment-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.5rem;
-  background: var(--bg);
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
-.board-quest-attachment-info {
+.board-toolbar-filters label {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.board-quest-attachment-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.board-quest-attachment-meta {
+  gap: 0.25rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
-  font-size: 0.72rem;
-  overflow-wrap: anywhere;
+  font-weight: 600;
 }
 
-.board-quest-attachment-actions {
-  display: flex;
-  gap: 0.3rem;
-  flex-shrink: 0;
+.board-toolbar-filters select {
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.84rem;
+  min-width: 9rem;
 }
 
-.board-quest-attachment-actions .board-quest-attachment-delete:hover {
-  border-color: var(--error, #c53030);
-  color: var(--error, #c53030);
-}
-
-.quest-card-info {
-  padding: 0.1rem 0.35rem;
+.board-toolbar-filters-clear {
+  padding: 0.35rem 0.65rem;
   background: transparent;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   color: var(--text-muted);
   font-size: 0.8rem;
-  cursor: pointer;
-  flex-shrink: 0;
+  align-self: flex-end;
 }
 
-.quest-card-info:hover {
-  background: var(--surface);
-  color: var(--accent);
+.board-toolbar-filters-clear:hover {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .board-archive-empty {
@@ -536,8 +288,17 @@
 }
 
 .board-archive-item-title {
+  flex: 1;
+  min-width: 0;
   font-size: 1rem;
   font-weight: 600;
+}
+
+.board-archive-item-key {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .board-archive-description {
@@ -556,6 +317,11 @@
   font-size: 0.8rem;
 }
 
+.quest-card-xp {
+  font-size: 0.75rem;
+  color: var(--success);
+}
+
 @media (max-width: 700px) {
   .board-page {
     padding: 0.75rem;
@@ -570,7 +336,7 @@
   }
 
   .board-title {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
   }
 
   .board-actions {
@@ -583,6 +349,25 @@
     flex: 0 0 auto;
     justify-content: center;
     white-space: nowrap;
+  }
+
+  .board-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .board-toolbar-search {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .board-toolbar-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .board-toolbar-filters select {
+    min-width: 0;
+    width: 100%;
   }
 
   .board-meta {
@@ -599,20 +384,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .board-quest-modal {
-    width: calc(100% - 1rem);
-    max-height: calc(100dvh - 1rem);
-  }
-
-  .board-quest-modal-body {
-    padding: 0.75rem;
-  }
-
-  .board-quest-attachment-item,
-  .board-quest-attachments-header {
-    align-items: stretch;
-    flex-direction: column;
   }
 }

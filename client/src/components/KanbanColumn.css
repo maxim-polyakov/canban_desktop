@@ -2,16 +2,16 @@
   width: 100%;
   min-width: 0;
   min-height: 200px;
-  padding: 0.75rem;
-  background: var(--surface);
-  border-radius: var(--radius);
+  padding: 0.6rem;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   transition: border-color 0.15s;
 }
 
 .kanban-column-over {
   border-color: var(--accent);
-  background: rgba(122, 162, 247, 0.08);
+  background: var(--accent-soft);
 }
 
 .kanban-column-header {
@@ -192,7 +192,7 @@
   background: var(--accent);
   border: none;
   border-radius: 4px;
-  color: var(--bg);
+  color: #fff;
   font-weight: 600;
   font-size: 0.75rem;
   cursor: pointer;
@@ -270,7 +270,7 @@
 .kanban-add-actions button:first-child {
   background: var(--accent);
   border: none;
-  color: var(--bg);
+  color: #fff;
 }
 
 .kanban-add-actions button:last-child {

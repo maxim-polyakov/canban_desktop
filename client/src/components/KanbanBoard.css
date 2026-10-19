@@ -35,7 +35,7 @@
 
 .kanban-column-grip:hover {
   color: var(--accent);
-  background: rgba(100, 149, 237, 0.15);
+  background: var(--accent-soft);
 }
 
 .kanban-column-sortable .kanban-column {
@@ -110,7 +110,7 @@
   background: var(--accent);
   border: none;
   border-radius: var(--radius);
-  color: var(--bg);
+  color: #fff;
   font-weight: 600;
   cursor: pointer;
 }

@@ -1,13 +1,19 @@
 .quest-card {
-  padding: 0.6rem 0.75rem;
-  background: var(--bg);
+  padding: 0.6rem 0.7rem;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: grab;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  touch-action: none; /* необходимо для перетаскивания на мобильных */
+  gap: 0.4rem;
+  touch-action: none; /* нужно для перетаскивания на мобильных */
+}
+
+.quest-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .quest-card:active {
@@ -18,16 +24,25 @@
   opacity: 0.5;
 }
 
+.quest-card-filtered-out {
+  display: none;
+}
+
 .quest-card-top {
   display: flex;
-  align-items: flex-start;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .quest-card-title {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .quest-card-delete {
@@ -39,11 +54,52 @@
   font-size: 0.8rem;
   cursor: pointer;
   flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.quest-card:hover .quest-card-delete {
+  opacity: 1;
 }
 
 .quest-card-delete:hover {
-  background: var(--surface);
-  color: var(--error, #c53030);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.quest-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.quest-card-label-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.quest-card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.quest-card-key {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.quest-card-bottom-spacer {
+  flex: 1;
 }
 
 .quest-card-assignee-row {
@@ -59,29 +115,42 @@
   font-size: 0.72rem;
 }
 
-.quest-card-assignee-select {
-  flex: 1;
-  min-width: 0;
-  padding: 0.2rem 0.35rem;
-  font-size: 0.8rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.quest-card-assignee-select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
 .quest-card-assignee {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
 
 .quest-card-xp {
-  font-size: 0.75rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--success-soft);
   color: var(--success);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.quest-card-assignees {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.quest-card-assignees .assignee-avatar-link + .assignee-avatar-link,
+.quest-card-assignees .assignee-avatar + .assignee-avatar {
+  margin-left: -0.4rem;
+}
+
+.quest-card-unassigned {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  font-size: 0.75rem;
 }

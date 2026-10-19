@@ -1,30 +1,39 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams, useNavigate } from '../i18n/navigation.jsx';
+import { useParams, useNavigate } from '../i18n/navigation.jsx';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { boards, columns, quests, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
-import AssigneeSelect from '../components/AssigneeSelect.jsx';
-import NotificationRecipientPicker from '../components/NotificationRecipientPicker.jsx';
+import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 const ARCHIVE_COLUMN_KIND = 5;
 const DONE_COLUMN_KIND = 3;
-const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 1024;
 
-function formatFileSize(sizeBytes) {
-  if (sizeBytes < 1024) return `${sizeBytes} Б`;
-  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} КБ`;
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
-}
+const ISSUE_TYPE_FILTER_OPTIONS = [
+  { value: '', label: 'Все типы' },
+  { value: '0', label: 'Эпик' },
+  { value: '1', label: 'История' },
+  { value: '2', label: 'Задача' },
+  { value: '3', label: 'Ошибка' },
+  { value: '4', label: 'Подзадача' },
+];
+const PRIORITY_FILTER_OPTIONS = [
+  { value: '', label: 'Все приоритеты' },
+  { value: '4', label: 'Высший' },
+  { value: '3', label: 'Высокий' },
+  { value: '2', label: 'Средний' },
+  { value: '1', label: 'Низкий' },
+  { value: '0', label: 'Низший' },
+];
 
 export default function BoardPage() {
-  const { boardId } = useParams();
+  const { boardId, questId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { locale, t } = useLocalization();
+  const { t } = useLocalization();
   const [board, setBoard] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,27 +41,13 @@ export default function BoardPage() {
   const [editBoardOpen, setEditBoardOpen] = useState(false);
   const [editBoardName, setEditBoardName] = useState('');
   const [editBoardDesc, setEditBoardDesc] = useState('');
-  const [questDetailId, setQuestDetailId] = useState(null);
-  const [questDetail, setQuestDetail] = useState(null);
-  const [editQuestTitle, setEditQuestTitle] = useState('');
-  const [editQuestDescription, setEditQuestDescription] = useState('');
-  const [editQuestXpReward, setEditQuestXpReward] = useState(0);
-  const [editQuestAssigneeIds, setEditQuestAssigneeIds] = useState([]);
-  const [savingQuest, setSavingQuest] = useState(false);
   const [archiving, setArchiving] = useState(false);
-  const [attachments, setAttachments] = useState([]);
-  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
-  const [attachmentUploading, setAttachmentUploading] = useState(false);
-  const [deletingAttachmentId, setDeletingAttachmentId] = useState(null);
-  const [attachmentError, setAttachmentError] = useState('');
-  const [notificationRecipientIds, setNotificationRecipientIds] = useState([]);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [commentSaving, setCommentSaving] = useState(false);
-  const [commentError, setCommentError] = useState('');
-  const attachmentInputRef = useRef(null);
-  const questDetailIdRef = useRef(questDetailId);
-  questDetailIdRef.current = questDetailId;
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [filterAssigneeId, setFilterAssigneeId] = useState('');
+  const [filterIssueType, setFilterIssueType] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
 
   const loadBoard = useCallback(async () => {
     if (!boardId) return;
@@ -119,48 +114,26 @@ export default function BoardPage() {
     loadMembers(board.teamId);
   }, [board?.teamId, loadMembers]);
 
-  const handleMoveQuest = async (questId, targetColumnId, newOrder) => {
+  const handleMoveQuest = async (questIdMoved, targetColumnId, newOrder) => {
     const col = board?.columns?.find((c) => c.id === targetColumnId);
     const questIds = (col?.quests ?? []).map((q) => q.id);
-    const fromCol = board?.columns?.find((c) => (c.quests ?? []).some((q) => q.id === questId));
+    const fromCol = board?.columns?.find((c) => (c.quests ?? []).some((q) => q.id === questIdMoved));
     const sameColumn = fromCol?.id === targetColumnId;
     try {
       if (sameColumn) {
         const reordered = [...questIds];
-        const idx = reordered.indexOf(questId);
+        const idx = reordered.indexOf(questIdMoved);
         if (idx !== -1) {
           reordered.splice(idx, 1);
-          reordered.splice(Math.min(newOrder, reordered.length), 0, questId);
+          reordered.splice(Math.min(newOrder, reordered.length), 0, questIdMoved);
           await quests.reorder({ columnId: targetColumnId, questIdsInOrder: reordered });
         }
       } else {
-        await quests.move({ questId, targetColumnId, newOrder });
+        await quests.move({ questId: questIdMoved, targetColumnId, newOrder });
       }
       await loadBoard();
     } catch (e) {
       console.error(e);
-    }
-  };
-
-  const handleAssignQuest = async (questId, assigneeIds) => {
-    const assignees = assigneeIds
-      .map((userId) => members.find((member) => member.userId === userId))
-      .filter(Boolean);
-    setBoard((current) => current ? {
-      ...current,
-      columns: (current.columns ?? []).map((column) => ({
-        ...column,
-        quests: (column.quests ?? []).map((quest) =>
-          quest.id === questId ? { ...quest, assigneeIds, assignees } : quest),
-      })),
-    } : current);
-    try {
-      await quests.update(questId, { assigneeIds, assigneeIdsSet: true });
-      await loadBoard();
-    } catch (e) {
-      console.error(e);
-      await loadBoard();
-      window.alert(t(e.message || 'Не удалось изменить исполнителей задачи.'));
     }
   };
 
@@ -273,203 +246,53 @@ export default function BoardPage() {
     }
   };
 
-  const handleDeleteQuest = async (questId) => {
+  const handleDeleteQuest = async (questIdToDelete) => {
     if (!window.confirm(t('Удалить квест?'))) return;
     try {
-      const ok = await quests.delete(questId);
-      if (ok) { setQuestDetailId(null); setQuestDetail(null); await loadBoard(); }
+      const ok = await quests.delete(questIdToDelete);
+      if (ok) await loadBoard();
     } catch (e) {
       console.error(e);
     }
   };
 
-  useEffect(() => {
-    if (!questDetailId) { setQuestDetail(null); return; }
-    let cancelled = false;
-    quests.get(questDetailId).then((q) => {
-      if (!cancelled) {
-        setQuestDetail(q);
-        setEditQuestTitle(q?.title ?? '');
-        setEditQuestDescription(q?.description ?? '');
-        setEditQuestXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);
-        setEditQuestAssigneeIds(q?.assigneeIds ?? []);
-        setNotificationRecipientIds(q?.notificationRecipientIds ?? []);
-      }
-    }).catch(() => { if (!cancelled) setQuestDetail(null); });
-    return () => { cancelled = true; };
-  }, [questDetailId]);
-
-  useEffect(() => {
-    if (!questDetailId) {
-      setComments([]);
-      setNewComment('');
-      setCommentError('');
-      return;
-    }
-    let cancelled = false;
-    quests.getComments(questDetailId).then((list) => {
-      if (!cancelled) setComments(Array.isArray(list) ? list : []);
-    }).catch((e) => {
-      if (!cancelled) setCommentError(e.message || 'Не удалось загрузить комментарии.');
-    });
-    return () => { cancelled = true; };
-  }, [questDetailId]);
-
-  useEffect(() => {
-    if (!questDetailId) {
-      setAttachments([]);
-      setAttachmentError('');
-      return;
-    }
-    let cancelled = false;
-    setAttachmentUploading(false);
-    setDeletingAttachmentId(null);
-    setAttachmentsLoading(true);
-    setAttachmentError('');
-    quests.getAttachments(questDetailId).then((list) => {
-      if (!cancelled) setAttachments(Array.isArray(list) ? list : []);
-    }).catch((e) => {
-      if (!cancelled) {
-        setAttachments([]);
-        setAttachmentError(e.message || 'Не удалось загрузить список вложений.');
-      }
-    }).finally(() => {
-      if (!cancelled) setAttachmentsLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [questDetailId]);
-
-  const handleUploadAttachment = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file || !questDetailId) return;
-    const targetQuestId = questDetailId;
-    if (file.size > MAX_ATTACHMENT_SIZE) {
-      setAttachmentError('Размер файла не должен превышать 1 ГБ.');
-      return;
-    }
-
-    setAttachmentUploading(true);
-    setAttachmentError('');
-    try {
-      const uploaded = await quests.uploadAttachment(targetQuestId, file);
-      if (uploaded && questDetailIdRef.current === targetQuestId) {
-        setAttachments((current) => [uploaded, ...current]);
-      }
-    } catch (e) {
-      if (questDetailIdRef.current === targetQuestId) {
-        setAttachmentError(e.message || 'Не удалось загрузить файл.');
-      }
-    } finally {
-      if (questDetailIdRef.current === targetQuestId) setAttachmentUploading(false);
-    }
-  };
-
-  const handleDownloadAttachment = async (attachment) => {
-    if (!questDetailId) return;
-    const targetQuestId = questDetailId;
-    setAttachmentError('');
-    try {
-      const download = await quests.getAttachmentDownload(targetQuestId, attachment.id);
-      if (!download?.url) throw new Error('Ссылка на скачивание не получена.');
-      if (questDetailIdRef.current === targetQuestId) window.location.assign(download.url);
-    } catch (e) {
-      if (questDetailIdRef.current === targetQuestId) {
-        setAttachmentError(e.message || 'Не удалось скачать файл.');
-      }
-    }
-  };
-
-  const handleDeleteAttachment = async (attachment) => {
-    if (!questDetailId || !window.confirm(t('Удалить файл «${attachment.fileName}»?', { 'attachment.fileName': attachment.fileName }))) return;
-    const targetQuestId = questDetailId;
-    setDeletingAttachmentId(attachment.id);
-    setAttachmentError('');
-    try {
-      await quests.deleteAttachment(targetQuestId, attachment.id);
-      if (questDetailIdRef.current === targetQuestId) {
-        setAttachments((current) => current.filter((item) => item.id !== attachment.id));
-      }
-    } catch (e) {
-      if (questDetailIdRef.current === targetQuestId) {
-        setAttachmentError(e.message || 'Не удалось удалить файл.');
-      }
-    } finally {
-      if (questDetailIdRef.current === targetQuestId) setDeletingAttachmentId(null);
-    }
-  };
-
-  const handleSaveQuest = async () => {
-    if (!questDetailId) return;
-    setSavingQuest(true);
-    try {
-      const xp = Math.max(0, Math.min(9999, Number(editQuestXpReward) || 0));
-      await quests.update(questDetailId, {
-        title: editQuestTitle.trim(),
-        description: editQuestDescription.trim(),
-        xpReward: xp,
-        assigneeIds: editQuestAssigneeIds,
-        assigneeIdsSet: true,
-        notificationRecipientIds,
-      });
-      const updated = await quests.get(questDetailId);
-      setQuestDetail(updated);
-      await loadBoard();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSavingQuest(false);
-    }
-  };
-
-  const handleAddComment = async () => {
-    if (!questDetailId || !newComment.trim() || commentSaving) return;
-    setCommentSaving(true);
-    setCommentError('');
-    try {
-      const comment = await quests.addComment(questDetailId, newComment.trim());
-      if (comment) setComments((current) => [...current, comment]);
-      setNewComment('');
-    } catch (e) {
-      setCommentError(e.message || 'Не удалось добавить комментарий.');
-    } finally {
-      setCommentSaving(false);
-    }
-  };
-
-  const handleDeleteComment = async (comment) => {
-    if (!questDetailId || !window.confirm(t('Удалить комментарий?'))) return;
-    try {
-      await quests.deleteComment(questDetailId, comment.id);
-      setComments((current) => current.filter((item) => item.id !== comment.id));
-    } catch (e) {
-      setCommentError(e.message || 'Не удалось удалить комментарий.');
-    }
-  };
+  const openIssue = (id) => navigate(`/board/${boardId}/issue/${id}`);
+  const closeIssue = () => navigate(`/board/${boardId}`);
 
   if (loading) return <div className="page">Загрузка доски...</div>;
   if (error) return <div className="page">Ошибка: {error}</div>;
   if (!board) return <div className="page">Доска не найдена.</div>;
 
-  const copyTeamId = () => {
-    if (board.teamId) {
-      navigator.clipboard.writeText(board.teamId);
-    }
-  };
   const boardColumns = (board.columns ?? []).filter((column) => column.kind !== ARCHIVE_COLUMN_KIND);
   const completedQuestCount = boardColumns
     .filter((column) => column.kind === DONE_COLUMN_KIND)
     .reduce((total, column) => total + ((column.quests ?? column.Quests ?? []).length), 0);
 
+  const activeFilterCount = [searchText, filterAssigneeId, filterIssueType, filterPriority].filter(Boolean).length;
+
+  const questMatchesFilter = (quest) => {
+    if (searchText) {
+      const needle = searchText.trim().toLowerCase();
+      const haystack = `${quest.issueKey ?? ''} ${quest.title ?? ''}`.toLowerCase();
+      if (!haystack.includes(needle)) return false;
+    }
+    if (filterAssigneeId && !(quest.assigneeIds ?? []).includes(filterAssigneeId)) return false;
+    if (filterIssueType !== '' && String(quest.issueType) !== filterIssueType) return false;
+    if (filterPriority !== '' && String(quest.priority) !== filterPriority) return false;
+    return true;
+  };
+
   return (
     <div className="page board-page">
       <div className="board-header-row">
         <div>
-          <h1 className="board-title">{board.name}</h1>
+          <h1 className="board-title">
+            {board.keyPrefix && <span className="board-key-chip">{board.keyPrefix}</span>}
+            {board.name}
+          </h1>
           {board.description && <p className="board-desc">{board.description}</p>}
         </div>
         <div className="board-actions">
-          <Link to={`/board/${boardId}/archive`} className="board-btn board-btn-link">Архив</Link>
           <button
             type="button"
             className="board-btn board-btn-archive"
@@ -495,18 +318,61 @@ export default function BoardPage() {
           </div>
         </form>
       )}
-      {board.teamId && (
-        <p className="board-meta">
-          ID команды: <code className="board-id">{board.teamId}</code>
-          <button type="button" className="board-copy-id" onClick={copyTeamId} title="Скопировать">Копировать</button>
-        </p>
+
+      <div className="board-toolbar">
+        <input
+          type="text"
+          className="board-toolbar-search"
+          placeholder="Поиск по названию или ключу"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+        <button
+          type="button"
+          className={`board-toolbar-filter-btn ${filtersOpen ? 'is-open' : ''}`}
+          onClick={() => setFiltersOpen((v) => !v)}
+        >
+          Фильтры{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+        </button>
+      </div>
+      {filtersOpen && (
+        <div className="board-toolbar-filters">
+          <label>
+            Исполнитель
+            <select value={filterAssigneeId} onChange={(e) => setFilterAssigneeId(e.target.value)}>
+              <option value="">Все исполнители</option>
+              {members.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
+            </select>
+          </label>
+          <label>
+            Тип
+            <select value={filterIssueType} onChange={(e) => setFilterIssueType(e.target.value)}>
+              {ISSUE_TYPE_FILTER_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+          </label>
+          <label>
+            Приоритет
+            <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
+              {PRIORITY_FILTER_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+          </label>
+          {activeFilterCount > 0 && (
+            <button
+              type="button"
+              className="board-toolbar-filters-clear"
+              onClick={() => { setSearchText(''); setFilterAssigneeId(''); setFilterIssueType(''); setFilterPriority(''); }}
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
       )}
+
       <KanbanBoard
         boardId={boardId}
         columns={boardColumns}
         members={members}
         onMoveQuest={handleMoveQuest}
-        onAssignQuest={handleAssignQuest}
         onAddColumn={handleAddColumn}
         onColumnReorder={handleColumnReorder}
         onRefresh={loadBoard}
@@ -516,146 +382,17 @@ export default function BoardPage() {
         onRefreshColumnQuests={handleRefreshColumnQuests}
         onDeleteColumn={handleDeleteColumn}
         onDeleteQuest={handleDeleteQuest}
-        onQuestClick={setQuestDetailId}
+        onQuestClick={openIssue}
+        questFilter={activeFilterCount > 0 ? questMatchesFilter : undefined}
       />
-      {questDetailId && (
-        <div className="board-quest-modal-overlay" onClick={() => { setQuestDetailId(null); setQuestDetail(null); }}>
-          <div className="board-quest-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="board-quest-modal-header">
-              <h3>Квест</h3>
-              <button type="button" className="board-quest-modal-close" onClick={() => { setQuestDetailId(null); setQuestDetail(null); }}>✕</button>
-            </div>
-            {questDetail ? (
-              <div className="board-quest-modal-body">
-                <label className="board-quest-modal-field">
-                  Название
-                  <input value={editQuestTitle} onChange={(e) => setEditQuestTitle(e.target.value)} />
-                </label>
-                <label className="board-quest-modal-field">
-                  Описание
-                  <textarea value={editQuestDescription} onChange={(e) => setEditQuestDescription(e.target.value)} rows={3} placeholder="Описание квеста" />
-                </label>
-                <label className="board-quest-modal-field">
-                  Исполнители
-                  <AssigneeSelect
-                    value={editQuestAssigneeIds}
-                    options={members}
-                    onChange={setEditQuestAssigneeIds}
-                    placeholder="— не назначены —"
-                  />
-                </label>
-                {questDetail.dueDate && <p>Срок: {new Date(questDetail.dueDate).toLocaleDateString(locale)}</p>}
-                <fieldset className="board-quest-notifications">
-                  <legend>Email-уведомления получают</legend>
-                  <NotificationRecipientPicker
-                    members={members}
-                    selectedIds={notificationRecipientIds}
-                    onChange={setNotificationRecipientIds}
-                  />
-                </fieldset>
-                <section className="board-quest-attachments">
-                  <div className="board-quest-attachments-header">
-                    <h4>Вложения</h4>
-                    <button
-                      type="button"
-                      className="board-quest-attachment-upload"
-                      onClick={() => attachmentInputRef.current?.click()}
-                      disabled={attachmentUploading}
-                    >
-                      {attachmentUploading ? 'Загрузка…' : '+ Прикрепить файл'}
-                    </button>
-                    <input
-                      ref={attachmentInputRef}
-                      type="file"
-                      className="board-quest-attachment-input"
-                      onChange={handleUploadAttachment}
-                    />
-                  </div>
-                  <p className="board-quest-attachment-hint">Любой формат, до 1 ГБ на файл.</p>
-                  {attachmentError && <p className="board-quest-attachment-error" role="alert">{attachmentError}</p>}
-                  {attachmentsLoading ? (
-                    <p className="board-quest-attachment-empty">Загрузка вложений…</p>
-                  ) : attachments.length === 0 ? (
-                    <p className="board-quest-attachment-empty">Вложений пока нет.</p>
-                  ) : (
-                    <ul className="board-quest-attachment-list">
-                      {attachments.map((attachment) => (
-                        <li key={attachment.id} className="board-quest-attachment-item">
-                          <div className="board-quest-attachment-info">
-                            <span className="board-quest-attachment-name" title={attachment.fileName}>{attachment.fileName}</span>
-                            <span className="board-quest-attachment-meta">
-                              {formatFileSize(attachment.sizeBytes)}
-                              {attachment.uploadedByName ? ` · ${attachment.uploadedByName}` : ''}
-                              {attachment.createdAt ? ` · ${new Date(attachment.createdAt).toLocaleString(locale)}` : ''}
-                            </span>
-                          </div>
-                          <div className="board-quest-attachment-actions">
-                            <button type="button" onClick={() => handleDownloadAttachment(attachment)}>Скачать</button>
-                            <button
-                              type="button"
-                              className="board-quest-attachment-delete"
-                              onClick={() => handleDeleteAttachment(attachment)}
-                              disabled={deletingAttachmentId === attachment.id}
-                            >
-                              {deletingAttachmentId === attachment.id ? 'Удаление…' : 'Удалить'}
-                            </button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-                <section className="board-quest-comments">
-                  <h4>Комментарии</h4>
-                  {comments.length === 0 ? (
-                    <p className="board-quest-comment-empty">Комментариев пока нет.</p>
-                  ) : (
-                    <ul className="board-quest-comment-list">
-                      {comments.map((comment) => (
-                        <li key={comment.id}>
-                          <div className="board-quest-comment-header">
-                            <strong>{comment.authorName}</strong>
-                            <span>{new Date(comment.createdAt).toLocaleString(locale)}</span>
-                            {comment.authorUserId === user?.id && (
-                              <button type="button" onClick={() => handleDeleteComment(comment)}>Удалить</button>
-                            )}
-                          </div>
-                          <p>{comment.text}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value.slice(0, 5000))}
-                    placeholder="Написать комментарий"
-                    rows={3}
-                  />
-                  {commentError && <p className="board-quest-comment-error">{commentError}</p>}
-                  <button type="button" onClick={handleAddComment} disabled={commentSaving || !newComment.trim()}>
-                    {commentSaving ? 'Отправка…' : 'Добавить комментарий'}
-                  </button>
-                </section>
-                <label className="board-quest-modal-field">
-                  Опыт (XP)
-                  <input
-                    type="number"
-                    min={0}
-                    max={9999}
-                    value={editQuestXpReward}
-                    onChange={(e) => setEditQuestXpReward(Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)))}
-                  />
-                </label>
-                <p className="board-quest-modal-meta">Создан: {questDetail.createdAt ? new Date(questDetail.createdAt).toLocaleString(locale) : ''}</p>
-                <div className="board-quest-modal-actions">
-                  <button type="button" onClick={handleSaveQuest} disabled={savingQuest || !editQuestTitle.trim()}>{savingQuest ? 'Сохранение…' : 'Сохранить'}</button>
-                </div>
-              </div>
-            ) : (
-              <div className="board-quest-modal-body">Загрузка…</div>
-            )}
-          </div>
-        </div>
+
+      {questId && (
+        <IssueDetailDrawer
+          questId={questId}
+          members={members}
+          onClose={closeIssue}
+          onChanged={loadBoard}
+        />
       )}
     </div>
   );

@@ -39,7 +39,7 @@ function SortableColumn({ column, onColumnReorder, children }) {
   );
 }
 
-export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAssignQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick }) {
+export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick, questFilter }) {
   const { t } = useLocalization();
   const [activeId, setActiveId] = useState(null);
   const [newQuestColumnId, setNewQuestColumnId] = useState(null);
@@ -209,13 +209,13 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                     creatingQuest={creatingQuest}
                     onSubmitNewQuest={() => handleAddQuest(col.id)}
                     onCancelAdd={handleCancelAddQuest}
-                    onAssignQuest={onAssignQuest}
                     onUpdateColumn={onUpdateColumn}
                     onUpdateColumnKind={onUpdateColumnKind}
                     onRefreshColumn={onRefreshColumn}
                     onDeleteColumn={onDeleteColumn}
                     onDeleteQuest={onDeleteQuest}
                     onQuestClick={onQuestClick}
+                    questFilter={questFilter}
                   />
                 </SortableContext>
               </SortableColumn>

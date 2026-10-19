@@ -279,7 +279,7 @@ export default function BacklogPage() {
   const toggleSelected = (id, checked) => setSelectedIds((current) => checked ? [...new Set([...current, id])] : current.filter((value) => value !== id));
   const applyBulk = async (fields) => {
     try {
-      await bulk.update({ questIds: selectedIds, fields });
+      await bulk.update(boardId, selectedIds, fields);
       setSelectedIds([]);
       await loadAll();
     } catch (e) { window.alert(t(e.message || 'Не удалось выполнить массовое изменение.')); }

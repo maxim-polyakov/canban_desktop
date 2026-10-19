@@ -14,6 +14,8 @@ import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/
 import './IssueDetailDrawer.css';
 
 const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 1024;
+const LINK_TYPE_LABELS = ['блокирует', 'зависит от', 'дублирует', 'связана с'];
+const DEVELOPMENT_ICONS = { pull_request: 'PR', branch: '⑂', commit: '●', check_run: '✓' };
 const ISSUE_TYPE_OPTIONS = [
   { value: 0, label: 'Эпик' },
   { value: 1, label: 'История' },
@@ -78,13 +80,17 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [worklogList, setWorklogList] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [development, setDevelopment] = useState(null);
+  const [developmentSyncing, setDevelopmentSyncing] = useState(false);
+  const developmentItems = development
+    ? [...(development.pullRequests || []), ...(development.branches || []), ...(development.commits || []), ...(development.checks || [])]
+    : [];
   const [componentOptions, setComponentOptions] = useState([]);
   const [releaseOptions, setReleaseOptions] = useState([]);
   const [worklogMinutes, setWorklogMinutes] = useState('');
   const [originalEstimate, setOriginalEstimate] = useState('');
   const [remainingEstimate, setRemainingEstimate] = useState('');
   const [linkQuestId, setLinkQuestId] = useState('');
-  const [linkType, setLinkType] = useState('relates');
+  const [linkType, setLinkType] = useState(3);
   const [auxError, setAuxError] = useState('');
   const [descriptionPreview, setDescriptionPreview] = useState(false);
 
@@ -142,7 +148,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     setAuxError('');
     Promise.allSettled([
       workflows.getTransitions(questId), questHierarchy.get(questId), questLinks.get(questId),
-      worklogs.get(questId), historyApi.get(questId, { limit: 100 }), integrations.getDevelopment(questId),
+      worklogs.get(questId), historyApi.get(questId), integrations.getDevelopment(questId),
     ]).then(([transitionResult, hierarchyResult, linkResult, worklogResult, historyResult, developmentResult]) => {
       if (transitionResult.status === 'fulfilled') setTransitions(transitionResult.value || []);
       if (hierarchyResult.status === 'fulfilled') setHierarchy(hierarchyResult.value);
@@ -379,9 +385,17 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     } catch (e) { setAuxError(e.message); }
   };
 
+  const handleSyncDevelopment = async () => {
+    setDevelopmentSyncing(true);
+    setAuxError('');
+    try {
+      setDevelopment(await integrations.syncDevelopment(questId));
+    } catch (e) { setAuxError(e.message); } finally { setDevelopmentSyncing(false); }
+  };
+
   const handleClone = async () => {
     try {
-      const cloned = await cloneApi.quest(questId, { includeAttachments: false, includeLinks: false });
+      const cloned = await cloneApi.quest(questId, { includeLinks: false, includeWatchers: true });
       window.alert(t('Задача клонирована: ${issueKey}', { issueKey: cloned.issueKey || cloned.id }));
       onChanged?.();
     } catch (e) { setAuxError(e.message); }
@@ -426,7 +440,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                 <span>{t('Workflow переход')}</span>
                 <select defaultValue="" onChange={(e) => { handleTransition(e.target.value); e.target.value = ''; }}>
                   <option value="" disabled>{t('Выберите переход…')}</option>
-                  {transitions.map((transition) => <option key={transition.id} value={transition.id}>{transition.name} → {transition.toStatusName}</option>)}
+                  {transitions.map((transition) => <option key={transition.id} value={transition.id}>{transition.name} → {columns.find((column) => column.id === transition.targetColumnId)?.title || ''}</option>)}
                 </select>
               </label>
             )}
@@ -592,20 +606,24 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
             <section className="issue-drawer-section">
               <h4>{t('Связи задач')}</h4>
               <form className="issue-drawer-inline-form" onSubmit={handleAddLink}>
-                <select value={linkType} onChange={(e) => setLinkType(e.target.value)}><option value="relates">{t('связана с')}</option><option value="blocks">{t('блокирует')}</option><option value="duplicates">{t('дублирует')}</option></select>
+                <select value={linkType} onChange={(e) => setLinkType(Number(e.target.value))}>{LINK_TYPE_LABELS.map((label, index) => <option key={label} value={index}>{t(label)}</option>)}</select>
                 <input value={linkQuestId} onChange={(e) => setLinkQuestId(e.target.value)} placeholder={t('ID связанной задачи')} />
                 <button type="submit">{t('Добавить')}</button>
               </form>
-              <ul className="issue-drawer-compact-list">{links.map((link) => <li key={link.id}>⛓ {link.type || link.linkType} · {link.targetIssueKey || link.targetQuestId}</li>)}</ul>
+              <ul className="issue-drawer-compact-list">{links.map((link) => <li key={link.id}>⛓ {t(LINK_TYPE_LABELS[link.type] || 'связана с')} · <strong>{link.targetKey || link.targetQuestId}</strong> {link.targetTitle || ''}</li>)}</ul>
             </section>
 
             <section className="issue-drawer-section">
-              <h4>{t('Разработка GitHub')}</h4>
-              {!development ? <p className="issue-drawer-empty">{t('Связанные ветки, коммиты и pull request не найдены.')}</p> : (
+              <div className="issue-drawer-section-header">
+                <h4>{t('Разработка GitHub')}</h4>
+                <button type="button" onClick={handleSyncDevelopment} disabled={developmentSyncing}>{developmentSyncing ? '…' : t('Синхронизировать')}</button>
+              </div>
+              {developmentItems.length === 0 ? <p className="issue-drawer-empty">{t('Связанные ветки, коммиты и pull request не найдены.')}</p> : (
                 <ul className="issue-drawer-compact-list">
-                  {(development.branches || []).map((item) => <li key={item.url || item.name}>⑂ {item.name}</li>)}
-                  {(development.commits || []).map((item) => <li key={item.sha}>● {item.message}</li>)}
-                  {(development.pullRequests || []).map((item) => <li key={item.url}>PR {item.number}: {item.title}</li>)}
+                  {developmentItems.map((item) => <li key={item.id}>
+                    {DEVELOPMENT_ICONS[item.kind] || '•'} {item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
+                    {item.status ? ` · ${item.status}` : ''}
+                  </li>)}
                 </ul>
               )}
             </section>
@@ -629,7 +647,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
 
             <section className="issue-drawer-section">
               <h4>{t('История изменений')}</h4>
-              {historyItems.length === 0 ? <p className="issue-drawer-empty">{t('История пока пуста.')}</p> : <ul className="issue-drawer-compact-list">{historyItems.map((item, index) => <li key={item.id || index}><strong>{item.authorName}</strong> {item.field || item.action}: {item.fromValue ? `${item.fromValue} → ` : ''}{item.toValue || ''}</li>)}</ul>}
+              {historyItems.length === 0 ? <p className="issue-drawer-empty">{t('История пока пуста.')}</p> : <ul className="issue-drawer-compact-list">{historyItems.map((item, index) => <li key={item.id || index}><strong>{item.userName || t('Система')}</strong> {item.field || item.changeType}: {item.oldValue ? `${item.oldValue} → ` : ''}{item.newValue || ''}</li>)}</ul>}
             </section>
 
             <section className="issue-drawer-section">

@@ -280,7 +280,7 @@ export default function BoardPage() {
   const toggleQuestSelection = (id, checked) => setSelectedQuestIds((current) => checked ? [...new Set([...current, id])] : current.filter((value) => value !== id));
   const applyBulkUpdate = async (fields) => {
     try {
-      await bulk.update({ questIds: selectedQuestIds, fields });
+      await bulk.update(boardId, selectedQuestIds, fields);
       setSelectedQuestIds([]);
       await loadBoard();
     } catch (e) { window.alert(t(e.message || 'Не удалось выполнить массовое изменение.')); }

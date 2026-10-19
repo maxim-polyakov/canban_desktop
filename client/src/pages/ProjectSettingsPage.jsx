@@ -1,15 +1,41 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from '../i18n/navigation.jsx';
 import {
-  automations, components, integrations, permissions, releases, workflows,
+  automations, boards, components, integrations, permissions, releases, workflows,
 } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import './JiraPages.css';
 
+export const AUTOMATION_TRIGGERS = ['IssueCreated', 'IssueUpdated', 'IssueMoved', 'WorkLogged', 'SprintChanged', 'WebhookReceived'];
+export const WEBHOOK_EVENTS = ['IssueCreated', 'IssueUpdated', 'IssueMoved', 'WorkLogged', 'WebhookReceived'];
+const PERMISSION_LABELS = ['Просмотр', 'Работа', 'Управление', 'Администрирование'];
+const RELEASE_STATUS_LABELS = ['Запланирован', 'Выпущен', 'В архиве'];
+const DEFAULT_SECRET_KEY = 'GitHub:WebhookSecret';
+
+export function parseRepository(value) {
+  const cleaned = String(value || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+  const [owner, name, ...rest] = cleaned.split('/');
+  if (!owner || !name || rest.length) return null;
+  return { repositoryOwner: owner, repositoryName: name };
+}
+
 const CONFIG = {
-  components: { title: 'Компоненты', api: components, create: (api, boardId, data) => api.create(boardId, data), fields: ['name', 'description', 'leadUserId'] },
-  releases: { title: 'Релизы', api: releases, create: (api, boardId, data) => api.create(boardId, data), fields: ['name', 'description', 'releaseDate'] },
-  automations: { title: 'Правила автоматизации', api: automations, create: (api, boardId, data) => api.create(boardId, data), fields: ['name', 'trigger', 'action'] },
+  components: {
+    title: 'Компоненты',
+    fields: [{ name: 'name', required: true }, { name: 'description' }],
+    load: (boardId) => components.getByBoard(boardId),
+    create: (boardId, form) => components.create(boardId, { name: form.name, description: form.description || null }),
+    remove: (boardId, item) => components.delete(item.id),
+  },
+  releases: {
+    title: 'Релизы',
+    fields: [{ name: 'name', required: true }, { name: 'description' }, { name: 'releaseDate', type: 'date' }],
+    load: (boardId) => releases.getByBoard(boardId),
+    create: (boardId, form) => releases.create(boardId, {
+      name: form.name, description: form.description || null, releaseDate: form.releaseDate ? new Date(form.releaseDate).toISOString() : null,
+    }),
+    remove: (boardId, item) => releases.delete(item.id),
+  },
 };
 
 function ListSettings({ mode, boardId }) {
@@ -22,31 +48,32 @@ function ListSettings({ mode, boardId }) {
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const result = await config.api.getByBoard(boardId);
-      setItems(Array.isArray(result) ? result : result?.items || []);
+      const result = await config.load(boardId);
+      setItems(Array.isArray(result) ? result : []);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   }, [boardId, config]);
   useEffect(() => { load(); }, [load]);
-  const submit = async (event) => {
-    event.preventDefault();
-    try { await config.create(config.api, boardId, form); setForm({}); await load(); } catch (e) { setError(e.message); }
+  const act = async (action) => {
+    setError('');
+    try { await action(); await load(); } catch (e) { setError(e.message); }
   };
   return (
     <>
       <div className="jira-header"><h1>{t(config.title)}</h1></div>
-      <form className="jira-toolbar" onSubmit={submit}>
-        {config.fields.map((field) => <input key={field} required={field === 'name'} type={field.endsWith('Date') ? 'date' : 'text'} value={form[field] || ''} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder={t(field)} aria-label={t(field)} />)}
+      <form className="jira-toolbar" onSubmit={(e) => { e.preventDefault(); act(async () => { await config.create(boardId, form); setForm({}); }); }}>
+        {config.fields.map((field) => <input key={field.name} required={field.required} type={field.type || 'text'} value={form[field.name] || ''} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })} placeholder={t(field.name)} aria-label={t(field.name)} />)}
         <button className="jira-button jira-button-primary" type="submit">{t('Создать')}</button>
       </form>
       {error && <p className="jira-error">{error}</p>}
       {loading ? <div className="jira-state">{t('Загрузка...')}</div> : items.length === 0 ? <div className="jira-state">{t('Данных пока нет.')}</div> : (
         <div className="jira-grid">{items.map((item) => <article className="jira-card" key={item.id}>
-          <div className="jira-card-header"><h2>{item.name}</h2><button className="jira-button jira-button-danger" type="button" onClick={async () => { await config.api.delete(item.id); load(); }}>{t('Удалить')}</button></div>
-          <p>{item.description || item.trigger || t('Без описания')}</p>
-          {mode === 'releases' && <p>{t('Дата релиза')}: {item.releaseDate ? new Date(item.releaseDate).toLocaleDateString() : '—'} · {item.status || t('Запланирован')}</p>}
-          {mode === 'automations' && <div className="jira-actions">
-            <span>{item.enabled === false ? t('Выключено') : t('Включено')}</span>
-            <button className="jira-button" type="button" onClick={() => config.api.run(item.id)}>{t('Запустить')}</button>
+          <div className="jira-card-header"><h2>{item.name}</h2>
+            <button className="jira-button jira-button-danger" type="button" onClick={() => { if (window.confirm(t('Удалить?'))) act(() => config.remove(boardId, item)); }}>{t('Удалить')}</button>
+          </div>
+          <p>{item.description || t('Без описания')}</p>
+          {mode === 'releases' && <div className="jira-actions">
+            <span>{t('Дата релиза')}: {item.releaseDate ? new Date(item.releaseDate).toLocaleDateString() : '—'} · {t(RELEASE_STATUS_LABELS[item.status] || 'Запланирован')}</span>
+            {item.status === 0 && <button className="jira-button" type="button" onClick={() => act(() => releases.release(item.id))}>{t('Выпустить')}</button>}
           </div>}
         </article>)}</div>
       )}
@@ -54,50 +81,187 @@ function ListSettings({ mode, boardId }) {
   );
 }
 
-function JsonSettings({ mode, boardId }) {
+function AutomationSettings({ boardId }) {
   const { t } = useLocalization();
-  const definition = useMemo(() => ({
-    workflow: { title: 'Редактор workflow', load: () => workflows.getByBoard(boardId), save: (data) => workflows.save(boardId, data) },
-    permissions: { title: 'Разрешения проекта', load: () => permissions.getByBoard(boardId), save: (data) => permissions.save(boardId, data) },
-  })[mode], [boardId, mode]);
-  const [text, setText] = useState('');
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState({ name: '', trigger: 0, actionsJson: '[{"type":"addLabel","value":"auto"}]' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    setLoading(true);
-    definition.load().then((data) => setText(JSON.stringify(data, null, 2))).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }, [definition]);
-  const save = async () => {
-    try { setError(''); await definition.save(JSON.parse(text)); } catch (e) { setError(e.message || t('Некорректный JSON')); }
+  const [status, setStatus] = useState('');
+  const load = useCallback(() => automations.getByBoard(boardId).then((list) => setItems(Array.isArray(list) ? list : [])).catch((e) => setError(e.message)), [boardId]);
+  useEffect(() => { load(); }, [load]);
+  const act = async (action) => {
+    setError(''); setStatus('');
+    try { await action(); await load(); } catch (e) { setError(e.message); }
+  };
+  const submit = (e) => {
+    e.preventDefault();
+    act(async () => {
+      JSON.parse(form.actionsJson);
+      await automations.create(boardId, { name: form.name, trigger: Number(form.trigger), actionsJson: form.actionsJson, enabled: true });
+      setForm({ ...form, name: '' });
+    });
+  };
+  const run = (rule) => {
+    const input = window.prompt(t('Ключи задач через запятую, например KAN-1, KAN-2'));
+    if (!input) return;
+    act(async () => {
+      const result = await automations.run(boardId, rule.id, input.split(/[\s,;]+/).filter(Boolean));
+      setStatus(t('Правило применено к задачам: ${count}', { count: result.appliedCount }) + (result.notFound?.length ? ` · ${t('Не найдены')}: ${result.notFound.join(', ')}` : ''));
+    });
+  };
+  const toggle = (rule) => act(() => automations.update(boardId, rule.id, {
+    name: rule.name, trigger: rule.trigger, conditionsJson: rule.conditionsJson, actionsJson: rule.actionsJson, enabled: !rule.enabled,
+  }));
+  return <>
+    <div className="jira-header"><h1>{t('Правила автоматизации')}</h1></div>
+    <form className="jira-card jira-form" onSubmit={submit}>
+      <label>{t('Название')}<input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+      <label>{t('Триггер')}<select value={form.trigger} onChange={(e) => setForm({ ...form, trigger: e.target.value })}>
+        {AUTOMATION_TRIGGERS.map((name, index) => <option key={name} value={index}>{name}</option>)}
+      </select></label>
+      <label>{t('Действия (JSON)')}<textarea value={form.actionsJson} onChange={(e) => setForm({ ...form, actionsJson: e.target.value })} /></label>
+      <p>{t('Доступные действия')}: {'{"type":"setPriority","value":"High"}'}, {'{"type":"addLabel","value":"..."}'}, {'{"type":"move","columnId":"..."}'}</p>
+      <button className="jira-button jira-button-primary" type="submit">{t('Создать')}</button>
+    </form>
+    {error && <p className="jira-error">{error}</p>}{status && <p className="jira-card">{status}</p>}
+    <div className="jira-grid">{items.map((rule) => <article className="jira-card" key={rule.id}>
+      <div className="jira-card-header"><h2>{rule.name}</h2>
+        <button className="jira-button jira-button-danger" type="button" onClick={() => { if (window.confirm(t('Удалить?'))) act(() => automations.delete(boardId, rule.id)); }}>{t('Удалить')}</button>
+      </div>
+      <p>{AUTOMATION_TRIGGERS[rule.trigger] || rule.trigger} · <code>{rule.actionsJson}</code></p>
+      <div className="jira-actions">
+        <button className="jira-button" type="button" onClick={() => toggle(rule)}>{rule.enabled ? t('Выключить') : t('Включить')}</button>
+        <button className="jira-button" type="button" onClick={() => run(rule)}>{t('Запустить')}</button>
+      </div>
+    </article>)}</div>
+  </>;
+}
+
+function WorkflowSettings({ boardId }) {
+  const { t } = useLocalization();
+  const [columns, setColumns] = useState([]);
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState({ name: '', sourceColumnId: '', targetColumnId: '' });
+  const [error, setError] = useState('');
+  const load = useCallback(async () => {
+    try {
+      const [board, list] = await Promise.all([boards.getById(boardId), workflows.getByBoard(boardId)]);
+      setColumns(board?.columns || []);
+      setItems(Array.isArray(list) ? list : []);
+    } catch (e) { setError(e.message); }
+  }, [boardId]);
+  useEffect(() => { load(); }, [load]);
+  const columnTitle = (id) => columns.find((column) => column.id === id)?.title || '?';
+  const submit = async (e) => {
+    e.preventDefault(); setError('');
+    try {
+      await workflows.save(boardId, { ...form, enabled: true });
+      setForm({ name: '', sourceColumnId: '', targetColumnId: '' });
+      await load();
+    } catch (err) { setError(err.message); }
   };
   return <>
-    <div className="jira-header"><h1>{t(definition.title)}</h1><button className="jira-button jira-button-primary" type="button" onClick={save}>{t('Сохранить')}</button></div>
+    <div className="jira-header"><h1>{t('Редактор workflow')}</h1></div>
+    <p>{t('Если переходов нет, задачи можно перемещать между любыми колонками.')}</p>
+    <form className="jira-toolbar" onSubmit={submit}>
+      <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('Название перехода')} />
+      <select required value={form.sourceColumnId} onChange={(e) => setForm({ ...form, sourceColumnId: e.target.value })}>
+        <option value="">{t('Из колонки')}</option>{columns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+      </select>
+      <select required value={form.targetColumnId} onChange={(e) => setForm({ ...form, targetColumnId: e.target.value })}>
+        <option value="">{t('В колонку')}</option>{columns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+      </select>
+      <button className="jira-button jira-button-primary" type="submit">{t('Добавить')}</button>
+    </form>
     {error && <p className="jira-error">{error}</p>}
-    {loading ? <div className="jira-state">{t('Загрузка...')}</div> : <div className="jira-card"><textarea aria-label={t('Конфигурация')} style={{ width: '100%', minHeight: 480 }} value={text} onChange={(e) => setText(e.target.value)} /></div>}
+    <ul className="jira-link-list">{items.map((item) => <li key={item.id}>{item.name}: {columnTitle(item.sourceColumnId)} → {columnTitle(item.targetColumnId)}</li>)}</ul>
+  </>;
+}
+
+function PermissionSettings({ boardId }) {
+  const { t } = useLocalization();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+  useEffect(() => { permissions.getByBoard(boardId).then(setData).catch((e) => setError(e.message)); }, [boardId]);
+  return <>
+    <div className="jira-header"><h1>{t('Разрешения проекта')}</h1></div>
+    {error && <p className="jira-error">{error}</p>}
+    {data && <>
+      <p>{t('Ваш уровень доступа')}: <strong>{t(PERMISSION_LABELS[data.currentPermission])}</strong>. {t('Роли участников меняются в настройках команды.')}</p>
+      <div className="jira-table-wrap"><table className="jira-table"><thead><tr><th>{t('Участник')}</th><th>Email</th><th>{t('Доступ')}</th></tr></thead>
+        <tbody>{data.members.map((member) => <tr key={member.userId}>
+          <td>{member.displayName || '—'}{member.isOwner ? ` (${t('владелец')})` : ''}</td><td>{member.email || '—'}</td><td>{t(PERMISSION_LABELS[member.permission])}</td>
+        </tr>)}</tbody></table></div>
+    </>}
   </>;
 }
 
 function Integrations({ boardId }) {
   const { t } = useLocalization();
-  const [data, setData] = useState({});
+  const [data, setData] = useState({ github: [], webhooks: [] });
   const [repository, setRepository] = useState('');
-  const [webhookUrl, setWebhookUrl] = useState('');
+  const [secretKey, setSecretKey] = useState(DEFAULT_SECRET_KEY);
+  const [installationId, setInstallationId] = useState('');
+  const [webhook, setWebhook] = useState({ url: '', secretConfigurationKey: '', events: ['IssueCreated', 'IssueUpdated', 'IssueMoved'] });
   const [error, setError] = useState('');
   const load = useCallback(() => integrations.getByBoard(boardId).then(setData).catch((e) => setError(e.message)), [boardId]);
   useEffect(() => { load(); }, [load]);
+  const act = async (action) => {
+    setError('');
+    try { await action(); await load(); } catch (e) { setError(e.message); }
+  };
+  const saveGithub = (e) => {
+    e.preventDefault();
+    const parsed = parseRepository(repository);
+    if (!parsed) { setError(t('Укажите репозиторий в формате owner/repository')); return; }
+    act(async () => {
+      await integrations.saveGithub(boardId, {
+        ...parsed, installationId: Number(installationId) || 0, webhookSecretConfigurationKey: secretKey.trim(), enabled: true,
+      });
+      setRepository(''); setInstallationId('');
+    });
+  };
+  const saveWebhook = (e) => {
+    e.preventDefault();
+    act(async () => {
+      await integrations.createWebhook(boardId, { url: webhook.url.trim(), secretConfigurationKey: webhook.secretConfigurationKey.trim(), events: webhook.events.join(','), enabled: true });
+      setWebhook({ ...webhook, url: '' });
+    });
+  };
+  const toggleEvent = (name) => setWebhook((current) => ({
+    ...current, events: current.events.includes(name) ? current.events.filter((e) => e !== name) : [...current.events, name],
+  }));
   return <>
     <div className="jira-header"><h1>{t('Интеграции GitHub и webhooks')}</h1></div>
     {error && <p className="jira-error">{error}</p>}
     <div className="jira-grid">
-      <form className="jira-card jira-form" onSubmit={async (e) => { e.preventDefault(); await integrations.saveGithub(boardId, { repository }); setRepository(''); load(); }}>
-        <h2>GitHub</h2><label>{t('Репозиторий')}<input required value={repository} onChange={(e) => setRepository(e.target.value)} placeholder="owner/repository" /></label>
+      <form className="jira-card jira-form" onSubmit={saveGithub}>
+        <h2>GitHub</h2>
+        <p>{data.githubAppConfigured ? t('GitHub App настроена на сервере: Installation ID определится автоматически.') : t('GitHub App не настроена на сервере: доступен только приём webhook-событий.')}</p>
+        <label>{t('Репозиторий')}<input required value={repository} onChange={(e) => setRepository(e.target.value)} placeholder="owner/repository" /></label>
+        <label>{t('Ключ секрета webhook в конфигурации сервера')}<input required value={secretKey} onChange={(e) => setSecretKey(e.target.value)} /></label>
+        {!data.githubAppConfigured && <label>Installation ID<input type="number" min="0" value={installationId} onChange={(e) => setInstallationId(e.target.value)} /></label>}
         <button className="jira-button jira-button-primary" type="submit">{t('Подключить')}</button>
-        <p>{data.github?.repository || t('Репозиторий не подключён.')}</p>
+        {(data.github || []).length === 0 ? <p>{t('Репозиторий не подключён.')}</p> : <ul className="jira-link-list">{data.github.map((item) => <li key={item.id}>
+          <div className="jira-card-header">
+            <a href={`https://github.com/${item.repositoryOwner}/${item.repositoryName}`} target="_blank" rel="noreferrer">{item.repositoryOwner}/{item.repositoryName}</a>
+            <button className="jira-button jira-button-danger" type="button" onClick={() => { if (window.confirm(t('Отключить репозиторий?'))) act(() => integrations.deleteGithub(boardId, item.id)); }}>{t('Отключить')}</button>
+          </div>
+          <small>Installation ID: {item.installationId || '—'} · {item.webhookSecretConfigurationKey}</small>
+        </li>)}</ul>}
       </form>
-      <form className="jira-card jira-form" onSubmit={async (e) => { e.preventDefault(); await integrations.createWebhook(boardId, { url: webhookUrl, events: ['quest.updated'] }); setWebhookUrl(''); load(); }}>
-        <h2>Webhooks</h2><label>URL<input required type="url" value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} /></label>
-        <button className="jira-button jira-button-primary" type="submit">{t('Добавить')}</button>
-        <ul className="jira-link-list">{(data.webhooks || []).map((hook) => <li key={hook.id}>{hook.url}</li>)}</ul>
+      <form className="jira-card jira-form" onSubmit={saveWebhook}>
+        <h2>Webhooks</h2>
+        <label>HTTPS URL<input required type="url" pattern="https://.*" value={webhook.url} onChange={(e) => setWebhook({ ...webhook, url: e.target.value })} /></label>
+        <label>{t('Ключ секрета подписи в конфигурации сервера')}<input required value={webhook.secretConfigurationKey} onChange={(e) => setWebhook({ ...webhook, secretConfigurationKey: e.target.value })} placeholder="Webhooks:MySecret" /></label>
+        <fieldset className="jira-actions">{WEBHOOK_EVENTS.map((name) => <label key={name}><input type="checkbox" checked={webhook.events.includes(name)} onChange={() => toggleEvent(name)} /> {name}</label>)}</fieldset>
+        <button className="jira-button jira-button-primary" type="submit" disabled={!webhook.events.length}>{t('Добавить')}</button>
+        <ul className="jira-link-list">{(data.webhooks || []).map((hook) => <li key={hook.id}>
+          <div className="jira-card-header"><span>{hook.url}</span>
+            <button className="jira-button jira-button-danger" type="button" onClick={() => act(() => integrations.deleteWebhook(boardId, hook.id))}>{t('Удалить')}</button>
+          </div>
+          <small>{hook.events}</small>
+        </li>)}</ul>
       </form>
     </div>
   </>;
@@ -105,7 +269,11 @@ function Integrations({ boardId }) {
 
 export default function ProjectSettingsPage({ mode }) {
   const { boardId } = useParams();
-  return <div className="page jira-page">
-    {CONFIG[mode] ? <ListSettings mode={mode} boardId={boardId} /> : mode === 'integrations' ? <Integrations boardId={boardId} /> : <JsonSettings mode={mode} boardId={boardId} />}
-  </div>;
+  let content;
+  if (CONFIG[mode]) content = <ListSettings mode={mode} boardId={boardId} />;
+  else if (mode === 'automations') content = <AutomationSettings boardId={boardId} />;
+  else if (mode === 'integrations') content = <Integrations boardId={boardId} />;
+  else if (mode === 'permissions') content = <PermissionSettings boardId={boardId} />;
+  else content = <WorkflowSettings boardId={boardId} />;
+  return <div className="page jira-page">{content}</div>;
 }

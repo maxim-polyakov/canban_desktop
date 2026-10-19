@@ -68,26 +68,13 @@ public sealed class OutboxDispatcher : BackgroundService
             "IssueMoved" => AutomationTrigger.IssueMoved, "WorkLogged" => AutomationTrigger.WorkLogged,
             "SprintChanged" => AutomationTrigger.SprintChanged, _ => AutomationTrigger.WebhookReceived
         };
+        if (!payload.RootElement.TryGetProperty("questId", out var questValue) || !Guid.TryParse(questValue.ToString(), out var questId)) return;
         var rules = await db.AutomationRules.Where(x => x.BoardId == boardId && x.Enabled && x.Trigger == trigger).ToListAsync(ct);
+        if (rules.Count == 0) return;
+        var quest = await db.Quests.FirstOrDefaultAsync(q => q.Id == questId && q.BoardId == boardId, ct);
+        if (quest == null) return;
         foreach (var rule in rules)
-        {
-            using var actions = JsonDocument.Parse(rule.ActionsJson);
-            foreach (var action in actions.RootElement.EnumerateArray())
-            {
-                if (!payload.RootElement.TryGetProperty("questId", out var questValue) || !Guid.TryParse(questValue.ToString(), out var questId)) continue;
-                var quest = await db.Quests.FirstOrDefaultAsync(q => q.Id == questId && q.BoardId == boardId, ct); if (quest == null) continue;
-                var type = action.TryGetProperty("type", out var t) ? t.GetString() : null;
-                if (type == "setPriority" && action.TryGetProperty("value", out var p) && Enum.TryParse<IssuePriority>(p.GetString(), true, out var priority)) quest.Priority = priority;
-                if (type == "addLabel" && action.TryGetProperty("value", out var l))
-                {
-                    var labels = quest.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-                    if (!labels.Contains(l.GetString() ?? "", StringComparer.OrdinalIgnoreCase)) labels.Add(l.GetString() ?? "");
-                    quest.Labels = string.Join(',', labels);
-                }
-                if (type == "move" && action.TryGetProperty("columnId", out var c) && Guid.TryParse(c.ToString(), out var columnId)
-                    && await db.Columns.AnyAsync(x => x.Id == columnId && x.BoardId == boardId, ct)) quest.ColumnId = columnId;
-            }
-        }
+            await AutomationActions.ApplyAsync(db, rule, quest, ct);
     }
 
     private async Task DeliverWebhooksAsync(CanbanDbContext db, OutboxMessage message, CancellationToken ct)

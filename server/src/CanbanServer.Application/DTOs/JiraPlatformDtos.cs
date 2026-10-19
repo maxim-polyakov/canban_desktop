@@ -30,7 +30,13 @@ public record OutboundWebhookDto(Guid Id, Guid BoardId, string Url, string Secre
 public record UpsertOutboundWebhookRequest(string Url, string SecretConfigurationKey, string Events, bool Enabled = true);
 public record GitHubIntegrationDto(Guid Id, Guid BoardId, long InstallationId, string RepositoryOwner, string RepositoryName, string WebhookSecretConfigurationKey, bool Enabled);
 public record UpsertGitHubIntegrationRequest(long InstallationId, string RepositoryOwner, string RepositoryName, string WebhookSecretConfigurationKey, bool Enabled = true);
-public record DevelopmentLinkDto(Guid Id, Guid QuestId, string Kind, string ExternalId, string Url, string Title, string? Status);
+public record DevelopmentLinkDto(Guid Id, Guid QuestId, string Kind, string ExternalId, string Url, string Title, string? Status, DateTime UpdatedAt);
+public record DevelopmentSummaryDto(List<DevelopmentLinkDto> Branches, List<DevelopmentLinkDto> Commits, List<DevelopmentLinkDto> PullRequests, List<DevelopmentLinkDto> Checks);
+public record RunAutomationRequest(List<string> IssueKeys);
+public record RunAutomationResult(int AppliedCount, List<string> NotFound);
+public record BulkDeleteQuestsRequest(List<Guid> QuestIds);
+public record BoardPermissionsDto(Guid BoardId, BoardPermission CurrentPermission, List<BoardMemberPermissionDto> Members);
+public record BoardMemberPermissionDto(Guid UserId, string? DisplayName, string? Email, TeamRole? Role, bool IsOwner, BoardPermission Permission);
 
 public record BulkEditQuestsRequest(List<Guid> QuestIds, Guid? SprintId = null, bool SprintIdSet = false, Guid? ColumnId = null, List<Guid>? AssigneeIds = null, bool AssigneeIdsSet = false, string? Labels = null, IssuePriority? Priority = null, IssueType? IssueType = null);
 public record BulkEditResult(int UpdatedCount);

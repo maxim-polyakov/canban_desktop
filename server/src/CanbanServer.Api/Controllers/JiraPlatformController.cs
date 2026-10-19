@@ -17,17 +17,20 @@ public class JiraPlatformController : ControllerBase
     private readonly IJqlQueryService _jql;
     private readonly IProjectAccessService _access;
     private readonly CanbanDbContext _db;
+    private readonly IQuestService _quests;
 
     public JiraPlatformController(
         IJiraPlatformService jira,
         IJqlQueryService jql,
         IProjectAccessService access,
-        CanbanDbContext db)
+        CanbanDbContext db,
+        IQuestService quests)
     {
         _jira = jira;
         _jql = jql;
         _access = access;
         _db = db;
+        _quests = quests;
     }
 
     private Guid RequireUser() => User.GetUserId() ?? throw new UnauthorizedAccessException();
@@ -57,6 +60,46 @@ public class JiraPlatformController : ControllerBase
     {
         await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
         return await _jira.DeleteTransitionAsync(boardId, id, ct) ? NoContent() : NotFound();
+    }
+
+    [HttpGet("workflows/quests/{questId:guid}/transitions")]
+    public async Task<ActionResult> GetQuestTransitions(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        var quest = await _db.Quests.AsNoTracking().FirstAsync(q => q.Id == questId, ct);
+        var transitions = await _jira.GetTransitionsAsync(quest.BoardId, ct);
+        return Ok(transitions.Where(t => t.Enabled && t.SourceColumnId == quest.ColumnId).ToList());
+    }
+
+    public record ExecuteTransitionRequest(Guid TransitionId);
+
+    [HttpPost("workflows/quests/{questId:guid}/transitions")]
+    public async Task<ActionResult> ExecuteQuestTransition(Guid questId, [FromBody] ExecuteTransitionRequest request, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        var quest = await _db.Quests.AsNoTracking().FirstAsync(q => q.Id == questId, ct);
+        var transition = (await _jira.GetTransitionsAsync(quest.BoardId, ct))
+            .FirstOrDefault(t => t.Id == request.TransitionId && t.Enabled && t.SourceColumnId == quest.ColumnId)
+            ?? throw new ArgumentException("Transition is not available for this issue");
+        var moved = await _quests.MoveAsync(new MoveQuestRequest(questId, transition.TargetColumnId, 0), RequireUser(), ct);
+        return moved == null ? NotFound() : Ok(moved);
+    }
+
+    [HttpGet("quests/{questId:guid}/hierarchy")]
+    public async Task<ActionResult> GetHierarchy(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        var quest = await _db.Quests.AsNoTracking().FirstAsync(q => q.Id == questId, ct);
+        var parentId = quest.ParentQuestId ?? quest.ParentEpicId;
+        var parent = parentId.HasValue
+            ? await _db.Quests.AsNoTracking().Where(q => q.Id == parentId).Select(q => new { q.Id, q.IssueKey, q.Title, q.IssueType }).FirstOrDefaultAsync(ct)
+            : null;
+        var children = await _db.Quests.AsNoTracking()
+            .Where(q => q.ParentQuestId == questId || q.ParentEpicId == questId)
+            .OrderBy(q => q.IssueNumber)
+            .Select(q => new { q.Id, q.IssueKey, q.Title, q.IssueType })
+            .ToListAsync(ct);
+        return Ok(new { parent, children });
     }
 
     [HttpGet("quests/{questId:guid}/links")]
@@ -140,6 +183,15 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveComponentAsync(boardId, id, request, ct));
     }
 
+    [HttpDelete("components/{id:guid}")]
+    public async Task<ActionResult> DeleteComponent(Guid id, CancellationToken ct)
+    {
+        var boardId = await _db.BoardComponents.Where(x => x.Id == id).Select(x => (Guid?)x.BoardId).FirstOrDefaultAsync(ct);
+        if (!boardId.HasValue) return NotFound();
+        await EnsureBoardAsync(boardId.Value, BoardPermission.Manage, ct);
+        return await _jira.DeleteComponentAsync(id, ct) ? NoContent() : NotFound();
+    }
+
     [HttpGet("releases/board/{boardId:guid}")]
     public async Task<ActionResult> GetReleases(Guid boardId, CancellationToken ct)
     {
@@ -161,6 +213,25 @@ public class JiraPlatformController : ControllerBase
             ?? throw new KeyNotFoundException("Release not found");
         await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
         return Ok(await _jira.SaveReleaseAsync(boardId, id, request, ct));
+    }
+
+    [HttpPost("releases/{id:guid}/release")]
+    public async Task<ActionResult> MarkReleased(Guid id, CancellationToken ct)
+    {
+        var boardId = await _db.BoardReleases.Where(x => x.Id == id).Select(x => (Guid?)x.BoardId).FirstOrDefaultAsync(ct);
+        if (!boardId.HasValue) return NotFound();
+        await EnsureBoardAsync(boardId.Value, BoardPermission.Manage, ct);
+        var release = await _jira.MarkReleaseReleasedAsync(id, ct);
+        return release == null ? NotFound() : Ok(release);
+    }
+
+    [HttpDelete("releases/{id:guid}")]
+    public async Task<ActionResult> DeleteRelease(Guid id, CancellationToken ct)
+    {
+        var boardId = await _db.BoardReleases.Where(x => x.Id == id).Select(x => (Guid?)x.BoardId).FirstOrDefaultAsync(ct);
+        if (!boardId.HasValue) return NotFound();
+        await EnsureBoardAsync(boardId.Value, BoardPermission.Manage, ct);
+        return await _jira.DeleteReleaseAsync(id, ct) ? NoContent() : NotFound();
     }
 
     [HttpGet("search/issues")]
@@ -214,6 +285,27 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveAutomationRuleAsync(boardId, id, request, ct));
     }
 
+    [HttpDelete("automations/board/{boardId:guid}/{id:guid}")]
+    public async Task<ActionResult> DeleteAutomation(Guid boardId, Guid id, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return await _jira.DeleteAutomationRuleAsync(boardId, id, ct) ? NoContent() : NotFound();
+    }
+
+    [HttpPost("automations/board/{boardId:guid}/{id:guid}/run")]
+    public async Task<ActionResult> RunAutomation(Guid boardId, Guid id, [FromBody] RunAutomationRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.RunAutomationRuleAsync(boardId, id, request, ct));
+    }
+
+    [HttpGet("permissions/board/{boardId:guid}")]
+    public async Task<ActionResult> GetPermissions(Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        return Ok(await _jira.GetBoardPermissionsAsync(boardId, RequireUser(), ct));
+    }
+
     [HttpGet("integrations/board/{boardId:guid}")]
     public async Task<ActionResult> GetIntegrations(Guid boardId, CancellationToken ct)
     {
@@ -221,8 +313,37 @@ public class JiraPlatformController : ControllerBase
         return Ok(new
         {
             github = await _jira.GetGitHubIntegrationsAsync(boardId, ct),
-            webhooks = await _jira.GetWebhooksAsync(boardId, ct)
+            webhooks = await _jira.GetWebhooksAsync(boardId, ct),
+            githubAppConfigured = _jira.IsGitHubAppConfigured
         });
+    }
+
+    [HttpDelete("integrations/board/{boardId:guid}/github/{id:guid}")]
+    public async Task<ActionResult> DeleteGithub(Guid boardId, Guid id, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Admin, ct);
+        return await _jira.DeleteGitHubIntegrationAsync(boardId, id, ct) ? NoContent() : NotFound();
+    }
+
+    [HttpDelete("integrations/board/{boardId:guid}/webhooks/{id:guid}")]
+    public async Task<ActionResult> DeleteWebhook(Guid boardId, Guid id, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Admin, ct);
+        return await _jira.DeleteWebhookAsync(boardId, id, ct) ? NoContent() : NotFound();
+    }
+
+    [HttpGet("integrations/github/quests/{questId:guid}")]
+    public async Task<ActionResult> GetDevelopment(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        return Ok(await _jira.GetDevelopmentAsync(questId, ct));
+    }
+
+    [HttpPost("integrations/github/quests/{questId:guid}/sync")]
+    public async Task<ActionResult> SyncDevelopment(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return Ok(await _jira.SyncDevelopmentAsync(questId, ct));
     }
 
     [HttpPut("integrations/board/{boardId:guid}/github")]
@@ -263,6 +384,19 @@ public class JiraPlatformController : ControllerBase
     {
         await EnsureBoardAsync(boardId, BoardPermission.Work, ct);
         return Ok(await _jira.BulkEditAsync(boardId, RequireUser(), request, ct));
+    }
+
+    [HttpPost("bulk/quests/delete")]
+    public async Task<ActionResult> BulkDelete([FromBody] BulkDeleteQuestsRequest request, [FromQuery] Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        var ids = await _db.Quests.AsNoTracking()
+            .Where(q => q.BoardId == boardId && request.QuestIds.Contains(q.Id))
+            .Select(q => q.Id).ToListAsync(ct);
+        var deleted = 0;
+        foreach (var id in ids)
+            if (await _quests.DeleteAsync(id, ct)) deleted++;
+        return Ok(new BulkEditResult(deleted));
     }
 
     [HttpPost("clone/quests/{questId:guid}")]

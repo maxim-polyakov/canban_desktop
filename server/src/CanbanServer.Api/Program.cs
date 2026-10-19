@@ -154,6 +154,8 @@ builder.Services.AddScoped<IProjectAccessService, ProjectAccessService>();
 builder.Services.AddScoped<IJiraPlatformService, JiraPlatformService>();
 builder.Services.AddScoped<IJqlQueryService, JqlService>();
 builder.Services.AddHttpClient("outbox");
+builder.Services.AddHttpClient(GitHubAppClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(20));
+builder.Services.AddSingleton<IGitHubAppClient, GitHubAppClient>();
 builder.Services.AddHostedService<OutboxDispatcher>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration

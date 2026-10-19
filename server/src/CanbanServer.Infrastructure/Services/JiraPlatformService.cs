@@ -18,19 +18,22 @@ public sealed class JiraPlatformService : IJiraPlatformService
     private readonly IConfiguration _configuration;
     private readonly IBoardHub _boardHub;
     private readonly CacheService _cache;
+    private readonly IGitHubAppClient _gitHub;
 
     public JiraPlatformService(
         CanbanDbContext db,
         IProjectAccessService access,
         IConfiguration configuration,
         IBoardHub boardHub,
-        CacheService cache)
+        CacheService cache,
+        IGitHubAppClient gitHub)
     {
         _db = db;
         _access = access;
         _configuration = configuration;
         _boardHub = boardHub;
         _cache = cache;
+        _gitHub = gitHub;
     }
 
     public async Task<List<WorkflowTransitionDto>> GetTransitionsAsync(Guid boardId, CancellationToken ct) =>
@@ -194,6 +197,15 @@ public sealed class JiraPlatformService : IJiraPlatformService
         return new BoardComponentDto(entity.Id, entity.BoardId, entity.Name, entity.Description, entity.LeadUserId, entity.Archived);
     }
 
+    public async Task<bool> DeleteComponentAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await _db.BoardComponents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (entity == null) return false;
+        _db.BoardComponents.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<List<BoardReleaseDto>> GetReleasesAsync(Guid boardId, CancellationToken ct) =>
         (await _db.BoardReleases.AsNoTracking().Where(x => x.BoardId == boardId).OrderBy(x => x.Name).ToListAsync(ct))
         .Select(x => new BoardReleaseDto(x.Id, x.BoardId, x.Name, x.Description, x.Status, x.StartDate, x.ReleaseDate)).ToList();
@@ -216,6 +228,25 @@ public sealed class JiraPlatformService : IJiraPlatformService
         entity.ReleaseDate = request.ReleaseDate;
         await _db.SaveChangesAsync(ct);
         return new BoardReleaseDto(entity.Id, entity.BoardId, entity.Name, entity.Description, entity.Status, entity.StartDate, entity.ReleaseDate);
+    }
+
+    public async Task<BoardReleaseDto?> MarkReleaseReleasedAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await _db.BoardReleases.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (entity == null) return null;
+        entity.Status = ReleaseStatus.Released;
+        entity.ReleaseDate ??= DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return new BoardReleaseDto(entity.Id, entity.BoardId, entity.Name, entity.Description, entity.Status, entity.StartDate, entity.ReleaseDate);
+    }
+
+    public async Task<bool> DeleteReleaseAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await _db.BoardReleases.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (entity == null) return false;
+        _db.BoardReleases.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<List<WorkLogDto>> GetWorkLogsAsync(Guid questId, CancellationToken ct)
@@ -665,6 +696,32 @@ public sealed class JiraPlatformService : IJiraPlatformService
         return new AutomationRuleDto(entity.Id, entity.BoardId, entity.Name, entity.Trigger, entity.ConditionsJson, entity.ActionsJson, entity.Enabled);
     }
 
+    public async Task<bool> DeleteAutomationRuleAsync(Guid boardId, Guid id, CancellationToken ct)
+    {
+        var entity = await _db.AutomationRules.FirstOrDefaultAsync(x => x.Id == id && x.BoardId == boardId, ct);
+        if (entity == null) return false;
+        _db.AutomationRules.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<RunAutomationResult> RunAutomationRuleAsync(Guid boardId, Guid id, RunAutomationRequest request, CancellationToken ct)
+    {
+        var rule = await _db.AutomationRules.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.BoardId == boardId, ct)
+            ?? throw new KeyNotFoundException("Rule not found");
+        var keys = (request.IssueKeys ?? new List<string>())
+            .Select(k => k.Trim().ToUpperInvariant()).Where(k => k.Length > 0).Distinct().ToList();
+        if (keys.Count == 0) throw new ArgumentException("Specify at least one issue key");
+        var quests = await _db.Quests.Where(q => q.BoardId == boardId && keys.Contains(q.IssueKey)).ToListAsync(ct);
+        foreach (var quest in quests)
+            await AutomationActions.ApplyAsync(_db, rule, quest, ct);
+        await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + boardId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
+        var found = quests.Select(q => q.IssueKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return new RunAutomationResult(quests.Count, keys.Where(k => !found.Contains(k)).ToList());
+    }
+
     public async Task<List<OutboundWebhookDto>> GetWebhooksAsync(Guid boardId, CancellationToken ct) =>
         (await _db.OutboundWebhooks.AsNoTracking().Where(x => x.BoardId == boardId).ToListAsync(ct))
         .Select(x => new OutboundWebhookDto(x.Id, x.BoardId, x.Url, x.SecretConfigurationKey, x.Events, x.Enabled)).ToList();
@@ -692,85 +749,222 @@ public sealed class JiraPlatformService : IJiraPlatformService
         return new OutboundWebhookDto(entity.Id, entity.BoardId, entity.Url, entity.SecretConfigurationKey, entity.Events, entity.Enabled);
     }
 
+    public async Task<bool> DeleteWebhookAsync(Guid boardId, Guid id, CancellationToken ct)
+    {
+        var entity = await _db.OutboundWebhooks.FirstOrDefaultAsync(x => x.Id == id && x.BoardId == boardId, ct);
+        if (entity == null) return false;
+        _db.OutboundWebhooks.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public bool IsGitHubAppConfigured => _gitHub.IsConfigured;
+
     public async Task<List<GitHubIntegrationDto>> GetGitHubIntegrationsAsync(Guid boardId, CancellationToken ct) =>
         (await _db.GitHubIntegrations.AsNoTracking().Where(x => x.BoardId == boardId).ToListAsync(ct))
-        .Select(x => new GitHubIntegrationDto(x.Id, x.BoardId, x.InstallationId, x.RepositoryOwner, x.RepositoryName, x.WebhookSecretConfigurationKey, x.Enabled)).ToList();
+        .Select(MapGitHubIntegration).ToList();
 
     public async Task<GitHubIntegrationDto> SaveGitHubIntegrationAsync(Guid boardId, Guid? id, UpsertGitHubIntegrationRequest request, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(request.RepositoryOwner) || string.IsNullOrWhiteSpace(request.RepositoryName))
+            throw new ArgumentException("Repository owner and name are required");
         if (string.IsNullOrWhiteSpace(request.WebhookSecretConfigurationKey))
             throw new ArgumentException("GitHub webhook secret must be referenced by configuration key");
-        GitHubIntegration entity;
+        if (string.IsNullOrWhiteSpace(ResolveConfiguration(request.WebhookSecretConfigurationKey)))
+            throw new ArgumentException($"Configuration key '{request.WebhookSecretConfigurationKey.Trim()}' is not set on the server");
+        var owner = request.RepositoryOwner.Trim();
+        var name = request.RepositoryName.Trim();
+        var installationId = request.InstallationId;
+        if (installationId <= 0 && _gitHub.IsConfigured)
+            installationId = await _gitHub.FindRepositoryInstallationAsync(owner, name, ct)
+                ?? throw new ArgumentException($"GitHub App is not installed on {owner}/{name}");
+        GitHubIntegration? entity;
         if (id.HasValue)
             entity = await _db.GitHubIntegrations.FirstOrDefaultAsync(x => x.Id == id && x.BoardId == boardId, ct)
                 ?? throw new KeyNotFoundException("Integration not found");
         else
         {
-            entity = new GitHubIntegration { Id = Guid.NewGuid(), BoardId = boardId };
-            _db.GitHubIntegrations.Add(entity);
+            entity = await _db.GitHubIntegrations.FirstOrDefaultAsync(x => x.BoardId == boardId
+                && x.RepositoryOwner.ToLower() == owner.ToLower() && x.RepositoryName.ToLower() == name.ToLower(), ct);
+            if (entity == null)
+            {
+                entity = new GitHubIntegration { Id = Guid.NewGuid(), BoardId = boardId };
+                _db.GitHubIntegrations.Add(entity);
+            }
         }
-        entity.InstallationId = request.InstallationId;
-        entity.RepositoryOwner = request.RepositoryOwner.Trim();
-        entity.RepositoryName = request.RepositoryName.Trim();
+        entity.InstallationId = installationId;
+        entity.RepositoryOwner = owner;
+        entity.RepositoryName = name;
         entity.WebhookSecretConfigurationKey = request.WebhookSecretConfigurationKey.Trim();
         entity.Enabled = request.Enabled;
         await _db.SaveChangesAsync(ct);
-        return new GitHubIntegrationDto(entity.Id, entity.BoardId, entity.InstallationId, entity.RepositoryOwner, entity.RepositoryName, entity.WebhookSecretConfigurationKey, entity.Enabled);
+        return MapGitHubIntegration(entity);
+    }
+
+    public async Task<bool> DeleteGitHubIntegrationAsync(Guid boardId, Guid id, CancellationToken ct)
+    {
+        var entity = await _db.GitHubIntegrations.FirstOrDefaultAsync(x => x.Id == id && x.BoardId == boardId, ct);
+        if (entity == null) return false;
+        _db.DevelopmentLinks.RemoveRange(_db.DevelopmentLinks.Where(x => x.GitHubIntegrationId == id));
+        _db.GitHubIntegrations.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<DevelopmentSummaryDto> GetDevelopmentAsync(Guid questId, CancellationToken ct)
+    {
+        var links = await _db.DevelopmentLinks.AsNoTracking().Where(x => x.QuestId == questId)
+            .OrderByDescending(x => x.UpdatedAt).ToListAsync(ct);
+        var dtos = links.Select(x => new DevelopmentLinkDto(x.Id, x.QuestId, NormalizeDevelopmentKind(x.Kind), x.ExternalId, x.Url, x.Title, x.Status, x.UpdatedAt)).ToList();
+        return new DevelopmentSummaryDto(
+            dtos.Where(x => x.Kind == GitHubEventParser.BranchKind).ToList(),
+            dtos.Where(x => x.Kind == GitHubEventParser.CommitKind).ToList(),
+            dtos.Where(x => x.Kind == GitHubEventParser.PullRequestKind).ToList(),
+            dtos.Where(x => x.Kind == GitHubEventParser.CheckRunKind).ToList());
+    }
+
+    public async Task<DevelopmentSummaryDto> SyncDevelopmentAsync(Guid questId, CancellationToken ct)
+    {
+        if (!_gitHub.IsConfigured) throw new InvalidOperationException("GitHub App is not configured on the server");
+        var quest = await _db.Quests.AsNoTracking().FirstOrDefaultAsync(q => q.Id == questId, ct)
+            ?? throw new KeyNotFoundException("Quest not found");
+        var key = quest.IssueKey;
+        if (string.IsNullOrWhiteSpace(key)) return await GetDevelopmentAsync(questId, ct);
+        var integrations = await _db.GitHubIntegrations.Where(x => x.BoardId == quest.BoardId && x.Enabled).ToListAsync(ct);
+        foreach (var integration in integrations)
+        {
+            if (integration.InstallationId <= 0)
+            {
+                integration.InstallationId = await _gitHub.FindRepositoryInstallationAsync(integration.RepositoryOwner, integration.RepositoryName, ct) ?? 0;
+                if (integration.InstallationId <= 0) continue;
+            }
+            var repoPath = $"repos/{Uri.EscapeDataString(integration.RepositoryOwner)}/{Uri.EscapeDataString(integration.RepositoryName)}";
+            var repoUrl = $"https://github.com/{integration.RepositoryOwner}/{integration.RepositoryName}";
+            var found = new List<GitHubDevelopmentEvent>();
+
+            using (var branches = await _gitHub.GetAsync(integration.InstallationId, $"{repoPath}/branches?per_page=100", ct))
+                foreach (var branch in branches.RootElement.EnumerateArray())
+                {
+                    var name = branch.GetProperty("name").GetString() ?? "";
+                    if (GitHubEventParser.ExtractIssueKeys(name).Contains(key))
+                        found.Add(new GitHubDevelopmentEvent(GitHubEventParser.BranchKind, name, $"{repoUrl}/tree/{name}", name, null, new[] { key }));
+                }
+
+            using (var pulls = await _gitHub.GetAsync(integration.InstallationId, $"{repoPath}/pulls?state=all&sort=updated&direction=desc&per_page=100", ct))
+                foreach (var pr in pulls.RootElement.EnumerateArray())
+                {
+                    var title = pr.GetProperty("title").GetString() ?? "";
+                    var headRef = pr.TryGetProperty("head", out var head) && head.TryGetProperty("ref", out var r) ? r.GetString() : null;
+                    if (!GitHubEventParser.ExtractIssueKeys(title, headRef).Contains(key)) continue;
+                    var merged = pr.TryGetProperty("merged_at", out var mergedAt) && mergedAt.ValueKind == JsonValueKind.String;
+                    found.Add(new GitHubDevelopmentEvent(GitHubEventParser.PullRequestKind, pr.GetProperty("id").ToString(),
+                        pr.GetProperty("html_url").GetString() ?? repoUrl, $"#{pr.GetProperty("number")} {title}",
+                        merged ? "merged" : pr.GetProperty("state").GetString(), new[] { key }));
+                }
+
+            using (var commits = await _gitHub.GetAsync(integration.InstallationId,
+                       $"search/commits?q={Uri.EscapeDataString($"{key} repo:{integration.RepositoryOwner}/{integration.RepositoryName}")}&sort=committer-date&order=desc&per_page=30", ct))
+                foreach (var item in commits.RootElement.GetProperty("items").EnumerateArray())
+                {
+                    var message = item.GetProperty("commit").GetProperty("message").GetString() ?? "";
+                    if (!GitHubEventParser.ExtractIssueKeys(message).Contains(key)) continue;
+                    found.Add(new GitHubDevelopmentEvent(GitHubEventParser.CommitKind, item.GetProperty("sha").GetString() ?? "",
+                        item.GetProperty("html_url").GetString() ?? repoUrl, message.Split('\n', 2)[0].Trim(), null, new[] { key }));
+                }
+
+            foreach (var item in found)
+                await UpsertDevelopmentLinkAsync(questId, integration.Id, item, null, ct);
+        }
+        await _db.SaveChangesAsync(ct);
+        return await GetDevelopmentAsync(questId, ct);
     }
 
     public async Task ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct)
     {
-        var integrations = await _db.GitHubIntegrations.Where(x => x.Enabled).ToListAsync(ct);
-        GitHubIntegration? matched = null;
-        foreach (var integration in integrations)
-        {
-            var secret = _configuration[integration.WebhookSecretConfigurationKey];
-            if (string.IsNullOrWhiteSpace(secret)) continue;
-            if (VerifyGitHubSignature(payload, signature, secret))
-            {
-                matched = integration;
-                break;
-            }
-        }
-        if (matched == null) throw new UnauthorizedAccessException("Invalid GitHub signature");
-
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
-        var title = root.TryGetProperty("pull_request", out var pr) ? pr.GetProperty("title").GetString()
-            : root.TryGetProperty("head_commit", out var commit) ? commit.GetProperty("message").GetString()
-            : root.TryGetProperty("check_run", out var check) ? check.GetProperty("name").GetString()
-            : eventName;
-        var url = root.TryGetProperty("pull_request", out var pr2) ? pr2.GetProperty("html_url").GetString()
-            : root.TryGetProperty("repository", out var repo) ? repo.GetProperty("html_url").GetString()
-            : "";
-        var externalId = root.TryGetProperty("pull_request", out var pr3) ? pr3.GetProperty("id").ToString()
-            : root.TryGetProperty("head_commit", out var commit2) ? commit2.GetProperty("id").GetString()
-            : Guid.NewGuid().ToString("N");
-        var issueKey = ExtractIssueKey(title ?? "");
-        if (string.IsNullOrWhiteSpace(issueKey)) return;
-        var quest = await _db.Quests.FirstOrDefaultAsync(q => q.BoardId == matched.BoardId && q.IssueKey == issueKey, ct);
-        if (quest == null) return;
-        var existing = await _db.DevelopmentLinks.FirstOrDefaultAsync(x => x.QuestId == quest.Id && x.Kind == eventName && x.ExternalId == externalId, ct);
-        if (existing == null)
+        var fullName = GitHubEventParser.RepositoryFullName(root);
+        var candidates = (await _db.GitHubIntegrations.Where(x => x.Enabled).ToListAsync(ct))
+            .Where(x => fullName != null && string.Equals($"{x.RepositoryOwner}/{x.RepositoryName}", fullName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var matched = candidates
+            .Where(x => ResolveConfiguration(x.WebhookSecretConfigurationKey) is { Length: > 0 } secret && VerifyGitHubSignature(payload, signature, secret))
+            .ToList();
+        if (matched.Count == 0)
         {
-            existing = new DevelopmentLink
-            {
-                Id = Guid.NewGuid(),
-                QuestId = quest.Id,
-                GitHubIntegrationId = matched.Id,
-                Kind = eventName,
-                ExternalId = externalId ?? Guid.NewGuid().ToString("N"),
-            };
-            _db.DevelopmentLinks.Add(existing);
+            var defaultSecret = _configuration["GitHub:WebhookSecret"];
+            if (candidates.Count == 0 && !string.IsNullOrWhiteSpace(defaultSecret) && VerifyGitHubSignature(payload, signature, defaultSecret))
+                return;
+            throw new UnauthorizedAccessException("Invalid GitHub signature");
         }
-        existing.Url = url ?? "";
-        existing.Title = title ?? eventName;
-        existing.Status = root.TryGetProperty("action", out var action) ? action.GetString() : null;
-        existing.PayloadJson = payload;
-        existing.UpdatedAt = DateTime.UtcNow;
-        await EnqueueAsync("WebhookReceived", new { boardId = matched.BoardId, questId = quest.Id, eventName }, ct);
+
+        var installationId = GitHubEventParser.InstallationId(root);
+        var events = GitHubEventParser.Parse(eventName, root);
+        var keys = events.SelectMany(e => e.IssueKeys).Distinct().ToList();
+        foreach (var integration in matched)
+        {
+            if (installationId.HasValue && integration.InstallationId != installationId.Value)
+                integration.InstallationId = installationId.Value;
+            if (keys.Count == 0) continue;
+            var quests = await _db.Quests.AsNoTracking()
+                .Where(q => q.BoardId == integration.BoardId && keys.Contains(q.IssueKey))
+                .Select(q => new { q.Id, q.IssueKey })
+                .ToListAsync(ct);
+            foreach (var quest in quests)
+            {
+                foreach (var item in events.Where(e => e.IssueKeys.Contains(quest.IssueKey)))
+                    await UpsertDevelopmentLinkAsync(quest.Id, integration.Id, item, payload, ct);
+                await EnqueueAsync("WebhookReceived", new { boardId = integration.BoardId, questId = quest.Id, eventName }, ct);
+            }
+        }
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<BoardPermissionsDto> GetBoardPermissionsAsync(Guid boardId, Guid userId, CancellationToken ct)
+    {
+        var board = await _db.Boards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == boardId, ct)
+            ?? throw new KeyNotFoundException("Board not found");
+        var team = await _db.Teams.AsNoTracking().FirstOrDefaultAsync(t => t.Id == board.TeamId, ct);
+        var members = await _db.TeamMembers.AsNoTracking().Include(m => m.User)
+            .Where(m => m.TeamId == board.TeamId).ToListAsync(ct);
+        var result = members.Select(m => new BoardMemberPermissionDto(m.UserId, m.User.DisplayName, m.User.Email, m.Role,
+            team?.OwnerId == m.UserId, _access.MapRole(m.Role, team?.OwnerId == m.UserId))).ToList();
+        if (team?.OwnerId is { } ownerId && result.All(m => m.UserId != ownerId))
+        {
+            var owner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == ownerId, ct);
+            result.Insert(0, new BoardMemberPermissionDto(ownerId, owner?.DisplayName, owner?.Email, null, true, BoardPermission.Admin));
+        }
+        var current = result.FirstOrDefault(m => m.UserId == userId)?.Permission ?? BoardPermission.View;
+        return new BoardPermissionsDto(boardId, current, result.OrderByDescending(m => m.Permission).ThenBy(m => m.DisplayName).ToList());
+    }
+
+    private async Task UpsertDevelopmentLinkAsync(Guid questId, Guid integrationId, GitHubDevelopmentEvent item, string? payload, CancellationToken ct)
+    {
+        var existing = _db.DevelopmentLinks.Local.FirstOrDefault(x => x.QuestId == questId && x.Kind == item.Kind && x.ExternalId == item.ExternalId)
+            ?? await _db.DevelopmentLinks.FirstOrDefaultAsync(x => x.QuestId == questId && x.Kind == item.Kind && x.ExternalId == item.ExternalId, ct);
+        if (existing == null)
+        {
+            existing = new DevelopmentLink { Id = Guid.NewGuid(), QuestId = questId, GitHubIntegrationId = integrationId, Kind = item.Kind, ExternalId = item.ExternalId };
+            _db.DevelopmentLinks.Add(existing);
+        }
+        existing.Url = item.Url;
+        existing.Title = item.Title.Length > 500 ? item.Title[..500] : item.Title;
+        existing.Status = item.Status;
+        if (payload != null) existing.PayloadJson = payload;
+        existing.UpdatedAt = DateTime.UtcNow;
+    }
+
+    private string? ResolveConfiguration(string key) =>
+        string.IsNullOrWhiteSpace(key) ? null : _configuration[key.Trim().Replace("__", ":")];
+
+    private static string NormalizeDevelopmentKind(string kind) => kind switch
+    {
+        "push" => GitHubEventParser.CommitKind,
+        _ => kind
+    };
+
+    private static GitHubIntegrationDto MapGitHubIntegration(GitHubIntegration x) =>
+        new(x.Id, x.BoardId, x.InstallationId, x.RepositoryOwner, x.RepositoryName, x.WebhookSecretConfigurationKey, x.Enabled);
 
     public async Task EnqueueAsync(string type, object payload, CancellationToken ct)
     {
@@ -910,12 +1104,6 @@ public sealed class JiraPlatformService : IJiraPlatformService
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         var actual = Convert.ToHexString(hash).ToLowerInvariant();
         return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(actual), Encoding.UTF8.GetBytes(expectedHex.ToLowerInvariant()));
-    }
-
-    private static string? ExtractIssueKey(string text)
-    {
-        var match = System.Text.RegularExpressions.Regex.Match(text, @"\b([A-Z][A-Z0-9]+-\d+)\b");
-        return match.Success ? match.Groups[1].Value : null;
     }
 
     private static string Escape(string? value) => (value ?? "").Replace("\"", "\"\"");

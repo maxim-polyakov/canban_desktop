@@ -17,8 +17,11 @@ public interface IJiraPlatformService
     Task<bool> DeleteLinkAsync(Guid questId, Guid id, CancellationToken ct);
     Task<List<BoardComponentDto>> GetComponentsAsync(Guid boardId, CancellationToken ct);
     Task<BoardComponentDto> SaveComponentAsync(Guid boardId, Guid? id, UpsertBoardComponentRequest request, CancellationToken ct);
+    Task<bool> DeleteComponentAsync(Guid id, CancellationToken ct);
     Task<List<BoardReleaseDto>> GetReleasesAsync(Guid boardId, CancellationToken ct);
     Task<BoardReleaseDto> SaveReleaseAsync(Guid boardId, Guid? id, UpsertBoardReleaseRequest request, CancellationToken ct);
+    Task<BoardReleaseDto?> MarkReleaseReleasedAsync(Guid id, CancellationToken ct);
+    Task<bool> DeleteReleaseAsync(Guid id, CancellationToken ct);
     Task<List<WorkLogDto>> GetWorkLogsAsync(Guid questId, CancellationToken ct);
     Task<WorkLogDto> SaveWorkLogAsync(Guid questId, Guid userId, Guid? id, UpsertWorkLogRequest request, CancellationToken ct);
     Task<bool> DeleteWorkLogAsync(Guid questId, Guid id, Guid userId, bool canManage, CancellationToken ct);
@@ -39,9 +42,17 @@ public interface IJiraPlatformService
     Task<DashboardDto> SaveDashboardAsync(Guid userId, Guid? id, UpsertDashboardRequest request, CancellationToken ct);
     Task<List<AutomationRuleDto>> GetAutomationRulesAsync(Guid boardId, CancellationToken ct);
     Task<AutomationRuleDto> SaveAutomationRuleAsync(Guid boardId, Guid? id, UpsertAutomationRuleRequest request, CancellationToken ct);
+    Task<bool> DeleteAutomationRuleAsync(Guid boardId, Guid id, CancellationToken ct);
+    Task<RunAutomationResult> RunAutomationRuleAsync(Guid boardId, Guid id, RunAutomationRequest request, CancellationToken ct);
     Task<List<OutboundWebhookDto>> GetWebhooksAsync(Guid boardId, CancellationToken ct);
     Task<OutboundWebhookDto> SaveWebhookAsync(Guid boardId, Guid? id, UpsertOutboundWebhookRequest request, CancellationToken ct);
+    Task<bool> DeleteWebhookAsync(Guid boardId, Guid id, CancellationToken ct);
     Task<List<GitHubIntegrationDto>> GetGitHubIntegrationsAsync(Guid boardId, CancellationToken ct);
     Task<GitHubIntegrationDto> SaveGitHubIntegrationAsync(Guid boardId, Guid? id, UpsertGitHubIntegrationRequest request, CancellationToken ct);
+    Task<bool> DeleteGitHubIntegrationAsync(Guid boardId, Guid id, CancellationToken ct);
+    bool IsGitHubAppConfigured { get; }
     Task ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct);
+    Task<DevelopmentSummaryDto> GetDevelopmentAsync(Guid questId, CancellationToken ct);
+    Task<DevelopmentSummaryDto> SyncDevelopmentAsync(Guid questId, CancellationToken ct);
+    Task<BoardPermissionsDto> GetBoardPermissionsAsync(Guid boardId, Guid userId, CancellationToken ct);
 }

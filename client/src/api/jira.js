@@ -15,7 +15,6 @@ export const workflows = {
 
 export const questHierarchy = {
   get: (questId) => apiJson(`/api/quests/${questId}/hierarchy`),
-  setParent: (questId, parentQuestId) => apiJson(`/api/quests/${questId}/parent`, json('PUT', { parentQuestId })),
 };
 
 export const questLinks = {
@@ -37,7 +36,6 @@ export const history = {
 export const notifications = {
   get: (params) => apiJson(`/api/notifications${buildQuery(params)}`),
   markRead: (id) => apiJson(`/api/notifications/${id}/read`, json('POST')),
-  markAllRead: () => apiJson('/api/notifications/read-all', json('POST')),
 };
 
 export const components = {
@@ -57,7 +55,6 @@ export const releases = {
 
 export const search = {
   issues: (params) => apiJson(`/api/search/issues${buildQuery(params)}`),
-  suggestions: (params) => apiJson(`/api/search/suggestions${buildQuery(params)}`),
 };
 
 export const savedFilters = {
@@ -65,36 +62,53 @@ export const savedFilters = {
   create: (data) => apiJson('/api/savedFilters', json('POST', data)),
   update: (id, data) => apiJson(`/api/savedFilters/${id}`, json('PUT', data)),
   delete: (id) => remove(`/api/savedFilters/${id}`),
-  share: (id, data) => apiJson(`/api/savedFilters/${id}/share`, json('PUT', data)),
 };
 
 export const automations = {
   getByBoard: (boardId) => apiJson(`/api/automations/board/${boardId}`),
   create: (boardId, data) => apiJson(`/api/automations/board/${boardId}`, json('POST', data)),
-  update: (id, data) => apiJson(`/api/automations/${id}`, json('PUT', data)),
-  run: (id) => apiJson(`/api/automations/${id}/run`, json('POST')),
-  delete: (id) => remove(`/api/automations/${id}`),
+  update: (boardId, id, data) => apiJson(`/api/automations/board/${boardId}/${id}`, json('PUT', data)),
+  run: (boardId, id, issueKeys) => apiJson(`/api/automations/board/${boardId}/${id}/run`, json('POST', { issueKeys })),
+  delete: (boardId, id) => remove(`/api/automations/board/${boardId}/${id}`),
 };
 
 export const integrations = {
   getByBoard: (boardId) => apiJson(`/api/integrations/board/${boardId}`),
-  saveGithub: (boardId, data) => apiJson(`/api/integrations/board/${boardId}/github`, json('PUT', data)),
+  saveGithub: (boardId, data, id) => apiJson(`/api/integrations/board/${boardId}/github${buildQuery({ id })}`, json('PUT', data)),
+  deleteGithub: (boardId, id) => remove(`/api/integrations/board/${boardId}/github/${id}`),
   createWebhook: (boardId, data) => apiJson(`/api/integrations/board/${boardId}/webhooks`, json('POST', data)),
   deleteWebhook: (boardId, id) => remove(`/api/integrations/board/${boardId}/webhooks/${id}`),
   getDevelopment: (questId) => apiJson(`/api/integrations/github/quests/${questId}`),
+  syncDevelopment: (questId) => apiJson(`/api/integrations/github/quests/${questId}/sync`, json('POST')),
 };
 
+export function toBulkEditRequest(questIds, fields = {}) {
+  const request = { questIds };
+  if ('sprintId' in fields) { request.sprintId = fields.sprintId || null; request.sprintIdSet = true; }
+  if ('assigneeIds' in fields) { request.assigneeIds = fields.assigneeIds || []; request.assigneeIdsSet = true; }
+  ['columnId', 'labels', 'priority', 'issueType'].forEach((key) => {
+    if (fields[key] !== undefined && fields[key] !== '') request[key] = fields[key];
+  });
+  return request;
+}
+
 export const bulk = {
-  update: (data) => apiJson('/api/bulk/quests', json('PUT', data)),
-  delete: (questIds) => apiJson('/api/bulk/quests/delete', json('POST', { questIds })),
+  update: (boardId, questIds, fields) => apiJson(`/api/bulk/quests${buildQuery({ boardId })}`, json('PUT', toBulkEditRequest(questIds, fields))),
+  delete: (boardId, questIds) => apiJson(`/api/bulk/quests/delete${buildQuery({ boardId })}`, json('POST', { questIds })),
 };
 
 export const importExport = {
-  exportBoard: (boardId, format = 'json') => apiJson(`/api/importExport/boards/${boardId}/export${buildQuery({ format })}`),
-  importBoard: (boardId, file) => {
+  exportBoard: async (boardId, format = 'json') => {
+    const response = await api(`/api/importExport/boards/${boardId}/export${buildQuery({ format })}`);
+    const text = await response.text();
+    if (!response.ok) throw new Error(text || response.statusText);
+    return text;
+  },
+  preview: (format, content) => apiJson('/api/importExport/preview', json('POST', { format, content })),
+  importBoard: (boardId, file, columnId) => {
     const form = new FormData();
     form.append('file', file);
-    return apiForm(`/api/importExport/boards/${boardId}/import`, form);
+    return apiForm(`/api/importExport/boards/${boardId}/import${buildQuery({ columnId })}`, form);
   },
 };
 
@@ -106,18 +120,27 @@ export const reports = {
   get: (boardId, type, params) => apiJson(`/api/reports/boards/${boardId}/${type}${buildQuery(params)}`),
 };
 
+export function parseGadgets(dashboard) {
+  try {
+    const parsed = JSON.parse(dashboard?.layoutJson || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+const saveLayout = (dashboard, gadgets) => apiJson(`/api/dashboards/${dashboard.id}`, json('PUT', {
+  name: dashboard.name, shared: Boolean(dashboard.shared), layoutJson: JSON.stringify(gadgets),
+}));
+
 export const dashboards = {
   getAll: () => apiJson('/api/dashboards'),
-  get: (id) => apiJson(`/api/dashboards/${id}`),
-  create: (data) => apiJson('/api/dashboards', json('POST', data)),
+  create: (data) => apiJson('/api/dashboards', json('POST', { shared: false, layoutJson: '[]', ...data })),
   update: (id, data) => apiJson(`/api/dashboards/${id}`, json('PUT', data)),
-  delete: (id) => remove(`/api/dashboards/${id}`),
-  addGadget: (id, data) => apiJson(`/api/dashboards/${id}/gadgets`, json('POST', data)),
-  updateGadget: (id, gadgetId, data) => apiJson(`/api/dashboards/${id}/gadgets/${gadgetId}`, json('PUT', data)),
-  deleteGadget: (id, gadgetId) => remove(`/api/dashboards/${id}/gadgets/${gadgetId}`),
+  addGadget: (dashboard, gadget) => saveLayout(dashboard, [...parseGadgets(dashboard), { id: `g-${Date.now()}`, ...gadget }]),
+  deleteGadget: (dashboard, gadgetId) => saveLayout(dashboard, parseGadgets(dashboard).filter((g) => g.id !== gadgetId)),
 };
 
 export const permissions = {
   getByBoard: (boardId) => apiJson(`/api/permissions/board/${boardId}`),
-  save: (boardId, data) => apiJson(`/api/permissions/board/${boardId}`, json('PUT', data)),
 };

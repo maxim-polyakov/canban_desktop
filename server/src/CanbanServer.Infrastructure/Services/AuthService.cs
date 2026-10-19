@@ -68,19 +68,13 @@ public class AuthService : IAuthService
     {
         var appName = _config["Smtp:AppName"]?.Trim() ?? "Canban";
         var subject = $"Код подтверждения — {appName}";
-        var body = $@"
-<!DOCTYPE html>
-<html>
-<head><meta charset=""utf-8""></head>
-<body style=""font-family: sans-serif; line-height: 1.5;"">
-  <h2>Код подтверждения</h2>
-  <p>Здравствуйте, <strong>{System.Net.WebUtility.HtmlEncode(displayName)}</strong>.</p>
-  <p>Вы зарегистрировались в <strong>{System.Net.WebUtility.HtmlEncode(appName)}</strong>. Введите этот код в форме на сайте:</p>
-  <p style=""font-size: 1.5rem; letter-spacing: 0.2em; font-weight: 600;"">{System.Net.WebUtility.HtmlEncode(confirmationCode)}</p>
-  <p style=""color: #6b7280; font-size: 0.9em;"">Код действителен 15 минут. Это письмо отправлено автоматически, не отвечайте на него.</p>
-</body>
-</html>";
-        await _emailSender.SendAsync(email, displayName, subject, body.Trim(), ct);
+        var body = EmailLayout.Render(EmailLayout.SiteUrl(_config), EmailLayout.LogoUrl(_config), "Код подтверждения", $"""
+            <p style="margin:0 0 12px">Здравствуйте, <strong>{EmailLayout.Encode(displayName)}</strong>.</p>
+            <p style="margin:0">Вы зарегистрировались в <strong>{EmailLayout.Encode(appName)}</strong>. Введите этот код в форме на сайте:</p>
+            {EmailLayout.Code(confirmationCode)}
+            <p style="margin:0;color:#6b778c">Код действителен 15 минут.</p>
+            """);
+        await _emailSender.SendAsync(email, displayName, subject, body, ct);
     }
 
     public async Task RequestPasswordResetAsync(string email, CancellationToken ct = default)
@@ -100,19 +94,13 @@ public class AuthService : IAuthService
     {
         var appName = _config["Smtp:AppName"]?.Trim() ?? "Canban";
         var subject = $"Сброс пароля — {appName}";
-        var body = $@"
-<!DOCTYPE html>
-<html>
-<head><meta charset=""utf-8""></head>
-<body style=""font-family: sans-serif; line-height: 1.5;"">
-  <h2>Сброс пароля</h2>
-  <p>Здравствуйте, <strong>{System.Net.WebUtility.HtmlEncode(displayName)}</strong>.</p>
-  <p>Запрошен сброс пароля в <strong>{System.Net.WebUtility.HtmlEncode(appName)}</strong>. Введите этот код на странице сброса пароля:</p>
-  <p style=""font-size: 1.5rem; letter-spacing: 0.2em; font-weight: 600;"">{System.Net.WebUtility.HtmlEncode(code)}</p>
-  <p style=""color: #6b7280; font-size: 0.9em;"">Код действителен 15 минут. Если вы не запрашивали сброс, проигнорируйте это письмо.</p>
-</body>
-</html>";
-        await _emailSender.SendAsync(email, displayName, subject, body.Trim(), ct);
+        var body = EmailLayout.Render(EmailLayout.SiteUrl(_config), EmailLayout.LogoUrl(_config), "Сброс пароля", $"""
+            <p style="margin:0 0 12px">Здравствуйте, <strong>{EmailLayout.Encode(displayName)}</strong>.</p>
+            <p style="margin:0">Запрошен сброс пароля в <strong>{EmailLayout.Encode(appName)}</strong>. Введите этот код на странице сброса пароля:</p>
+            {EmailLayout.Code(code)}
+            <p style="margin:0;color:#6b778c">Код действителен 15 минут. Если вы не запрашивали сброс, проигнорируйте это письмо.</p>
+            """);
+        await _emailSender.SendAsync(email, displayName, subject, body, ct);
     }
 
     public async Task<bool> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken ct = default)

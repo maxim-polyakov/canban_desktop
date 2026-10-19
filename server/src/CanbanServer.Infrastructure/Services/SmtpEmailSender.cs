@@ -32,7 +32,7 @@ public class SmtpEmailSender : IEmailSender
         _fromName = _config["Smtp:FromName"]?.Trim() ?? "Canban";
     }
 
-    public async Task<bool> SendAsync(string toEmail, string toName, string subject, string bodyHtml, CancellationToken ct = default)
+    public async Task<bool> SendAsync(string toEmail, string toName, string subject, string bodyHtml, CancellationToken ct = default, bool plainTextOnly = false)
     {
         if (string.IsNullOrEmpty(_host))
         {
@@ -49,7 +49,9 @@ public class SmtpEmailSender : IEmailSender
             message.From.Add(new MailboxAddress(_fromName, _fromAddress));
             message.To.Add(new MailboxAddress(toName, toEmail.Trim()));
             message.Subject = subject;
-            message.Body = new BodyBuilder { HtmlBody = bodyHtml, TextBody = HtmlToText(bodyHtml) }.ToMessageBody();
+            message.Body = plainTextOnly
+                ? new TextPart("plain") { Text = HtmlToText(bodyHtml) }
+                : new BodyBuilder { HtmlBody = bodyHtml, TextBody = HtmlToText(bodyHtml) }.ToMessageBody();
 
             using var client = new SmtpClient();
             var secureSocketOptions = _useSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.None;
@@ -72,6 +74,15 @@ public class SmtpEmailSender : IEmailSender
     public static string HtmlToText(string html)
     {
         var text = System.Text.RegularExpressions.Regex.Replace(html, @"<(head|style|script)[^>]*>.*?</\1>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"<img\b[^>]*>", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"<a\b[^>]*href=""([^""]+)""[^>]*>(.*?)</a>", m =>
+        {
+            var href = System.Net.WebUtility.HtmlDecode(m.Groups[1].Value);
+            var label = System.Text.RegularExpressions.Regex.Replace(m.Groups[2].Value, "<[^>]+>", "").Trim();
+            var plainLabel = System.Net.WebUtility.HtmlDecode(label);
+            return plainLabel.Length == 0 || href.Contains(plainLabel, StringComparison.OrdinalIgnoreCase) ? href : $"{label}: {href}";
+        }, System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"</td>\s*<td\b", ": <td", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         text = System.Text.RegularExpressions.Regex.Replace(text, @"<br\s*/?>|</(p|h\d|div|li|tr)>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         text = System.Text.RegularExpressions.Regex.Replace(text, "<[^>]+>", "");
         text = System.Net.WebUtility.HtmlDecode(text);

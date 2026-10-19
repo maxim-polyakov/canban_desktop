@@ -2,6 +2,7 @@ using CanbanServer.Application.Contracts;
 using CanbanServer.Domain.Entities;
 using CanbanServer.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace CanbanServer.Infrastructure.Services;
 
@@ -9,11 +10,15 @@ public class QuestNotificationService : IQuestNotificationService
 {
     private readonly CanbanDbContext _db;
     private readonly IEmailSender _emailSender;
+    private readonly string _siteUrl;
+    private readonly string _logoUrl;
 
-    public QuestNotificationService(CanbanDbContext db, IEmailSender emailSender)
+    public QuestNotificationService(CanbanDbContext db, IEmailSender emailSender, IConfiguration config)
     {
         _db = db;
         _emailSender = emailSender;
+        _siteUrl = EmailLayout.SiteUrl(config);
+        _logoUrl = EmailLayout.LogoUrl(config);
     }
 
     /// <summary>
@@ -35,7 +40,7 @@ public class QuestNotificationService : IQuestNotificationService
             .Where(q => q.Id == questId)
             .Select(q => new
             {
-                q.Title, q.IssueKey, q.ReporterId, BoardName = q.Board.Name,
+                q.Title, q.IssueKey, q.ReporterId, q.BoardId, BoardName = q.Board.Name,
                 AssigneeIds = q.Assignees.Select(a => a.UserId).ToList(), q.AssigneeId
             })
             .FirstOrDefaultAsync(ct);
@@ -65,6 +70,7 @@ public class QuestNotificationService : IQuestNotificationService
 
         var issueLabel = string.IsNullOrEmpty(context.IssueKey) ? context.Title : $"{context.IssueKey} {context.Title}";
         var subject = $"{eventTitle}: {issueLabel}";
+        var issueUrl = $"{_siteUrl}/board/{context.BoardId}/issue/{questId}";
         var sentEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var recipient in recipients)
         {
@@ -79,36 +85,42 @@ public class QuestNotificationService : IQuestNotificationService
             var isAssignee = assigneeIds.Contains(recipient.Id);
             var isReporter = context.ReporterId == recipient.Id;
             if (!ShouldEmail(recipient, actorUserId, isAssignee, isReporter) || !sentEmails.Add(recipient.Email)) continue;
-            var body = BuildBody(eventTitle, recipient.DisplayName, issueLabel, context.BoardName, actorName, details);
-            if (recipient.EmailFormat == "text") body = SmtpEmailSender.HtmlToText(body);
-            await _emailSender.SendAsync(recipient.Email, recipient.DisplayName, subject, body, ct);
+            var body = BuildBody(eventTitle, recipient.DisplayName, issueLabel, context.BoardName, actorName, details, issueUrl, true);
+            await _emailSender.SendAsync(recipient.Email, recipient.DisplayName, subject, body, ct, plainTextOnly: recipient.EmailFormat == "text");
         }
 
         foreach (var recipient in externalRecipients)
         {
             if (!sentEmails.Add(recipient.Email)) continue;
             var displayName = string.IsNullOrWhiteSpace(recipient.DisplayName) ? recipient.Email : recipient.DisplayName;
-            var body = BuildBody(eventTitle, displayName, issueLabel, context.BoardName, actorName, details);
+            var body = BuildBody(eventTitle, displayName, issueLabel, context.BoardName, actorName, details, issueUrl, false);
             await _emailSender.SendAsync(recipient.Email, displayName, subject, body, ct);
         }
         await _db.SaveChangesAsync(ct);
     }
 
-    private static string BuildBody(string eventTitle, string recipientName, string issue, string boardName, string actorName, string details)
+    private string BuildBody(string eventTitle, string recipientName, string issue, string boardName, string actorName, string details,
+        string issueUrl, bool isMember)
     {
-        static string Encode(string? value) => System.Net.WebUtility.HtmlEncode(value) ?? string.Empty;
-        return $"""
-            <!DOCTYPE html>
-            <html><head><meta charset="utf-8"></head>
-            <body style="font-family:sans-serif;line-height:1.5">
-              <h2>{Encode(eventTitle)}</h2>
-              <p>Здравствуйте, <strong>{Encode(recipientName)}</strong>.</p>
-              <p>Задача: <strong>{Encode(issue)}</strong></p>
-              <p>Доска: <strong>{Encode(boardName)}</strong></p>
-              <p>Изменил: <strong>{Encode(actorName)}</strong></p>
-              <p>{Encode(details)}</p>
-              <p style="color:#6b7280;font-size:.9em">Это письмо отправлено автоматически. Настроить уведомления можно в разделе «Персональные настройки → Электронные письма и уведомления».</p>
-            </body></html>
+        static string Encode(string? value) => EmailLayout.Encode(value);
+        static string Row(string label, string value) =>
+            $"""<tr><td style="padding:4px 16px 4px 0;color:#6b778c;white-space:nowrap;vertical-align:top">{Encode(label)}</td><td style="padding:4px 0;font-weight:600">{Encode(value)}</td></tr>""";
+        var detailsHtml = string.IsNullOrWhiteSpace(details) ? "" : $"""
+            <div style="margin:16px 0 0;padding:12px 16px;background:#f7f8f9;border-left:3px solid #0c66e4;border-radius:4px;white-space:pre-wrap">{Encode(details)}</div>
             """;
+        var content = $"""
+            <p style="margin:0 0 12px">Здравствуйте, <strong>{Encode(recipientName)}</strong>.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px">
+              {Row("Задача", issue)}
+              {Row("Раздел", boardName)}
+              {Row("Изменил", actorName)}
+            </table>
+            {detailsHtml}
+            """;
+        var footer = isMember
+            ? "Это письмо отправлено автоматически. Настроить уведомления можно в разделе «Персональные настройки → Электронные письма и уведомления»."
+            : "Это письмо отправлено автоматически, потому что ваш адрес указан для уведомлений по этой задаче.";
+        return EmailLayout.Render(_siteUrl, _logoUrl, eventTitle, content,
+            isMember ? "Открыть задачу" : null, isMember ? issueUrl : null, footer);
     }
 }

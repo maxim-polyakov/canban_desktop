@@ -23,6 +23,8 @@ import RoadmapPage from './pages/RoadmapPage.jsx';
 import ProjectSettingsPage from './pages/ProjectSettingsPage.jsx';
 import OperationsPage from './pages/OperationsPage.jsx';
 import DashboardsPage from './pages/DashboardsPage.jsx';
+import ForYouPage from './pages/ForYouPage.jsx';
+import NotificationSettingsPage from './pages/NotificationSettingsPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -53,7 +55,9 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<HomePage />} />
+          <Route index element={<ForYouPage />} />
+          <Route path="spaces" element={<HomePage />} />
+          <Route path="notifications-settings" element={<NotificationSettingsPage />} />
           <Route path="board/:boardId" element={<BoardPage />} />
           <Route path="board/:boardId/issue/:questId" element={<BoardPage />} />
           <Route path="board/:boardId/backlog" element={<BacklogPage />} />

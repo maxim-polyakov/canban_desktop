@@ -4,43 +4,40 @@ import './IssueIcons.css';
 // Original (non-Atlassian) iconography that follows familiar Jira-like conventions:
 // purple bolt = Epic, green bookmark = Story, blue check = Task, red bug = Bug, grey chevrons = Subtask.
 const ISSUE_TYPE_META = {
-  0: { label: 'Эпик', color: '#8777D9', bg: '#F3F0FD' },
-  1: { label: 'История', color: '#2F9E44', bg: '#EBFBEE' },
-  2: { label: 'Задача', color: '#0052CC', bg: '#E9F2FF' },
-  3: { label: 'Ошибка', color: '#DE350B', bg: '#FFEBE6' },
-  4: { label: 'Подзадача', color: '#5E6C84', bg: '#F4F5F7' },
+  0: { label: 'Эпик', color: '#904EE2', bg: '#F3F0FF' },
+  1: { label: 'История', color: '#63BA3C', bg: '#EFFFD6' },
+  2: { label: 'Задача', color: '#4BADE8', bg: '#E9F2FF' },
+  3: { label: 'Ошибка', color: '#E5493A', bg: '#FFECEB' },
+  4: { label: 'Подзадача', color: '#4BADE8', bg: '#E9F2FF' },
 };
+
+function Tile({ color }) {
+  return <rect x="2" y="2" width="20" height="20" rx="4" fill={color} />;
+}
 
 function EpicGlyph({ color }) {
   return (
-    <path
-      d="M13.2 2.5 5.6 13.1h4.1l-1.6 8.4 8.3-11.1h-4.4z"
-      fill={color}
-    />
+    <>
+      <Tile color={color} />
+      <path d="M13.4 5.5 7.6 13h3.6l-1 5.5 6.2-7.9h-3.7z" fill="#fff" />
+    </>
   );
 }
 
 function StoryGlyph({ color }) {
   return (
-    <path
-      d="M6 3.5h12a1 1 0 0 1 1 1v15.4l-3.6-2.4a1.6 1.6 0 0 0-1.8 0L10 20.3V4.5a1 1 0 0 1 1-1h-5z"
-      fill={color}
-    />
+    <>
+      <Tile color={color} />
+      <path d="M8 6.5h8v11.2l-4-2.6-4 2.6z" fill="#fff" />
+    </>
   );
 }
 
 function TaskGlyph({ color }) {
   return (
     <>
-      <rect x="4" y="4" width="16" height="16" rx="3.5" fill={color} />
-      <path
-        d="M8.3 12.4l2.5 2.5 5-5.3"
-        stroke="#fff"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
+      <Tile color={color} />
+      <path d="M7.6 12.2l3 3 5.8-6.2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </>
   );
 }
@@ -48,10 +45,8 @@ function TaskGlyph({ color }) {
 function BugGlyph({ color }) {
   return (
     <>
-      <rect x="4" y="4" width="16" height="16" rx="3.5" fill={color} />
-      <circle cx="12" cy="12.5" r="4" fill="#fff" />
-      <circle cx="12" cy="12.5" r="2.4" fill={color} />
-      <path d="M12 8.3V6.4M9 9.6 7.3 8M15 9.6 16.7 8M8 13.4H6M18 13.4h-2" stroke="#fff" strokeWidth="1.1" strokeLinecap="round" />
+      <Tile color={color} />
+      <circle cx="12" cy="12" r="4.2" fill="#fff" />
     </>
   );
 }
@@ -59,8 +54,9 @@ function BugGlyph({ color }) {
 function SubtaskGlyph({ color }) {
   return (
     <>
-      <rect x="4" y="4" width="16" height="16" rx="3.5" fill={color} />
-      <path d="M9 9h6M9 12h6M9 15h3" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+      <Tile color={color} />
+      <rect x="6.5" y="6.5" width="6" height="6" rx="1.2" fill="none" stroke="#fff" strokeWidth="1.8" />
+      <rect x="11.5" y="11.5" width="6" height="6" rx="1.2" fill="#fff" />
     </>
   );
 }
@@ -95,36 +91,37 @@ export function IssueTypeIcon({ issueType = 2, size = 16, className = '', title 
 
 // Priority: 0 Lowest .. 4 Highest, double chevrons like Jira's priority glyphs.
 const PRIORITY_META = {
-  0: { label: 'Низший', color: '#2F9E44' },
-  1: { label: 'Низкий', color: '#57A55A' },
-  2: { label: 'Средний', color: '#E09B1A' },
-  3: { label: 'Высокий', color: '#E2683B' },
-  4: { label: 'Высший', color: '#DE350B' },
+  0: { label: 'Низший', color: '#2684FF' },
+  1: { label: 'Низкий', color: '#2684FF' },
+  2: { label: 'Средний', color: '#FFAB00' },
+  3: { label: 'Высокий', color: '#FF5630' },
+  4: { label: 'Высший', color: '#FF5630' },
 };
 
 function PriorityArrows({ color, variant }) {
+  const line = { fill: 'none', stroke: color, strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' };
   if (variant === 'up2') {
     return (
       <>
-        <path d="M12 4.5 17.5 10h-11z" fill={color} />
-        <path d="M12 11 17.5 16.5h-11z" fill={color} opacity="0.55" />
+        <path d="M6 11.5 12 6l6 5.5" {...line} />
+        <path d="M6 17.5 12 12l6 5.5" {...line} />
       </>
     );
   }
-  if (variant === 'up1') {
-    return <path d="M12 7 18 14H6z" fill={color} />;
-  }
+  if (variant === 'up1') return <path d="M6 14.5 12 9l6 5.5" {...line} />;
   if (variant === 'flat') {
-    return <rect x="6" y="11" width="12" height="2.4" rx="1.2" fill={color} />;
+    return (
+      <>
+        <path d="M5.5 9.5h13" {...line} />
+        <path d="M5.5 14.5h13" {...line} />
+      </>
+    );
   }
-  if (variant === 'down1') {
-    return <path d="M12 17 6 10h12z" fill={color} />;
-  }
-  // down2
+  if (variant === 'down1') return <path d="M6 9.5 12 15l6-5.5" {...line} />;
   return (
     <>
-      <path d="M12 19.5 6.5 14h11z" fill={color} />
-      <path d="M12 13 6.5 7.5h11z" fill={color} opacity="0.55" />
+      <path d="M6 6.5 12 12l6-5.5" {...line} />
+      <path d="M6 12.5 12 18l6-5.5" {...line} />
     </>
   );
 }

@@ -25,8 +25,16 @@
   --radius-lg: 10px;
   --sidebar-width: 240px;
   --sidebar-width-collapsed: 56px;
-  --topbar-height: 56px;
-  --board-tabs-height: 33px;
+  --topbar-height: 48px;
+  /* space tabs scroll with the page, so sticky toolbars sit right under the top bar */
+  --board-tabs-height: 0px;
+  --text-subtle: #44546F;
+  --nav-hover: rgba(9, 30, 66, 0.06);
+  --nav-pressed: rgba(9, 30, 66, 0.14);
+  --nav-selected-bg: #E9F2FF;
+  --nav-selected-text: #0C66E4;
+  --brand: #0C66E4;
+  --brand-hover: #0055CC;
   --shadow-sm: 0 1px 2px rgba(9, 30, 66, 0.08);
   --shadow-md: 0 4px 12px rgba(9, 30, 66, 0.14);
   --shadow-lg: 0 12px 32px rgba(9, 30, 66, 0.22);

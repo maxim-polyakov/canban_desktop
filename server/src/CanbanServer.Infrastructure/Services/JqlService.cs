@@ -71,7 +71,7 @@ public sealed class JqlService : IJqlQueryService
         "statusid" or "columnid" => q.ColumnId,
         "type" or "issuetype" => q.IssueType.ToString(),
         "priority" => q.Priority.ToString(),
-        "assignee" => q.AssigneeId,
+        "assignee" => q.Assignees.Count > 0 ? string.Join(",", q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId)) : q.AssigneeId,
         "reporter" => null,
         "sprint" => q.SprintId,
         "labels" or "label" => q.Labels,

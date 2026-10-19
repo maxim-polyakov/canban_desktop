@@ -3,7 +3,7 @@ import { API_BASE, api, apiJson, buildQuery, getToken } from './api/transport.js
 export { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
 export {
   automations, bulk, clone, components, dashboards, history, importExport,
-  integrations, notifications, permissions, questHierarchy, questLinks,
+  integrations, myWork, notifications, permissions, questHierarchy, questLinks,
   releases, reports, savedFilters, search, workflows, worklogs,
 } from './api/jira.js';
 

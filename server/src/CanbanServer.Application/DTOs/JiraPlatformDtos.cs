@@ -18,7 +18,13 @@ public record WorkLogDto(Guid Id, Guid QuestId, Guid UserId, string? UserName, i
 public record UpsertWorkLogRequest(int TimeSpentMinutes, DateTime StartedAt, string? Note = null, int? RemainingEstimateMinutes = null);
 
 public record QuestChangeDto(Guid Id, Guid QuestId, Guid? UserId, string? UserName, string ChangeType, string? Field, string? OldValue, string? NewValue, DateTime CreatedAt);
-public record AppNotificationDto(Guid Id, Guid? QuestId, string Type, string Title, string? Body, bool Read, DateTime CreatedAt);
+public record AppNotificationDto(Guid Id, Guid? QuestId, string Type, string Title, string? Body, bool Read, DateTime CreatedAt,
+    Guid? BoardId = null, string? IssueKey = null, string? QuestTitle = null, string? BoardName = null,
+    IssueType? IssueType = null, bool Direct = false);
+
+/// <summary>Issue row for the "For you" page: assigned to me, worked on, viewed.</summary>
+public record MyWorkItemDto(Guid QuestId, Guid BoardId, string BoardName, string? IssueKey, string Title, IssueType IssueType,
+    string Status, bool Done, DateTime ActivityAt);
 
 public record SavedFilterDto(Guid Id, Guid OwnerUserId, Guid? BoardId, string Name, string Jql, bool Shared, DateTime CreatedAt, DateTime UpdatedAt);
 public record UpsertSavedFilterRequest(string Name, string Jql, Guid? BoardId = null, bool Shared = false);

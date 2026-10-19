@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from '../i18n/navigation.jsx';
+import { Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
@@ -37,6 +37,11 @@ export default function HomePage() {
   const [addBoardName, setAddBoardName] = useState('');
   const [addBoardError, setAddBoardError] = useState('');
   const [addingBoard, setAddingBoard] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('create') === '1') setShowCreate(true);
+  }, [location.search]);
   const navigate = useNavigate();
 
   useEffect(() => {

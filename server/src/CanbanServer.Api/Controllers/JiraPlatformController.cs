@@ -264,6 +264,18 @@ public class JiraPlatformController : ControllerBase
     public async Task<ActionResult> MarkRead(Guid id, CancellationToken ct) =>
         await _jira.MarkNotificationReadAsync(id, RequireUser(), ct) ? NoContent() : NotFound();
 
+    [HttpPost("notifications/read-all")]
+    public async Task<ActionResult> MarkAllRead(CancellationToken ct) =>
+        Ok(new { updated = await _jira.MarkAllNotificationsReadAsync(RequireUser(), ct) });
+
+    [HttpGet("me/work")]
+    public async Task<ActionResult> GetMyWork([FromQuery] string kind = "assigned", [FromQuery] string? ids = null, CancellationToken ct = default)
+    {
+        var questIds = (ids ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => Guid.TryParse(x, out var id) ? id : Guid.Empty).Where(x => x != Guid.Empty).ToList();
+        return Ok(await _jira.GetMyWorkAsync(RequireUser(), kind, questIds, ct));
+    }
+
     [HttpGet("automations/board/{boardId:guid}")]
     public async Task<ActionResult> GetAutomations(Guid boardId, CancellationToken ct)
     {

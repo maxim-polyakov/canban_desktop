@@ -11,6 +11,7 @@ import AssigneeAvatar from './AssigneeAvatar.jsx';
 import AssigneeSelect from './AssigneeSelect.jsx';
 import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
+import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
 
 const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 1024;
@@ -127,6 +128,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     quests.get(questId).then((q) => {
       if (questIdRef.current !== questId) return;
       setQuest(q);
+      if (q?.id) rememberIssue({ id: q.id, title: q.title, issueKey: q.issueKey, issueType: q.issueType, boardId: q.boardId });
       setTitle(q?.title ?? '');
       setDescription(richTextToPlainText(q?.descriptionDocument || q?.description || ''));
       setXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);

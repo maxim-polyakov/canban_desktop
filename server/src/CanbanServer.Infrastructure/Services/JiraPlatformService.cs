@@ -337,8 +337,75 @@ public sealed class JiraPlatformService : IJiraPlatformService
     {
         var query = _db.AppNotifications.AsNoTracking().Where(x => x.UserId == userId);
         if (unreadOnly) query = query.Where(x => !x.Read);
-        return (await query.OrderByDescending(x => x.CreatedAt).Take(200).ToListAsync(ct))
-            .Select(x => new AppNotificationDto(x.Id, x.QuestId, x.Type, x.Title, x.Body, x.Read, x.CreatedAt)).ToList();
+        var items = await query.OrderByDescending(x => x.CreatedAt).Take(200).ToListAsync(ct);
+        var questIds = items.Where(x => x.QuestId.HasValue).Select(x => x.QuestId!.Value).Distinct().ToList();
+        var quests = await _db.Quests.AsNoTracking().Where(q => questIds.Contains(q.Id))
+            .Select(q => new
+            {
+                q.Id, q.BoardId, q.IssueKey, q.Title, q.IssueType, BoardName = q.Board.Name,
+                Assigned = q.AssigneeId == userId || q.Assignees.Any(a => a.UserId == userId)
+            })
+            .ToDictionaryAsync(q => q.Id, ct);
+        return items.Select(x =>
+        {
+            var quest = x.QuestId.HasValue && quests.TryGetValue(x.QuestId.Value, out var found) ? found : null;
+            return new AppNotificationDto(x.Id, x.QuestId, x.Type, x.Title, x.Body, x.Read, x.CreatedAt,
+                quest?.BoardId, quest?.IssueKey, quest?.Title, quest?.BoardName, quest?.IssueType, quest?.Assigned ?? false);
+        }).ToList();
+    }
+
+    public async Task<int> MarkAllNotificationsReadAsync(Guid userId, CancellationToken ct) =>
+        await _db.AppNotifications.Where(x => x.UserId == userId && !x.Read)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Read, true), ct);
+
+    public async Task<List<MyWorkItemDto>> GetMyWorkAsync(Guid userId, string kind, IReadOnlyCollection<Guid> questIds, CancellationToken ct)
+    {
+        var accessible = _db.Quests.AsNoTracking()
+            .Where(q => q.Board.Team.OwnerId == userId || q.Board.Team.Members.Any(m => m.UserId == userId));
+        Dictionary<Guid, DateTime> activity;
+        switch (kind.ToLowerInvariant())
+        {
+            case "assigned":
+                activity = await accessible
+                    .Where(q => q.CompletedAt == null && q.Column.Kind != ColumnKind.Done && q.Column.Kind != ColumnKind.Archive
+                        && (q.AssigneeId == userId || q.Assignees.Any(a => a.UserId == userId)))
+                    .Select(q => new { q.Id, At = _db.QuestChanges.Where(c => c.QuestId == q.Id).Max(c => (DateTime?)c.CreatedAt) ?? q.CreatedAt })
+                    .ToDictionaryAsync(x => x.Id, x => x.At, ct);
+                break;
+            case "worked":
+                var since = DateTime.UtcNow.AddDays(-90);
+                activity = await _db.QuestChanges.AsNoTracking()
+                    .Where(c => c.UserId == userId && c.CreatedAt >= since)
+                    .GroupBy(c => c.QuestId)
+                    .Select(g => new { Id = g.Key, At = g.Max(c => c.CreatedAt) })
+                    .OrderByDescending(x => x.At).Take(100)
+                    .ToDictionaryAsync(x => x.Id, x => x.At, ct);
+                break;
+            case "watching":
+                activity = await accessible
+                    .Where(q => q.NotificationRecipients.Any(r => r.UserId == userId))
+                    .Select(q => new { q.Id, q.CreatedAt })
+                    .ToDictionaryAsync(x => x.Id, x => x.CreatedAt, ct);
+                break;
+            case "viewed":
+                activity = questIds.Distinct().Take(100).Select((id, index) => (id, index))
+                    .ToDictionary(x => x.id, x => DateTime.UtcNow.AddSeconds(-x.index));
+                break;
+            default:
+                throw new ArgumentException("Unknown work kind");
+        }
+        var ids = activity.Keys.ToList();
+        var rows = await accessible.Where(q => ids.Contains(q.Id))
+            .Select(q => new
+            {
+                q.Id, q.BoardId, BoardName = q.Board.Name, q.IssueKey, q.Title, q.IssueType,
+                Status = q.Column.Title, Done = q.CompletedAt != null || q.Column.Kind == ColumnKind.Done
+            })
+            .ToListAsync(ct);
+        return rows
+            .Select(q => new MyWorkItemDto(q.Id, q.BoardId, q.BoardName, q.IssueKey, q.Title, q.IssueType, q.Status, q.Done, activity[q.Id]))
+            .OrderByDescending(x => x.ActivityAt)
+            .ToList();
     }
 
     public async Task<bool> MarkNotificationReadAsync(Guid id, Guid userId, CancellationToken ct)

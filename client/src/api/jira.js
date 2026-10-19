@@ -36,6 +36,11 @@ export const history = {
 export const notifications = {
   get: (params) => apiJson(`/api/notifications${buildQuery(params)}`),
   markRead: (id) => apiJson(`/api/notifications/${id}/read`, json('POST')),
+  markAllRead: () => apiJson('/api/notifications/read-all', json('POST')),
+};
+
+export const myWork = {
+  get: (kind, ids) => apiJson(`/api/me/work${buildQuery({ kind, ids: ids?.length ? ids.join(',') : undefined })}`),
 };
 
 export const components = {

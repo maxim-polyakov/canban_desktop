@@ -28,6 +28,8 @@ public interface IJiraPlatformService
     Task<List<QuestChangeDto>> GetHistoryAsync(Guid questId, CancellationToken ct);
     Task<List<AppNotificationDto>> GetNotificationsAsync(Guid userId, bool unreadOnly, CancellationToken ct);
     Task<bool> MarkNotificationReadAsync(Guid id, Guid userId, CancellationToken ct);
+    Task<int> MarkAllNotificationsReadAsync(Guid userId, CancellationToken ct);
+    Task<List<MyWorkItemDto>> GetMyWorkAsync(Guid userId, string kind, IReadOnlyCollection<Guid> questIds, CancellationToken ct);
     Task<List<SavedFilterDto>> GetFiltersAsync(Guid userId, CancellationToken ct);
     Task<SavedFilterDto> SaveFilterAsync(Guid userId, Guid? id, UpsertSavedFilterRequest request, CancellationToken ct);
     Task<bool> DeleteFilterAsync(Guid userId, Guid id, CancellationToken ct);

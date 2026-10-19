@@ -1,21 +1,214 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { teams as teamsApi, character as characterApi } from '../api.js';
-import LanguageSelector from './LanguageSelector.jsx';
+import { teams as teamsApi, character as characterApi, notifications as notificationsApi, search as searchApi } from '../api.js';
+import NavIcon from './NavIcons.jsx';
+import SpaceAvatar from './SpaceAvatar.jsx';
+import AppSidebar from './AppSidebar.jsx';
+import NotificationsPanel from './NotificationsPanel.jsx';
+import HelpPanel from './HelpPanel.jsx';
+import CreateIssueDialog from './CreateIssueDialog.jsx';
+import { ProfileMenu, SettingsMenu } from './HeaderMenus.jsx';
+import { IssueTypeIcon } from './IssueIcons.jsx';
+import { isBoardStarred, rememberBoard, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import './Layout.css';
 
 const BOARD_ROUTE_RE = /^\/board\/([^/]+)(?:\/([^/]+))?/;
+const SPACE_TABS = [
+  ['board', '', 'board', 'Доска'],
+  ['backlog', '/backlog', 'backlog', 'Backlog'],
+  ['roadmap', '/roadmap', 'timeline', 'Roadmap'],
+  ['releases', '/releases', 'releases', 'Релизы'],
+  ['reports', '/reports', 'reports', 'Отчёты'],
+  ['archive', '/archive', 'archive', 'Архив'],
+];
+const SPACE_SETTINGS = [
+  ['components', 'components', 'Компоненты'],
+  ['workflow', 'workflow', 'Workflow'],
+  ['permissions', 'lock', 'Разрешения'],
+  ['automations', 'automation', 'Автоматизация'],
+  ['integrations', 'integrations', 'Интеграции'],
+  ['operations', 'operations', 'Операции'],
+];
+const ISSUE_KEY_RE = /^[A-Za-zА-Яа-я][\wА-Яа-я]*-\d+$/;
+const POLL_MS = 60000;
 
 function useActiveBoard(pathname) {
   return useMemo(() => {
     const match = pathname.match(BOARD_ROUTE_RE);
     if (!match) return { boardId: null, tab: null };
-    const tabSegment = match[2];
-    const tab = ['backlog', 'reports', 'roadmap', 'components', 'releases', 'workflow', 'permissions', 'automations', 'integrations', 'operations', 'archive'].includes(tabSegment) ? tabSegment : 'board';
-    return { boardId: match[1], tab };
+    const segment = match[2];
+    const known = [...SPACE_TABS.map((x) => x[0]), ...SPACE_SETTINGS.map((x) => x[0])];
+    return { boardId: match[1], tab: known.includes(segment) ? segment : 'board' };
   }, [pathname]);
+}
+
+function normalizeTeams(list) {
+  return (Array.isArray(list) ? list : []).map((item) => {
+    const team = item.team ?? item.Team ?? {};
+    return {
+      team: { id: team.id ?? team.Id, name: team.name ?? team.Name ?? 'Команда', key: team.key ?? team.Key ?? 'KAN' },
+      boards: (item.boards ?? item.Boards ?? []).map((b) => ({
+        id: b.id ?? b.Id,
+        name: b.name ?? b.Name ?? 'Доска',
+        keyPrefix: b.keyPrefix ?? b.KeyPrefix ?? 'KAN',
+      })),
+    };
+  });
+}
+
+function isTypingTarget(target) {
+  const tag = target?.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable;
+}
+
+function useOutsideClose(ref, open, close) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (!ref.current?.contains(e.target)) close(); };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [ref, open, close]);
+}
+
+function GlobalSearch({ inputRef, boardsById, onDone }) {
+  const { t } = useLocalization();
+  const navigate = useNavigate();
+  const { viewedIssues, recentBoards } = useNavHistory();
+  const [text, setText] = useState('');
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const wrapRef = useRef(null);
+  const close = useCallback(() => setOpen(false), []);
+  useOutsideClose(wrapRef, open, close);
+
+  const needle = text.trim().toLowerCase();
+  const matches = (value) => !needle || String(value || '').toLowerCase().includes(needle);
+  const issues = viewedIssues.filter((x) => matches(x.title) || matches(x.issueKey)).slice(0, 6);
+  const spaces = recentBoards.map((b) => boardsById.get(b.id)).filter(Boolean).filter((b) => matches(b.name)).slice(0, 3);
+
+  const go = (path) => { setOpen(false); setText(''); inputRef.current?.blur(); onDone?.(); navigate(path); };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const value = text.trim();
+    if (!value) return;
+    if (ISSUE_KEY_RE.test(value)) {
+      setBusy(true);
+      try {
+        const result = await searchApi.issues({ jql: `key = ${value.toUpperCase()}`, pageSize: 1 });
+        const issue = (Array.isArray(result) ? result : result?.items || [])[0];
+        if (issue) { go(`/board/${issue.boardId}/issue/${issue.id}`); return; }
+      } catch {
+        // fall through to the text search
+      } finally {
+        setBusy(false);
+      }
+    }
+    go(`/issues?jql=${encodeURIComponent(`summary ~ "${value.replace(/"/g, '')}"`)}`);
+  };
+
+  return (
+    <form className={`app-search ${open ? 'is-open' : ''}`} ref={wrapRef} onSubmit={submit} role="search">
+      <NavIcon name="search" className="app-search-icon" />
+      <input
+        ref={inputRef}
+        type="search"
+        value={text}
+        placeholder={t('Поиск')}
+        aria-label={t('Поиск')}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => { setText(e.target.value); setOpen(true); }}
+        onKeyDown={(e) => { if (e.key === 'Escape') { setOpen(false); e.currentTarget.blur(); } }}
+      />
+      {busy && <span className="app-search-busy">…</span>}
+      {open && (
+        <div className="app-search-dropdown">
+          {issues.length > 0 && <div className="app-flyout-section">{t('Недавно просмотренные задачи')}</div>}
+          {issues.map((issue) => (
+            <button key={issue.id} type="button" className="app-search-item" onClick={() => go(`/board/${issue.boardId}/issue/${issue.id}`)}>
+              <IssueTypeIcon issueType={issue.issueType} size={16} />
+              <span className="app-nav-text">
+                <span className="app-nav-label">{issue.title}</span>
+                <span className="app-nav-sub">{[issue.issueKey, boardsById.get(issue.boardId)?.name].filter(Boolean).join(' • ')}</span>
+              </span>
+            </button>
+          ))}
+          {spaces.length > 0 && <div className="app-flyout-section">{t('Недавние разделы')}</div>}
+          {spaces.map((b) => (
+            <button key={b.id} type="button" className="app-search-item" onClick={() => go(`/board/${b.id}`)}>
+              <SpaceAvatar id={b.id} name={b.name} size={16} />
+              <span className="app-nav-label">{b.name}</span>
+            </button>
+          ))}
+          {issues.length === 0 && spaces.length === 0 && !needle && <p className="app-flyout-empty">{t('Введите ключ задачи (например KAN-12) или текст.')}</p>}
+          {needle && (
+            <button type="submit" className="app-search-item app-search-all">
+              <NavIcon name="search" />
+              <span className="app-nav-label">{t('Искать задачи')}: «{text.trim()}»</span>
+            </button>
+          )}
+        </div>
+      )}
+    </form>
+  );
+}
+
+function SpaceHeader({ board, boardId, tab }) {
+  const { t } = useLocalization();
+  useNavHistory();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const ref = useRef(null);
+  const close = useCallback(() => setMenuOpen(false), []);
+  useOutsideClose(ref, menuOpen, close);
+  const starred = isBoardStarred(boardId);
+  const name = board?.name || t('Доска');
+  return (
+    <div className="app-space-header">
+      <div className="app-space-breadcrumbs"><Link to="/spaces">{t('Разделы')}</Link></div>
+      <div className="app-space-title-row">
+        <SpaceAvatar id={boardId} name={name} size={24} />
+        <h1 className="app-space-title" title={name}>{name}</h1>
+        <button
+          type="button"
+          className={`app-icon-btn app-space-star ${starred ? 'is-starred' : ''}`}
+          aria-label={starred ? t('Убрать из отмеченных') : t('Отметить')}
+          onClick={() => toggleStarredBoard({ id: boardId, name, teamName: board?.teamName })}
+        >
+          <NavIcon name="star" filled={starred} />
+        </button>
+        <div className="app-space-more" ref={ref}>
+          <button type="button" className="app-icon-btn" aria-label={t('Настройки раздела')} aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
+            <NavIcon name="more" />
+          </button>
+          {menuOpen && (
+            <div className="app-menu" role="menu">
+              <div className="app-settings-heading">{t('Настройки раздела')}</div>
+              {SPACE_SETTINGS.map(([segment, icon, label]) => (
+                <Link key={segment} to={`/board/${boardId}/${segment}`} role="menuitem" className={`app-menu-item ${tab === segment ? 'is-active' : ''}`} onClick={close}>
+                  <NavIcon name={icon} />{t(label)}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <nav className="app-space-tabs" aria-label={t('Представления раздела')}>
+        {SPACE_TABS.map(([key, suffix, icon, label]) => (
+          <Link key={key} to={`/board/${boardId}${suffix}`} className={`app-space-tab ${tab === key ? 'is-active' : ''}`}>
+            <NavIcon name={icon} size={14} />{t(label)}
+          </Link>
+        ))}
+        {SPACE_SETTINGS.some(([segment]) => segment === tab) && (
+          <span className="app-space-tab is-active">
+            <NavIcon name={SPACE_SETTINGS.find(([s]) => s === tab)[1]} size={14} />
+            {t(SPACE_SETTINGS.find(([s]) => s === tab)[2])}
+          </span>
+        )}
+      </nav>
+    </div>
+  );
 }
 
 export default function Layout() {
@@ -24,218 +217,178 @@ export default function Layout() {
   const { t } = useLocalization();
   const location = useLocation();
   const { boardId, tab } = useActiveBoard(location.pathname);
+  const searchRef = useRef(null);
+  const settingsRef = useRef(null);
+  const profileRef = useRef(null);
 
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.localStorage.getItem('canban.nav.collapsed') === '1');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [teamsWithBoards, setTeamsWithBoards] = useState([]);
-  const [expandedTeamIds, setExpandedTeamIds] = useState(new Set());
   const [character, setCharacter] = useState(null);
-  const profileMenuRef = useRef(null);
+  const [panel, setPanel] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  const loadTeams = useCallback(() => {
+    teamsApi.getMyTeamsWithBoards().then((list) => setTeamsWithBoards(normalizeTeams(list))).catch(() => setTeamsWithBoards([]));
+  }, []);
+
+  useEffect(() => {
+    loadTeams();
+    characterApi.getMe().then(setCharacter).catch(() => {});
+  }, [loadTeams]);
+
+  useEffect(() => {
+    if (location.pathname === '/spaces' || location.pathname === '/') loadTeams();
+  }, [location.pathname, loadTeams]);
 
   useEffect(() => {
     let cancelled = false;
-    teamsApi.getMyTeamsWithBoards().then((list) => {
-      if (cancelled) return;
-      const normalized = (Array.isArray(list) ? list : []).map((item) => {
-        const team = item.team ?? item.Team ?? {};
-        const boardsList = item.boards ?? item.Boards ?? [];
-        return {
-          team: {
-            id: team.id ?? team.Id,
-            name: team.name ?? team.Name ?? 'Команда',
-            key: team.key ?? team.Key ?? 'KAN',
-          },
-          boards: boardsList.map((b) => ({
-            id: b.id ?? b.Id,
-            name: b.name ?? b.Name ?? 'Доска',
-            keyPrefix: b.keyPrefix ?? b.KeyPrefix ?? 'KAN',
-          })),
-        };
-      });
-      setTeamsWithBoards(normalized);
-      setExpandedTeamIds(new Set(normalized.map((item) => item.team.id)));
-    }).catch(() => setTeamsWithBoards([]));
-    characterApi.getMe().then((c) => { if (!cancelled) setCharacter(c); }).catch(() => {});
-    return () => { cancelled = true; };
+    const poll = () => notificationsApi.get({ unreadOnly: true })
+      .then((list) => { if (!cancelled) setUnread(Array.isArray(list) ? list.length : 0); })
+      .catch(() => {});
+    poll();
+    const timer = window.setInterval(poll, POLL_MS);
+    return () => { cancelled = true; window.clearInterval(timer); };
   }, []);
 
+  const allBoards = useMemo(
+    () => teamsWithBoards.flatMap(({ team, boards }) => boards.map((b) => ({ ...b, teamName: team.name }))),
+    [teamsWithBoards],
+  );
+  const boardsById = useMemo(() => new Map(allBoards.map((b) => [b.id, b])), [allBoards]);
+  const activeBoard = boardId ? boardsById.get(boardId) : null;
+
   useEffect(() => {
-    const closeOnOutsideClick = (event) => {
-      if (!profileMenuRef.current?.contains(event.target)) setProfileMenuOpen(false);
-    };
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape') { setProfileMenuOpen(false); setMobileSidebarOpen(false); }
-    };
-    document.addEventListener('pointerdown', closeOnOutsideClick);
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsideClick);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, []);
+    if (activeBoard) rememberBoard({ id: activeBoard.id, name: activeBoard.name, teamName: activeBoard.teamName });
+  }, [activeBoard]);
 
   useEffect(() => {
     setMobileSidebarOpen(false);
+    setMenu(null);
+    setMobileSearchOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = () => {
-    setProfileMenuOpen(false);
-    logout();
-    navigate('/login');
-  };
+  const closeMenu = useCallback(() => setMenu(null), []);
+  useOutsideClose(settingsRef, menu === 'settings', closeMenu);
+  useOutsideClose(profileRef, menu === 'profile', closeMenu);
 
-  const toggleTeamExpanded = (teamId) => {
-    setExpandedTeamIds((current) => {
-      const next = new Set(current);
-      if (next.has(teamId)) next.delete(teamId); else next.add(teamId);
-      return next;
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setMenu(null); setPanel(null); setMobileSidebarOpen(false); setCreateOpen(false);
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target) || document.querySelector('[aria-modal="true"]')) return;
+      if (e.key === '/') { e.preventDefault(); setMobileSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }
+      else if (e.key === 'c' || e.key === 'с') { e.preventDefault(); setCreateOpen(true); }
+      else if (e.key === '?') { e.preventDefault(); setPanel('help'); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const toggleSidebar = () => {
+    if (window.matchMedia('(max-width: 768px)').matches) { setMobileSidebarOpen((v) => !v); return; }
+    setSidebarCollapsed((v) => {
+      window.localStorage.setItem('canban.nav.collapsed', v ? '0' : '1');
+      return !v;
     });
   };
+  const togglePanel = (name) => { setMenu(null); setPanel((current) => (current === name ? null : name)); };
+  const toggleMenu = (name) => setMenu((current) => (current === name ? null : name));
 
-  const levelChip = character && (
-    <Link to="/profile" className="layout-level-chip" title={t('Персонаж')}>
-      <span className="layout-level-chip-num">{character.levelNumber}</span>
-      <span className="layout-level-chip-text">{character.totalXp} XP</span>
-    </Link>
-  );
+  const handleLogout = () => { setMenu(null); logout(); navigate('/login'); };
 
-  const sidebarContent = (
-    <>
-      <div className="layout-sidebar-header">
-        <span className="layout-sidebar-title">{t('Проекты')}</span>
-      </div>
-      <nav className="layout-sidebar-projects">
-        {teamsWithBoards.map(({ team, boards: teamBoards }) => (
-          <div key={team.id} className="layout-sidebar-team">
-            <button
-              type="button"
-              className="layout-sidebar-team-toggle"
-              onClick={() => toggleTeamExpanded(team.id)}
-            >
-              <span className="layout-sidebar-team-key">{team.key}</span>
-              <span className="layout-sidebar-team-name">{team.name}</span>
-              <span className={`layout-sidebar-chevron ${expandedTeamIds.has(team.id) ? 'is-open' : ''}`}>▸</span>
-            </button>
-            {expandedTeamIds.has(team.id) && (
-              <ul className="layout-sidebar-boards">
-                {teamBoards.map((b) => (
-                  <li key={b.id}>
-                    <Link
-                      to={`/board/${b.id}`}
-                      className={`layout-sidebar-board-link ${boardId === b.id ? 'is-active' : ''}`}
-                    >
-                      <span className="layout-sidebar-board-chip">{b.keyPrefix}</span>
-                      {b.name}
-                    </Link>
-                  </li>
-                ))}
-                {teamBoards.length === 0 && <li className="layout-sidebar-empty">{t('Нет досок')}</li>}
-              </ul>
-            )}
-          </div>
-        ))}
-        {teamsWithBoards.length === 0 && <p className="layout-sidebar-empty">{t('Нет команд')}</p>}
-      </nav>
-      <div className="layout-sidebar-footer">
-        <Link to="/users" className="layout-sidebar-footer-link">{t('Участники')}</Link>
-      </div>
-    </>
+  const sidebar = (inline) => (
+    <AppSidebar
+      teamsWithBoards={teamsWithBoards}
+      activeBoardId={boardId}
+      pathname={location.pathname}
+      inline={inline}
+      onNavigate={() => setMobileSidebarOpen(false)}
+    />
   );
 
   return (
-    <div className={`layout-shell ${sidebarCollapsed ? 'layout-sidebar-collapsed' : ''}`}>
+    <div className={`layout-shell ${sidebarCollapsed ? 'layout-sidebar-collapsed' : ''} ${panel ? 'layout-has-panel' : ''}`}>
       <header className="layout-header">
-        <button
-          type="button"
-          className="layout-hamburger"
-          aria-label={t('Меню')}
-          onClick={() => setMobileSidebarOpen((open) => !open)}
-        >
-          ☰
-        </button>
-        <button
-          type="button"
-          className="layout-sidebar-toggle"
-          aria-label={t('Свернуть панель')}
-          onClick={() => setSidebarCollapsed((v) => !v)}
-          title={t('Свернуть панель')}
-        >
-          ⟨⟩
-        </button>
-        <Link to="/" className="layout-logo">Канбан</Link>
-        <nav className="layout-nav">
-          <Link to="/">{t('Моя работа')}</Link>
-          <Link to="/issues">{t('Задачи')}</Link>
-          <Link to="/dashboards">{t('Дашборды')}</Link>
-        </nav>
-        <div className="layout-user">
-          {levelChip}
-          <div className="layout-profile-menu" ref={profileMenuRef}>
-            <button
-              type="button"
-              className="layout-profile-trigger"
-              aria-haspopup="true"
-              aria-expanded={profileMenuOpen}
-              onClick={() => setProfileMenuOpen((open) => !open)}
-            >
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className="layout-avatar" />
-              ) : (
-                <span className="layout-avatar-placeholder">{user?.displayName?.charAt(0) || '?'}</span>
-              )}
-              <span className="layout-name">{user?.displayName}</span>
+        <div className="layout-header-left">
+          <button type="button" className="app-icon-btn" aria-label={t('Боковая панель')} title={t('Боковая панель')} onClick={toggleSidebar}>
+            <NavIcon name="sidebar" />
+          </button>
+          <Link to="/" className="layout-logo" aria-label="Канбан">
+            <span className="layout-logo-mark" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="14" height="14"><path d="M3 3h3v10H3zM7.5 3h3v6h-3zM12 3h1.5v8H12z" fill="#fff" /></svg>
+            </span>
+            <span className="layout-logo-text">Канбан</span>
+          </Link>
+        </div>
+
+        <div className={`layout-header-center ${mobileSearchOpen ? 'is-search-open' : ''}`}>
+          <GlobalSearch inputRef={searchRef} boardsById={boardsById} onDone={() => setMobileSearchOpen(false)} />
+          <button type="button" className="app-btn app-btn-primary layout-create" onClick={() => setCreateOpen(true)} title={`${t('Создать задачу')} (c)`}>
+            <NavIcon name="plus" size={14} />
+            <span className="layout-create-text">{t('Создать')}</span>
+          </button>
+        </div>
+
+        <div className="layout-header-right">
+          <button type="button" className="app-icon-btn layout-search-toggle" aria-label={t('Поиск')} onClick={() => { setMobileSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}>
+            <NavIcon name="search" />
+          </button>
+          <button type="button" className={`app-icon-btn ${panel === 'notifications' ? 'is-active' : ''}`} aria-label={t('Уведомления')} title={t('Уведомления')} onClick={() => togglePanel('notifications')}>
+            <NavIcon name="bell" />
+            {unread > 0 && <span className="app-badge">{unread > 9 ? '9+' : unread}</span>}
+          </button>
+          <button type="button" className={`app-icon-btn layout-help-btn ${panel === 'help' ? 'is-active' : ''}`} aria-label={t('Справка')} title={t('Справка')} onClick={() => togglePanel('help')}>
+            <NavIcon name="help" />
+          </button>
+          <div className="layout-menu-anchor" ref={settingsRef}>
+            <button type="button" className={`app-icon-btn ${menu === 'settings' ? 'is-active' : ''}`} aria-label={t('Настройки')} title={t('Настройки')} aria-expanded={menu === 'settings'} onClick={() => toggleMenu('settings')}>
+              <NavIcon name="settings" />
             </button>
-            {profileMenuOpen && (
-              <div className="layout-profile-popover">
-                <Link to="/profile" className="layout-profile-link" onClick={() => setProfileMenuOpen(false)}>
-                  {t('Профиль')}
-                </Link>
-                <LanguageSelector className="language-selector-profile" />
-                <button type="button" className="layout-profile-logout" onClick={handleLogout}>
-                  {t('Выйти')}
-                </button>
-              </div>
+            {menu === 'settings' && <SettingsMenu boardId={boardId} onClose={closeMenu} />}
+          </div>
+          <div className="layout-menu-anchor" ref={profileRef}>
+            <button type="button" className="layout-avatar-btn" aria-label={t('Профиль')} aria-expanded={menu === 'profile'} onClick={() => toggleMenu('profile')}>
+              {user?.avatarUrl
+                ? <img src={user.avatarUrl} alt="" className="app-avatar" />
+                : <span className="app-avatar app-avatar-placeholder">{user?.displayName?.charAt(0) || '?'}</span>}
+            </button>
+            {menu === 'profile' && (
+              <ProfileMenu user={user} character={character} onClose={closeMenu} onLogout={handleLogout} onSwitchAccount={handleLogout} />
             )}
           </div>
         </div>
       </header>
 
-      {boardId && (
-        <div className="layout-board-tabs">
-          <Link to={`/board/${boardId}`} className={`layout-board-tab ${tab === 'board' ? 'is-active' : ''}`}>{t('Доска')}</Link>
-          <Link to={`/board/${boardId}/backlog`} className={`layout-board-tab ${tab === 'backlog' ? 'is-active' : ''}`}>{t('Backlog')}</Link>
-          <Link to={`/board/${boardId}/roadmap`} className={`layout-board-tab ${tab === 'roadmap' ? 'is-active' : ''}`}>{t('Roadmap')}</Link>
-          <Link to={`/board/${boardId}/reports`} className={`layout-board-tab ${tab === 'reports' ? 'is-active' : ''}`}>{t('Отчёты')}</Link>
-          <Link to={`/board/${boardId}/components`} className={`layout-board-tab ${tab === 'components' ? 'is-active' : ''}`}>{t('Компоненты')}</Link>
-          <Link to={`/board/${boardId}/releases`} className={`layout-board-tab ${tab === 'releases' ? 'is-active' : ''}`}>{t('Релизы')}</Link>
-          <Link to={`/board/${boardId}/workflow`} className={`layout-board-tab ${tab === 'workflow' ? 'is-active' : ''}`}>{t('Workflow')}</Link>
-          <Link to={`/board/${boardId}/permissions`} className={`layout-board-tab ${tab === 'permissions' ? 'is-active' : ''}`}>{t('Разрешения')}</Link>
-          <Link to={`/board/${boardId}/automations`} className={`layout-board-tab ${tab === 'automations' ? 'is-active' : ''}`}>{t('Автоматизация')}</Link>
-          <Link to={`/board/${boardId}/integrations`} className={`layout-board-tab ${tab === 'integrations' ? 'is-active' : ''}`}>{t('Интеграции')}</Link>
-          <Link to={`/board/${boardId}/operations`} className={`layout-board-tab ${tab === 'operations' ? 'is-active' : ''}`}>{t('Операции')}</Link>
-          <Link to={`/board/${boardId}/archive`} className={`layout-board-tab ${tab === 'archive' ? 'is-active' : ''}`}>{t('Архив')}</Link>
-        </div>
-      )}
-
       <div className="layout-body">
-        <aside className="layout-sidebar">
-          {sidebarContent}
-        </aside>
+        <aside className="layout-sidebar">{sidebar(false)}</aside>
 
         {mobileSidebarOpen && (
           <div className="layout-mobile-sidebar-overlay" onClick={() => setMobileSidebarOpen(false)}>
             <aside className="layout-sidebar layout-sidebar-mobile" onClick={(e) => e.stopPropagation()}>
-              <button type="button" className="layout-mobile-sidebar-close" onClick={() => setMobileSidebarOpen(false)} aria-label={t('Закрыть')}>✕</button>
-              {sidebarContent}
+              <button type="button" className="app-icon-btn layout-mobile-sidebar-close" onClick={() => setMobileSidebarOpen(false)} aria-label={t('Закрыть')}>
+                <NavIcon name="close" />
+              </button>
+              {sidebar(true)}
             </aside>
           </div>
         )}
 
-        <main className="layout-main">
+        <main className={`layout-main ${boardId ? 'has-space-header' : ''}`}>
+          {boardId && <SpaceHeader board={activeBoard} boardId={boardId} tab={tab} />}
           <Outlet />
         </main>
+
+        <NotificationsPanel open={panel === 'notifications'} onClose={() => setPanel(null)} onUnreadChange={setUnread} />
+        <HelpPanel open={panel === 'help'} onClose={() => setPanel(null)} />
       </div>
+
+      <CreateIssueDialog open={createOpen} onClose={() => setCreateOpen(false)} boards={allBoards} defaultBoardId={boardId} />
     </div>
   );
 }

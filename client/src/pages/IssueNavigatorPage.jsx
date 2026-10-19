@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { search, savedFilters } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { Link } from '../i18n/navigation.jsx';
+import { Link, useLocation } from '../i18n/navigation.jsx';
 import './JiraPages.css';
 
 const PAGE_SIZE = 25;
 
 export default function IssueNavigatorPage() {
   const { t } = useLocalization();
-  const [jql, setJql] = useState('');
-  const [appliedJql, setAppliedJql] = useState('');
+  const location = useLocation();
+  const urlJql = new URLSearchParams(location.search).get('jql') || '';
+  const [jql, setJql] = useState(urlJql);
+  const [appliedJql, setAppliedJql] = useState(urlJql);
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState([]);
   const [page, setPage] = useState(1);
@@ -39,6 +41,11 @@ export default function IssueNavigatorPage() {
   }, [appliedJql, direction, page, sort, t]);
 
   useEffect(() => { loadFilters(); }, [loadFilters]);
+  useEffect(() => {
+    setJql(urlJql);
+    setAppliedJql(urlJql);
+    setPage(1);
+  }, [urlJql]);
   useEffect(() => { load(); }, [load]);
 
   const apply = (event) => {

@@ -25,6 +25,8 @@ import OperationsPage from './pages/OperationsPage.jsx';
 import DashboardsPage from './pages/DashboardsPage.jsx';
 import ForYouPage from './pages/ForYouPage.jsx';
 import SpacesPage from './pages/SpacesPage.jsx';
+import SpaceTemplatesPage from './pages/spaces/SpaceTemplatesPage.jsx';
+import { SpaceCalendarPage, SpaceFeaturesPage, SpaceListPage, SpaceSummaryPage } from './pages/spaces/SpaceViews.jsx';
 import { KudosPage, PeoplePage, PersonPage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
 import { GoalsPage, ProjectsPage } from './pages/WorkspacePages.jsx';
 import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
@@ -76,6 +78,8 @@ export default function App() {
           <Route index element={<HomeRoute />} />
           <Route path="for-you" element={<ForYouPage />} />
           <Route path="spaces" element={<SpacesPage />} />
+          <Route path="spaces/templates" element={<SpaceTemplatesPage />} />
+          <Route path="spaces/templates/:templateId" element={<SpaceTemplatesPage />} />
           <Route path="teams" element={<TeamsHomePage />} />
           <Route path="teams/list" element={<TeamsListPage />} />
           <Route path="teams/manage" element={<HomePage />} />
@@ -113,6 +117,11 @@ export default function App() {
           <Route path="board/:boardId/integrations" element={<ProjectSettingsPage mode="integrations" />} />
           <Route path="board/:boardId/operations" element={<OperationsPage />} />
           <Route path="board/:boardId/archive" element={<BoardArchivePage />} />
+          <Route path="board/:boardId/summary" element={<SpaceSummaryPage />} />
+          <Route path="board/:boardId/list" element={<SpaceListPage />} />
+          <Route path="board/:boardId/calendar" element={<SpaceCalendarPage />} />
+          <Route path="board/:boardId/features" element={<SpaceFeaturesPage mode="features" />} />
+          <Route path="board/:boardId/access" element={<SpaceFeaturesPage mode="access" />} />
           <Route path="issues" element={<IssueNavigatorPage />} />
           <Route path="dashboards" element={<DashboardsPage />} />
           <Route path="profile" element={<ProfilePage />} />

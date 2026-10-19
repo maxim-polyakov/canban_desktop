@@ -42,13 +42,24 @@ public class ProjectAccessService : IProjectAccessService
     public async Task<(ProjectAccessStatus Status, BoardPermission? Permission)> GetBoardAccessAsync(
         Guid boardId, Guid userId, CancellationToken ct = default)
     {
-        var teamId = await _db.Boards.AsNoTracking()
+        var board = await _db.Boards.AsNoTracking()
             .Where(b => b.Id == boardId)
-            .Select(b => (Guid?)b.TeamId)
+            .Select(b => new { b.TeamId, b.Access })
             .FirstOrDefaultAsync(ct);
-        if (!teamId.HasValue) return (ProjectAccessStatus.NotFound, null);
-        return await GetTeamAccessAsync(teamId.Value, userId, ct);
+        if (board == null) return (ProjectAccessStatus.NotFound, null);
+        var teamAccess = await GetTeamAccessAsync(board.TeamId, userId, ct);
+        if (teamAccess.Status != ProjectAccessStatus.Forbidden) return teamAccess;
+        var outsider = OutsiderPermission(board.Access);
+        return outsider.HasValue ? (ProjectAccessStatus.Success, outsider) : teamAccess;
     }
+
+    /// <summary>What people outside the owning team may do in a space, by its access level.</summary>
+    public static BoardPermission? OutsiderPermission(string? access) => access switch
+    {
+        "open" => BoardPermission.Work,
+        "limited" => BoardPermission.View,
+        _ => null,
+    };
 
     public async Task<(ProjectAccessStatus Status, BoardPermission? Permission)> GetQuestAccessAsync(
         Guid questId, Guid userId, CancellationToken ct = default)

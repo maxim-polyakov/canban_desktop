@@ -3,6 +3,7 @@ using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 using CanbanServer.Domain.Entities;
+using CanbanServer.Infrastructure.Services;
 
 namespace CanbanServer.Api.Controllers;
 
@@ -24,6 +25,26 @@ public class BoardsController : ControllerBase
         return board == null ? NotFound() : Ok(board);
     }
 
+    [HttpGet("templates")]
+    public ActionResult<object> Templates() => Ok(new
+    {
+        categories = SpaceTemplates.Categories.Select(c => new { id = c.Id, title = c.Title }),
+        templates = SpaceTemplates.All.Select(t => new
+        {
+            id = t.Id,
+            category = t.Category,
+            icon = t.Icon,
+            title = t.Title,
+            description = t.Description,
+            bestFor = t.BestFor,
+            issueTypes = t.IssueTypes,
+            columns = t.Columns.Select(c => new { title = c.Title, kind = c.Kind }),
+            features = t.Features,
+            createsSprint = t.CreatesSprint,
+            featured = t.Featured,
+        }),
+    });
+
     [HttpGet("team/{teamId:guid}")]
     public async Task<ActionResult<List<BoardDto>>> GetByTeam(Guid teamId, CancellationToken ct)
     {
@@ -40,6 +61,11 @@ public class BoardsController : ControllerBase
         if (!createdByUserId.HasValue) return Unauthorized();
         var access = await _access.GetTeamAccessAsync(request.TeamId, createdByUserId.Value, ct);
         if (access.Status != ProjectAccessStatus.Success || access.Permission < BoardPermission.Manage) return Forbid();
+        if (request.CopySettingsFromBoardId is Guid sourceId)
+        {
+            var source = await _access.GetBoardAccessAsync(sourceId, createdByUserId.Value, ct);
+            if (source.Status != ProjectAccessStatus.Success) return Forbid();
+        }
         var board = await _boardService.CreateAsync(request, createdByUserId, ct);
         return CreatedAtAction(nameof(Get), new { id = board.Id }, board);
     }

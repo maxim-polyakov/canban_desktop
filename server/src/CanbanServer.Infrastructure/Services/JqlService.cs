@@ -22,7 +22,7 @@ public sealed class JqlService : IJqlQueryService
             .Include(q => q.Column).Include(q => q.Sprint).Include(q => q.Assignee).Include(q => q.Board)
             .Include(q => q.Assignees).ThenInclude(a => a.User)
             .Include(q => q.NotificationRecipients).Include(q => q.ExternalNotificationRecipients)
-            .Where(q => q.Board.Team.OwnerId == userId || q.Board.Team.Members.Any(m => m.UserId == userId));
+            .Where(q => q.Board.Team.OwnerId == userId || q.Board.Team.Members.Any(m => m.UserId == userId) || q.Board.Access != "private");
         if (boardId.HasValue) query = query.Where(q => q.BoardId == boardId);
         var values = await query.ToListAsync(ct);
         var filtered = ast.Where == null ? values : values.Where(q => Match(ast.Where, q, userId)).ToList();

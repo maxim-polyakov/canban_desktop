@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { teams as teamsApi, character as characterApi, notifications as notificationsApi, search as searchApi } from '../api.js';
+import { boards as boardsApi, teams as teamsApi, character as characterApi, notifications as notificationsApi, search as searchApi } from '../api.js';
 import NavIcon from './NavIcons.jsx';
 import SpaceAvatar from './SpaceAvatar.jsx';
 import AppSidebar, { CREATE_SPACE_EVENT, SPACES_CHANGED_EVENT } from './AppSidebar.jsx';
@@ -14,19 +14,15 @@ import CreateIssueDialog from './CreateIssueDialog.jsx';
 import { ProfileMenu, SettingsMenu } from './HeaderMenus.jsx';
 import { IssueTypeIcon } from './IssueIcons.jsx';
 import { isBoardStarred, rememberBoard, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
+import { ALL_TAB_KEYS, BOARD_CHANGED_EVENT, firstSpacePath, spaceTabs, startOnboarding } from '../utils/spaceFeatures.js';
+import OnboardingButton from './SpaceOnboarding.jsx';
 import './Layout.css';
 
 const BOARD_ROUTE_RE = /^\/board\/([^/]+)(?:\/([^/]+))?/;
-const SPACE_TABS = [
-  ['board', '', 'board', 'Доска'],
-  ['backlog', '/backlog', 'backlog', 'Backlog'],
-  ['roadmap', '/roadmap', 'timeline', 'Roadmap'],
-  ['releases', '/releases', 'releases', 'Релизы'],
-  ['reports', '/reports', 'reports', 'Отчёты'],
-  ['archive', '/archive', 'archive', 'Архив'],
-];
 const SPACE_SETTINGS = [
   ['settings', 'settings', 'Сведения'],
+  ['access', 'eye', 'Доступ'],
+  ['features', 'customize', 'Функции'],
   ['components', 'components', 'Компоненты'],
   ['workflow', 'workflow', 'Workflow'],
   ['permissions', 'lock', 'Разрешения'],
@@ -42,7 +38,7 @@ function useActiveBoard(pathname) {
     const match = pathname.match(BOARD_ROUTE_RE);
     if (!match) return { boardId: null, tab: null };
     const segment = match[2];
-    const known = [...SPACE_TABS.map((x) => x[0]), ...SPACE_SETTINGS.map((x) => x[0])];
+    const known = [...ALL_TAB_KEYS, ...SPACE_SETTINGS.map((x) => x[0])];
     return { boardId: match[1], tab: known.includes(segment) ? segment : 'board' };
   }, [pathname]);
 }
@@ -56,6 +52,9 @@ function normalizeTeams(list) {
         id: b.id ?? b.Id,
         name: b.name ?? b.Name ?? 'Доска',
         keyPrefix: b.keyPrefix ?? b.KeyPrefix ?? 'KAN',
+        template: b.template ?? b.Template ?? 'kanban',
+        access: b.access ?? b.Access ?? 'private',
+        features: b.features ?? b.Features ?? '',
       })),
     };
   });
@@ -181,6 +180,7 @@ function SpaceHeader({ board, boardId, tab }) {
         >
           <NavIcon name="star" filled={starred} />
         </button>
+        <OnboardingButton board={board} boardId={boardId} />
         <div className="app-space-more" ref={ref}>
           <button type="button" className="app-icon-btn" aria-label={t('Настройки раздела')} aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
             <NavIcon name="more" />
@@ -198,11 +198,14 @@ function SpaceHeader({ board, boardId, tab }) {
         </div>
       </div>
       <nav className="app-space-tabs" aria-label={t('Представления раздела')}>
-        {SPACE_TABS.map(([key, suffix, icon, label]) => (
-          <Link key={key} to={`/board/${boardId}${suffix}`} className={`app-space-tab ${tab === key ? 'is-active' : ''}`}>
+        {spaceTabs(board).map(([feature, key, suffix, icon, label]) => (
+          <Link key={feature} to={`/board/${boardId}${suffix}`} className={`app-space-tab ${tab === key ? 'is-active' : ''}`}>
             <NavIcon name={icon} size={14} />{t(label)}
           </Link>
         ))}
+        <Link to={`/board/${boardId}/features`} className="app-space-tab app-space-tab-add" aria-label={t('Функции')} title={t('Функции')}>
+          <NavIcon name="plus" size={14} />
+        </Link>
         {SPACE_SETTINGS.some(([segment]) => segment === tab) && (
           <span className="app-space-tab is-active">
             <NavIcon name={SPACE_SETTINGS.find(([s]) => s === tab)[1]} size={14} />
@@ -227,6 +230,7 @@ export default function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.localStorage.getItem('canban.nav.collapsed') === '1');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [teamsWithBoards, setTeamsWithBoards] = useState([]);
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
   const [character, setCharacter] = useState(null);
   const [panel, setPanel] = useState(null);
   const [menu, setMenu] = useState(null);
@@ -236,7 +240,10 @@ export default function Layout() {
   const [createSpace, setCreateSpace] = useState(null);
 
   const loadTeams = useCallback(() => {
-    teamsApi.getMyTeamsWithBoards().then((list) => setTeamsWithBoards(normalizeTeams(list))).catch(() => setTeamsWithBoards([]));
+    teamsApi.getMyTeamsWithBoards()
+      .then((list) => setTeamsWithBoards(normalizeTeams(list)))
+      .catch(() => setTeamsWithBoards([]))
+      .finally(() => setTeamsLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -263,7 +270,32 @@ export default function Layout() {
     [teamsWithBoards],
   );
   const boardsById = useMemo(() => new Map(allBoards.map((b) => [b.id, b])), [allBoards]);
-  const activeBoard = boardId ? boardsById.get(boardId) : null;
+  const [outsideBoard, setOutsideBoard] = useState(null);
+  const memberBoard = boardId ? boardsById.get(boardId) : null;
+  const activeBoard = memberBoard || (outsideBoard?.id === boardId ? outsideBoard : null);
+
+  useEffect(() => {
+    if (!boardId || memberBoard || !teamsLoaded) return undefined;
+    let alive = true;
+    boardsApi.getById(boardId)
+      .then((b) => { if (alive && b) setOutsideBoard({ id: b.id, name: b.name, keyPrefix: b.keyPrefix, template: b.template, access: b.access, features: b.features }); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [boardId, memberBoard, teamsLoaded]);
+
+  useEffect(() => {
+    const onBoardChanged = (e) => {
+      const changed = e.detail?.board;
+      if (!changed) return;
+      setTeamsWithBoards((list) => list.map((entry) => ({
+        ...entry,
+        boards: entry.boards.map((b) => (b.id === changed.id ? { ...b, ...changed } : b)),
+      })));
+      setOutsideBoard((current) => (current?.id === changed.id ? { ...current, ...changed } : current));
+    };
+    window.addEventListener(BOARD_CHANGED_EVENT, onBoardChanged);
+    return () => window.removeEventListener(BOARD_CHANGED_EVENT, onBoardChanged);
+  }, []);
 
   useEffect(() => {
     if (activeBoard) rememberBoard({ id: activeBoard.id, name: activeBoard.name, teamName: activeBoard.teamName });
@@ -276,19 +308,30 @@ export default function Layout() {
   }, [location.pathname]);
 
   useEffect(() => {
-    const onCreateSpace = (e) => setCreateSpace({ template: e.detail?.template });
+    const onCreateSpace = (e) => {
+      if (e.detail?.template) setCreateSpace({ template: e.detail.template });
+      else navigate('/spaces/templates');
+    };
     window.addEventListener(CREATE_SPACE_EVENT, onCreateSpace);
     window.addEventListener(SPACES_CHANGED_EVENT, loadTeams);
     return () => {
       window.removeEventListener(CREATE_SPACE_EVENT, onCreateSpace);
       window.removeEventListener(SPACES_CHANGED_EVENT, loadTeams);
     };
-  }, [loadTeams]);
+  }, [loadTeams, navigate]);
 
   const handleSpaceCreated = (board, template) => {
     setCreateSpace(null);
+    startOnboarding(board.id, template);
     window.dispatchEvent(new CustomEvent(SPACES_CHANGED_EVENT));
-    navigate(template === 'scrum' ? `/board/${board.id}/backlog` : `/board/${board.id}`);
+    const features = String(board.features || '').split(',').filter(Boolean);
+    navigate(firstSpacePath(board.id, features.length ? features : ['board']));
+  };
+
+  const changeTemplate = () => {
+    const current = createSpace?.template;
+    setCreateSpace(null);
+    navigate(current ? `/spaces/templates/${current}` : '/spaces/templates');
   };
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -416,6 +459,7 @@ export default function Layout() {
         teamsWithBoards={teamsWithBoards}
         onClose={() => setCreateSpace(null)}
         onCreated={handleSpaceCreated}
+        onChangeTemplate={changeTemplate}
       />
       <CreateIssueDialog open={createOpen} onClose={() => setCreateOpen(false)} boards={allBoards} defaultBoardId={boardId} />
     </div>

@@ -302,7 +302,7 @@ public class JiraPlatformController : ControllerBase
     {
         var userId = RequireUser();
         var spaces = await _db.Boards.AsNoTracking()
-            .Where(b => b.Team.OwnerId == userId || b.Team.Members.Any(m => m.UserId == userId))
+            .Where(b => b.Team.OwnerId == userId || b.Team.Members.Any(m => m.UserId == userId) || b.Access != "private")
             .Select(b => new
             {
                 id = b.Id,
@@ -311,6 +311,11 @@ public class JiraPlatformController : ControllerBase
                 key = b.KeyPrefix,
                 teamId = b.TeamId,
                 teamName = b.Team.Name,
+                isMember = b.Team.OwnerId == userId || b.Team.Members.Any(m => m.UserId == userId),
+                template = b.Template,
+                managementType = b.ManagementType,
+                access = b.Access,
+                features = b.Features,
                 leadId = b.Team.OwnerId,
                 leadName = _db.Users.Where(u => u.Id == b.Team.OwnerId).Select(u => u.DisplayName).FirstOrDefault(),
                 leadAvatarUrl = _db.Users.Where(u => u.Id == b.Team.OwnerId).Select(u => u.AvatarUrl).FirstOrDefault(),

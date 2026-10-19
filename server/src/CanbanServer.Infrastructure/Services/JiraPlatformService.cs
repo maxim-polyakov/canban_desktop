@@ -571,7 +571,11 @@ public sealed class JiraPlatformService : IJiraPlatformService
             CreatedAt = DateTime.UtcNow,
             CreatedByUserId = userId,
             KeyPrefix = source.KeyPrefix,
-            NextIssueNumber = 1
+            NextIssueNumber = 1,
+            Template = source.Template,
+            ManagementType = source.ManagementType,
+            Access = source.Access,
+            Features = source.Features,
         };
         var columnMap = new Dictionary<Guid, Guid>();
         foreach (var column in source.Columns.OrderBy(c => c.Order))
@@ -619,7 +623,7 @@ public sealed class JiraPlatformService : IJiraPlatformService
             }
         }
         await _db.SaveChangesAsync(ct);
-        return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt, board.CreatedByUserId, board.KeyPrefix);
+        return BoardDto.From(board);
     }
 
     public ImportPreviewResult PreviewImport(ImportPreviewRequest request)

@@ -13,6 +13,14 @@ public class Board
     /// <summary>Prefix for issue keys, e.g. KAN.</summary>
     public string KeyPrefix { get; set; } = "KAN";
     public int NextIssueNumber { get; set; } = 1;
+    /// <summary>Space template the board was created from, e.g. kanban, scrum, recruitment.</summary>
+    public string Template { get; set; } = "kanban";
+    /// <summary>"team" (team-managed) or "company" (company-managed).</summary>
+    public string ManagementType { get; set; } = "team";
+    /// <summary>Who outside the team can use the space: "private", "limited" (view) or "open" (view and work).</summary>
+    public string Access { get; set; } = "private";
+    /// <summary>Comma-separated enabled views; empty means the legacy default set.</summary>
+    public string Features { get; set; } = "";
 
     public Team Team { get; set; } = null!;
     public ICollection<Column> Columns { get; set; } = new List<Column>();

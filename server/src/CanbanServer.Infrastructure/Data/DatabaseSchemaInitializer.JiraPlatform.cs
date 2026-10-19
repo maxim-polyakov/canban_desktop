@@ -9,6 +9,10 @@ public static partial class DatabaseSchemaInitializer
         await db.Database.ExecuteSqlRawAsync(
             """
             ALTER TABLE "QuestComments" ADD COLUMN IF NOT EXISTS "DocumentJson" text NULL;
+            ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "Template" varchar(32) NOT NULL DEFAULT 'kanban';
+            ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "ManagementType" varchar(16) NOT NULL DEFAULT 'team';
+            ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "Access" varchar(16) NOT NULL DEFAULT 'private';
+            ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "Features" varchar(300) NOT NULL DEFAULT '';
             UPDATE "Quests" SET "ParentQuestId"="ParentEpicId" WHERE "ParentQuestId" IS NULL AND "ParentEpicId" IS NOT NULL;
             CREATE INDEX IF NOT EXISTS "IX_Quests_ParentQuestId" ON "Quests"("ParentQuestId");
 

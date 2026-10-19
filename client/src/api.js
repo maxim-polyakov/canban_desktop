@@ -67,6 +67,7 @@ export const auth = {
 export const boards = {
   getById: (id) => apiJson(`/api/boards/${id}`),
   getByTeam: (teamId) => apiJson(`/api/boards/team/${teamId}`),
+  getTemplates: () => apiJson('/api/boards/templates'),
   create: (data) => apiJson('/api/boards', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/boards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: async (id) => {

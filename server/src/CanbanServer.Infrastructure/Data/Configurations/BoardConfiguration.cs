@@ -13,5 +13,9 @@ public class BoardConfiguration : IEntityTypeConfiguration<Board>
         builder.Property(b => b.CreatedByUserId).IsRequired(false);
         builder.Property(b => b.KeyPrefix).HasMaxLength(16).HasDefaultValue("KAN");
         builder.Property(b => b.NextIssueNumber).HasDefaultValue(1);
+        builder.Property(b => b.Template).HasMaxLength(32);
+        builder.Property(b => b.ManagementType).HasMaxLength(16);
+        builder.Property(b => b.Access).HasMaxLength(16);
+        builder.Property(b => b.Features).HasMaxLength(300);
     }
 }

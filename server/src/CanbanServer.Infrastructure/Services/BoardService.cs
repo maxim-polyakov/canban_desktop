@@ -45,7 +45,8 @@ public class BoardService : IBoardService
                 var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
                     c.Id, c.BoardId, c.Title, c.Order, c.Kind, c.CreatedAt,
                     c.Quests.OrderBy(q => q.Order).Select(q => MapQuest(q)).ToList())).ToList();
-                return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId, b.KeyPrefix);
+                return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId, b.KeyPrefix,
+                    b.Template, b.ManagementType, b.Access, b.Features);
             },
             ct);
     }
@@ -58,7 +59,7 @@ public class BoardService : IBoardService
             async _ =>
             {
                 var list = await _db.Boards.Where(x => x.TeamId == teamId).OrderBy(x => x.Order).ToListAsync(ct);
-                return list.Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId, b.KeyPrefix)).ToList();
+                return list.Select(BoardDto.From).ToList();
             },
             ct)) ?? new List<BoardDto>();
     }
@@ -69,6 +70,9 @@ public class BoardService : IBoardService
             ?? throw new ArgumentException("Team not found");
         var maxOrder = await _db.Boards.Where(b => b.TeamId == request.TeamId).MaxAsync(b => (int?)b.Order, ct) ?? -1;
         var keyPrefix = NormalizeKey(request.KeyPrefix ?? team.Key);
+        var template = SpaceTemplates.Find(request.Template);
+        var management = SpaceTemplates.ManagementTypes.Contains(request.ManagementType) ? request.ManagementType! : "team";
+        var access = SpaceTemplates.AccessLevels.Contains(request.Access) ? request.Access! : "private";
         var board = new Board
         {
             Id = Guid.NewGuid(),
@@ -79,23 +83,30 @@ public class BoardService : IBoardService
             CreatedAt = DateTime.UtcNow,
             CreatedByUserId = createdByUserId,
             KeyPrefix = keyPrefix,
-            NextIssueNumber = 1
+            NextIssueNumber = 1,
+            Template = template.Id,
+            ManagementType = management,
+            Access = access,
+            Features = SpaceTemplates.NormalizeFeatures(template.Features),
         };
         _db.Boards.Add(board);
 
         var now = DateTime.UtcNow;
-        var defaultColumns = new[]
+        var columns = template.Columns.Select(c => (c.Title, c.Kind)).ToList();
+        if (request.CopySettingsFromBoardId is Guid sourceId)
         {
-            new Column { Id = Guid.NewGuid(), BoardId = board.Id, Title = "К выполнению", Order = 0, Kind = ColumnKind.Backlog, CreatedAt = now },
-            new Column { Id = Guid.NewGuid(), BoardId = board.Id, Title = "В работе", Order = 1, Kind = ColumnKind.InProgress, CreatedAt = now },
-            new Column { Id = Guid.NewGuid(), BoardId = board.Id, Title = "Готово", Order = 2, Kind = ColumnKind.Done, CreatedAt = now },
-        };
-        _db.Columns.AddRange(defaultColumns);
+            var source = await _db.Boards.AsNoTracking().Include(b => b.Columns).FirstOrDefaultAsync(b => b.Id == sourceId, ct)
+                ?? throw new ArgumentException("Space to copy settings from was not found");
+            columns = source.Columns.Where(c => c.Kind != ColumnKind.Archive).OrderBy(c => c.Order).Select(c => (c.Title, c.Kind)).ToList();
+            board.Features = string.IsNullOrEmpty(source.Features) ? SpaceTemplates.NormalizeFeatures(SpaceTemplates.LegacyFeatures) : source.Features;
+            board.Template = source.Template;
+        }
+        _db.Columns.AddRange(columns.Select((c, i) => new Column { Id = Guid.NewGuid(), BoardId = board.Id, Title = c.Title, Order = i, Kind = c.Kind, CreatedAt = now }));
 
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:team:" + request.TeamId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(board.Id, ct);
-        return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt, board.CreatedByUserId, board.KeyPrefix);
+        return BoardDto.From(board);
     }
 
     public async Task<BoardDto?> UpdateAsync(Guid id, UpdateBoardRequest request, CancellationToken ct = default)
@@ -106,11 +117,17 @@ public class BoardService : IBoardService
         if (request.Description != null) b.Description = request.Description;
         if (request.Order != null) b.Order = request.Order.Value;
         if (request.KeyPrefix != null) b.KeyPrefix = NormalizeKey(request.KeyPrefix);
+        if (request.Access != null)
+        {
+            if (!SpaceTemplates.AccessLevels.Contains(request.Access)) throw new ArgumentException("Unknown access level");
+            b.Access = request.Access;
+        }
+        if (request.Features != null) b.Features = SpaceTemplates.NormalizeFeatures(request.Features.Split(',', StringSplitOptions.RemoveEmptyEntries));
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + id, ct);
         await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(id, ct);
-        return new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId, b.KeyPrefix);
+        return BoardDto.From(b);
     }
 
     public async Task<bool?> DeleteAsync(Guid id, Guid? currentUserId, CancellationToken ct = default)

@@ -141,7 +141,7 @@ function SpacesMoreMenu({ onClose, onCustomize, anchor }) {
     <div className="app-menu app-nav-more-menu" role="menu" ref={ref}>
       <button type="button" className="app-menu-item" role="menuitem" onClick={() => go('/spaces')}><NavIcon name="spaces" />{t('Управление разделами')}</button>
       <button type="button" className="app-menu-item" role="menuitem" onClick={() => { onClose(); openCreateSpace(); }}><NavIcon name="plus" />{t('Создать раздел')}</button>
-      <button type="button" className="app-menu-item" role="menuitem" onClick={() => go('/spaces?templates=1')}><NavIcon name="template" />{t('Шаблоны разделов')}</button>
+      <button type="button" className="app-menu-item" role="menuitem" onClick={() => go('/spaces/templates')}><NavIcon name="template" />{t('Шаблоны разделов')}</button>
       <div className="app-menu-divider" />
       <button type="button" className="app-menu-item" role="menuitem" onClick={() => { onClose(); onCustomize(); }}><NavIcon name="customize" />{t('Настроить боковую панель')}</button>
     </div>
@@ -303,7 +303,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
       {shown('recommended') && (
         <>
           <div className="app-nav-section">{t('Рекомендации')}</div>
-          {item('/spaces?templates=1', 'template', 'Шаблоны', { badge: 'Попробуйте', active: false })}
+          {item('/spaces/templates', 'template', 'Шаблоны', { badge: 'Попробуйте' })}
         </>
       )}
 

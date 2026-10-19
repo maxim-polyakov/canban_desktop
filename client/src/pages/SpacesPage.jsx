@@ -5,7 +5,7 @@ import { boards as boardsApi, spaces as spacesApi } from '../api.js';
 import NavIcon from '../components/NavIcons.jsx';
 import SpaceAvatar from '../components/SpaceAvatar.jsx';
 import { openCreateSpace, SPACES_CHANGED_EVENT } from '../components/AppSidebar.jsx';
-import { SPACE_TEMPLATES } from '../components/CreateSpaceDialog.jsx';
+import { useSpaceTemplates } from '../utils/spaceFeatures.js';
 import { isBoardStarred, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { timeAgo } from '../utils/timeAgo.js';
 import './settings/Settings.css';
@@ -84,7 +84,8 @@ export default function SpacesPage() {
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const showTemplates = params.get('templates') === '1';
+  const { templates } = useSpaceTemplates();
+  const templateTitles = useMemo(() => new Map(templates.map((x) => [x.id, x.title])), [templates]);
 
   const load = useCallback(() => {
     spacesApi.getMine()
@@ -99,7 +100,7 @@ export default function SpacesPage() {
     return () => window.removeEventListener(SPACES_CHANGED_EVENT, load);
   }, [load]);
   useEffect(() => {
-    if (params.get('create') === '1') { openCreateSpace(); navigate('/spaces', { replace: true }); }
+    if (params.get('create') === '1' || params.get('templates') === '1') navigate('/spaces/templates', { replace: true });
   }, [search]);
 
   const rows = useMemo(() => {
@@ -136,30 +137,12 @@ export default function SpacesPage() {
         <div className="settings-title-row">
           <h1 className="settings-title">{t('Разделы')}</h1>
           <div className="settings-actions">
-            <button type="button" className="app-btn" onClick={() => navigate(showTemplates ? '/spaces' : '/spaces?templates=1')}>
+            <button type="button" className="app-btn" onClick={() => navigate('/spaces/templates')}>
               <NavIcon name="template" size={14} />{t('Шаблоны')}
             </button>
             <button type="button" className="app-btn app-btn-primary" onClick={() => openCreateSpace()}>{t('Создать раздел')}</button>
           </div>
         </div>
-
-        {showTemplates && (
-          <div className="settings-templates">
-            <div className="settings-templates-header">
-              <h2>{t('Шаблоны разделов')}</h2>
-              <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={() => navigate('/spaces')}><NavIcon name="close" /></button>
-            </div>
-            <div className="app-template-grid">
-              {SPACE_TEMPLATES.map((tpl) => (
-                <button key={tpl.id} type="button" className="app-template-card" onClick={() => openCreateSpace({ template: tpl.id })}>
-                  <span className="app-template-icon"><NavIcon name={tpl.icon} size={20} /></span>
-                  <span className="app-template-title">{t(tpl.title)}</span>
-                  <span className="app-template-desc">{t(tpl.description)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="settings-toolbar">
           <label className="settings-search">
@@ -209,7 +192,10 @@ export default function SpacesPage() {
                       </Link>
                     </td>
                     <td>{space.key}</td>
-                    <td className="hide-mobile">{space.hasSprints ? t('Scrum, командный') : t('Kanban, командный')}</td>
+                    <td className="hide-mobile">
+                      {t(templateTitles.get(space.template) || 'Канбан')}, {t(space.managementType === 'company' ? 'управляется компанией' : 'управляется командой')}
+                      {space.isMember === false && <span className="settings-lozenge" style={{ marginLeft: 8 }}>{t(space.access === 'open' ? 'Открытый' : 'Ограниченный')}</span>}
+                    </td>
                     <td className="hide-mobile">
                       {space.leadName ? (
                         <Link to={`/profile/${space.leadId}`} className="settings-table-person">

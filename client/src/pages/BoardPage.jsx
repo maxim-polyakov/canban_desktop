@@ -8,6 +8,7 @@ import KanbanBoard from '../components/KanbanBoard.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import { buildQuestFilter } from '../utils/jqlFilter.js';
 import { moveQuestInColumns } from '../utils/boardMoves.js';
+import useMediaQuery from '../utils/useMediaQuery.js';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -52,6 +53,8 @@ export default function BoardPage() {
   const [filterIssueType, setFilterIssueType] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [selectedQuestIds, setSelectedQuestIds] = useState([]);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const isMobile = useMediaQuery();
 
   const loadSeqRef = useRef(0);
   const pendingMovesRef = useRef(0);
@@ -311,13 +314,32 @@ export default function BoardPage() {
   return (
     <div className="page board-page">
       <div className="board-header-row">
-        <div>
-          <h1 className="board-title">
+        <div className="board-header-main">
+          <h1 className="board-title" title={board.name}>
             {board.keyPrefix && <span className="board-key-chip">{board.keyPrefix}</span>}
-            {board.name}
+            <span className="board-title-text">{board.name}</span>
           </h1>
           {board.description && <p className="board-desc">{board.description}</p>}
         </div>
+        {isMobile ? (
+          <div className="board-more">
+            <button type="button" className="board-btn board-more-btn" aria-label={t('Действия с доской')} aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}>⋯</button>
+            {moreOpen && (
+              <>
+                <div className="board-more-backdrop" onClick={() => setMoreOpen(false)} />
+                <div className="board-more-menu" role="menu">
+                  <button type="button" role="menuitem" disabled={archiving || completedQuestCount === 0} onClick={() => { setMoreOpen(false); handleArchiveCompleted(); }}>
+                    {archiving ? 'Архивация...' : `Архивировать выполненные (${completedQuestCount})`}
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setEditBoardOpen(true); }}>Изменить доску</button>
+                  {board.createdByUserId === user?.id && (
+                    <button type="button" role="menuitem" className="board-more-danger" onClick={() => { setMoreOpen(false); handleDeleteBoard(); }}>Удалить доску</button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
         <div className="board-actions">
           <button
             type="button"
@@ -333,6 +355,7 @@ export default function BoardPage() {
             <button type="button" className="board-btn board-btn-delete" onClick={handleDeleteBoard} title="Удалить доску">✕</button>
           )}
         </div>
+        )}
       </div>
       {editBoardOpen && (
         <form className="board-edit-form" onSubmit={handleUpdateBoard}>
@@ -350,7 +373,7 @@ export default function BoardPage() {
           <input
             type="text"
             className="board-toolbar-search"
-            placeholder='Поиск: assignee:me priority:high type:bug label:… sprint:active текст'
+            placeholder={isMobile ? 'Поиск задач' : 'Поиск: assignee:me priority:high type:bug label:… sprint:active текст'}
             value={queryText}
             onChange={(e) => setQueryText(e.target.value)}
           />
@@ -376,8 +399,14 @@ export default function BoardPage() {
           type="button"
           className={`board-toolbar-filter-btn ${filtersOpen ? 'is-open' : ''}`}
           onClick={() => setFiltersOpen((v) => !v)}
+          aria-label="Фильтры"
         >
-          Фильтры{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+          {isMobile ? (
+            <svg className="board-toolbar-filter-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm4 6h4v2h-4z" />
+            </svg>
+          ) : 'Фильтры'}
+          {activeFilterCount > 0 && <span className="board-toolbar-filter-count">{activeFilterCount}</span>}
         </button>
       </div>
       {filtersOpen && (

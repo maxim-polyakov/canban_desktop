@@ -76,7 +76,10 @@ export default function KanbanColumn({
             <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} onBlur={submitEditTitle} autoFocus />
           </form>
         ) : (
-          <h3 className="kanban-column-title" title="Нажмите для изменения" onClick={onUpdateColumn ? startEditTitle : undefined}>{title}</h3>
+          <h3 className="kanban-column-title" title={title} onClick={onUpdateColumn ? startEditTitle : undefined}>
+            <span className="kanban-column-title-text">{title}</span>
+            <span className="kanban-column-count">{questsList.length}</span>
+          </h3>
         )}
         {onUpdateColumn && !editingTitle && (
           <button type="button" className="kanban-column-btn kanban-column-edit" onClick={startEditTitle} title="Изменить название">✎</button>

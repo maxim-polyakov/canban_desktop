@@ -398,7 +398,7 @@ export default function HomePage() {
                     </form>
                   ) : (
                     <>
-                      <span className="home-team-name">{item.team?.name}</span>
+                      <span className="home-team-name" title={item.team?.name}>{item.team?.name}</span>
                       <button type="button" className="home-team-btn home-team-edit-btn" onClick={() => loadTeamDetails(item.team?.id)} title="Изменить команду">✎</button>
                       <button type="button" className="home-team-btn home-team-refresh-boards" onClick={() => loadBoardsForTeam(item.team?.id)} title="Обновить список досок">↻</button>
                       {isTeamOwner(item.team) && (
@@ -411,7 +411,7 @@ export default function HomePage() {
                 <ul className="home-team-boards">
                   {(item.boards ?? []).map((b) => (
                     <li key={b.id} className="home-board-card">
-                      <Link to={`/board/${b.id}`} className="home-board-card-main">{b.name}</Link>
+                      <Link to={`/board/${b.id}`} className="home-board-card-main" title={b.name}>{b.name}</Link>
                       <span className="home-board-card-links">
                         <Link to={`/board/${b.id}/backlog`}>Backlog</Link>
                         <Link to={`/board/${b.id}/reports`}>Отчёты</Link>

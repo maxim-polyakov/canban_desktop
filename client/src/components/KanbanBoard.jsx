@@ -176,7 +176,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
   };
 
   return (
-    <div className="kanban-board">
+    <div className={'kanban-board' + (activeId ? ' kanban-board-dragging' : '')}>
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={columns.map((c) => COLUMN_PREFIX + c.id)} strategy={horizontalListSortingStrategy}>
           <div className="kanban-columns">

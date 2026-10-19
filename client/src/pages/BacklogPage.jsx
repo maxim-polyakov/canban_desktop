@@ -6,6 +6,7 @@ import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { IssueTypeIcon, PriorityIcon, WatcherBadge } from '../components/IssueIcons.jsx';
 import AssigneeAvatar from '../components/AssigneeAvatar.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
+import useMediaQuery from '../utils/useMediaQuery.js';
 import './BacklogPage.css';
 
 const BACKLOG_COLUMN_KIND = 0;
@@ -73,6 +74,35 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
   );
 }
 
+function SprintActions({ sprint, isMobile, onStart, onComplete, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const actions = [
+    sprint.status === 0 && { key: 'start', label: 'Начать спринт', run: onStart },
+    sprint.status === 1 && { key: 'complete', label: 'Завершить спринт', run: onComplete },
+    { key: 'delete', label: 'Удалить', run: onDelete, danger: true },
+  ].filter(Boolean);
+  if (!isMobile) {
+    return actions.map((action) => (
+      <button key={action.key} type="button" className={`backlog-sprint-action${action.danger ? ' backlog-sprint-delete' : ''}`} onClick={action.run}>{action.label}</button>
+    ));
+  }
+  return (
+    <span className="backlog-sprint-more">
+      <button type="button" className="backlog-sprint-more-btn" aria-label="Действия со спринтом" aria-expanded={open} onClick={() => setOpen((v) => !v)}>⋯</button>
+      {open && (
+        <>
+          <span className="backlog-sprint-more-backdrop" onClick={() => setOpen(false)} />
+          <span className="backlog-sprint-more-menu" role="menu">
+            {actions.map((action) => (
+              <button key={action.key} type="button" role="menuitem" className={action.danger ? 'is-danger' : ''} onClick={() => { setOpen(false); action.run(); }}>{action.label}</button>
+            ))}
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
 /** Droppable wrapper around a sprint's issue list; accepts dragged backlog issues. */
 function SprintDropList({ sprintId, children }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -118,6 +148,7 @@ export default function BacklogPage() {
   const [creatingIssue, setCreatingIssue] = useState(false);
   const [activeDragId, setActiveDragId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
+  const isMobile = useMediaQuery();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -341,13 +372,13 @@ export default function BacklogPage() {
               {sprint.goal && <span className="backlog-sprint-goal">{sprint.goal}</span>}
               <span className="backlog-sprint-count">{(sprintQuests[sprint.id] ?? []).length} задач</span>
               <span className="backlog-issue-spacer" />
-              {sprint.status === 0 && (
-                <button type="button" className="backlog-sprint-action" onClick={() => handleStartSprint(sprint.id)}>Начать спринт</button>
-              )}
-              {sprint.status === 1 && (
-                <button type="button" className="backlog-sprint-action" onClick={() => handleCompleteSprint(sprint.id)}>Завершить спринт</button>
-              )}
-              <button type="button" className="backlog-sprint-action backlog-sprint-delete" onClick={() => handleDeleteSprint(sprint.id)}>Удалить</button>
+              <SprintActions
+                sprint={sprint}
+                isMobile={isMobile}
+                onStart={() => handleStartSprint(sprint.id)}
+                onComplete={() => handleCompleteSprint(sprint.id)}
+                onDelete={() => handleDeleteSprint(sprint.id)}
+              />
             </header>
             <SprintDropList sprintId={sprint.id}>
               {(sprintQuests[sprint.id] ?? []).map((q) => (

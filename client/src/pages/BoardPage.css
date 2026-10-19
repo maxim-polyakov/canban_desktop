@@ -36,6 +36,85 @@
   gap: 0.5rem;
 }
 
+.board-header-main {
+  min-width: 0;
+}
+
+.board-title-text {
+  min-width: 0;
+}
+
+.board-more {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.board-more-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.board-more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+}
+
+.board-more-menu {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-end: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 15rem;
+  padding: 0.35rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.board-more-menu button {
+  padding: 0.7rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: start;
+}
+
+.board-more-menu button:active:not(:disabled) {
+  background: var(--bg);
+}
+
+.board-more-menu button:disabled {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.board-more-menu .board-more-danger {
+  color: var(--danger);
+}
+
+.board-toolbar-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  margin-inline-start: 0.35rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .board-key-chip {
   display: inline-flex;
   align-items: center;
@@ -368,54 +447,80 @@
   font-size: 0.75rem;
   color: var(--success);
 }
-
 @media (max-width: 700px) {
   .board-page {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  .board-header-row {
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .board-header-main {
+    flex: 1;
+  }
+
+  .board-title {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .board-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .board-desc {
+    display: none;
+  }
+
+  .board-edit-form {
+    max-width: none;
   }
 
   .board-toolbar {
     position: sticky;
-    top: calc(var(--topbar-height, 48px) + 40px);
+    top: calc(var(--topbar-height) + var(--board-tabs-height));
     z-index: 20;
-    background: var(--bg);
-    padding-block: 0.35rem;
-    margin-inline: -0.25rem;
-    padding-inline: 0.25rem;
-  }
-
-  .board-header-row {
-    align-items: flex-start;
-    gap: 0.75rem;
-    overflow-x: auto;
-    scrollbar-width: thin;
-  }
-
-  .board-title {
-    font-size: 1.25rem;
-  }
-
-  .board-actions {
-    flex: 0 0 auto;
     flex-wrap: nowrap;
-    justify-content: flex-end;
-  }
-
-  .board-btn-archive {
-    flex: 0 0 auto;
-    justify-content: center;
-    white-space: nowrap;
-  }
-
-  .board-toolbar {
-    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0 -0.75rem 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: var(--bg);
   }
 
   .board-toolbar-search-wrap {
+    flex: 1;
     max-width: none;
-    flex: 1 1 100%;
+  }
+
+  .board-toolbar-search {
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .board-toolbar-help-btn {
+    display: none;
+  }
+
+  .board-toolbar-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 0.5rem;
+  }
+
+  .board-toolbar-filter-count {
+    margin-inline-start: 0.2rem;
   }
 
   .board-toolbar-filters {
@@ -426,46 +531,6 @@
   .board-toolbar-filters select {
     min-width: 0;
     width: 100%;
-  }
-
-  .board-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 0.35rem;
-  }
-
-  .board-id {
-    min-width: 0;
-    max-width: calc(100% - 6.5rem);
-    margin-right: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-@media (max-width: 430px) {
-  .board-toolbar {
-    flex-wrap: wrap;
-    row-gap: 0.4rem;
-  }
-
-  .board-toolbar-search-wrap {
-    order: 1;
-  }
-
-  .board-toolbar-filter-btn {
-    order: 2;
-    flex: 1 1 auto;
-  }
-
-  .board-toolbar-search {
-    font-size: 0.82rem;
-  }
-
-  .board-toolbar-help-btn {
-    width: 1.75rem;
-    height: 1.75rem;
+    font-size: 16px;
   }
 }

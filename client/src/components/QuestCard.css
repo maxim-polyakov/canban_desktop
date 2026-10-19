@@ -143,6 +143,39 @@
   margin-left: -0.4rem;
 }
 
+@media (max-width: 700px) {
+  .quest-card {
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border: none;
+    box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  }
+
+  .quest-card-top {
+    align-items: flex-start;
+  }
+
+  .quest-card-top > svg,
+  .quest-card-top > .issue-type-icon {
+    margin-top: 0.1rem;
+  }
+
+  .quest-card-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .quest-card-select,
+  .quest-card-delete {
+    display: none;
+  }
+}
+
 .quest-card-unassigned {
   display: inline-flex;
   align-items: center;

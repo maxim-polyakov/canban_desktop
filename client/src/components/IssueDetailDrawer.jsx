@@ -58,6 +58,13 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [boardSprints, setBoardSprints] = useState([]);
 
   const [title, setTitle] = useState('');
+  const titleRef = useRef(null);
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight + 2}px`;
+  }, [title]);
   const [description, setDescription] = useState('');
   const [xpReward, setXpReward] = useState(0);
   const [assigneeIds, setAssigneeIds] = useState([]);
@@ -416,10 +423,13 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
           <div className="issue-drawer-body">Задача не найдена.</div>
         ) : (
           <div className="issue-drawer-body">
-            <input
+            <textarea
+              ref={titleRef}
               className="issue-drawer-title"
+              rows={1}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value.replace(/\r?\n/g, ' '))}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
               placeholder="Название"
             />
 

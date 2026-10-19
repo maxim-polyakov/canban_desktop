@@ -137,6 +137,11 @@
 }
 
 .home-team-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 700;
   font-size: 1rem;
   color: var(--text);
@@ -241,7 +246,7 @@
   }
 
   .home-teams-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -390,6 +395,9 @@
 .home-board-card-main {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--text);
   font-weight: 500;
   font-size: 0.9rem;

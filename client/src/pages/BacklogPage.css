@@ -327,55 +327,155 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+.backlog-sprint-more {
+  position: relative;
+  flex-shrink: 0;
+}
 
-@media (max-width: 768px) {
+.backlog-sprint-more-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.backlog-sprint-more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+}
+
+.backlog-sprint-more-menu {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-end: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.35rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.backlog-sprint-more-menu button {
+  padding: 0.7rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: start;
+}
+
+.backlog-sprint-more-menu button.is-danger {
+  color: var(--danger);
+}
+
+@media (max-width: 700px) {
   .backlog-page {
-    padding: 0.65rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .backlog-header {
+    margin-bottom: 0.6rem;
+  }
+
+  .backlog-header h1 {
+    min-width: 0;
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
+
+  .backlog-create-sprint-btn {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .backlog-create-sprint-form input {
+    min-width: 0;
+    flex: 1 1 100%;
+    font-size: 16px;
+  }
+
+  .backlog-dnd-hint {
+    display: none;
+  }
+
+  .backlog-sprint-panel {
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius);
+    overflow: clip;
+  }
+
+  .backlog-sprint-header {
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    padding: 0.45rem 0.4rem 0.45rem 0.75rem;
+    top: calc(var(--topbar-height) + var(--board-tabs-height));
+  }
+
+  .backlog-sprint-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.88rem;
+  }
+
+  .backlog-sprint-header .chip {
+    flex-shrink: 0;
+  }
+
+  .backlog-sprint-goal {
+    display: none;
+  }
+
+  .backlog-sprint-count {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .backlog-issue-row {
-    flex-wrap: wrap;
-    padding: 0.6rem 0.65rem;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .backlog-issue-checkbox,
+  .backlog-issue-label,
+  .backlog-issue-xp,
+  .backlog-issue-row .watcher-badge,
+  .backlog-issue-move-btn,
+  .backlog-issue-move-select {
+    display: none;
+  }
+
+  .backlog-issue-key {
+    font-size: 0.75rem;
   }
 
   .backlog-issue-title {
-    flex: 1 1 100%;
-    order: 1;
-    white-space: normal;
+    font-size: 0.88rem;
   }
 
   .backlog-issue-spacer {
     display: none;
   }
 
-  .backlog-sprint-header {
-    gap: 0.4rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .backlog-header h1 {
-    font-size: 1.1rem;
+  .backlog-create-issue-form {
+    padding: 0.5rem 0.75rem;
   }
 
-  .backlog-create-sprint-btn {
-    font-size: 0.78rem;
-    padding: 0.35rem 0.6rem;
-  }
-}
-
-@media (max-width: 430px) {
-  .backlog-dnd-hint {
-    font-size: 0.7rem;
-  }
-
-  .backlog-issue-move-btn,
-  .backlog-issue-move-select {
-    flex: 1 1 100%;
-    order: 2;
-  }
-
-  .backlog-issue-assignees {
-    order: 1;
+  .backlog-create-issue-form input {
+    min-width: 0;
+    font-size: 16px;
   }
 }

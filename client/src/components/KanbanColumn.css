@@ -30,6 +30,32 @@
   min-width: 0;
 }
 
+.kanban-column-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.kanban-column-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kanban-column-count {
+  flex-shrink: 0;
+  min-width: 1.3rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.3rem;
+  text-align: center;
+}
+
 .kanban-column-title[title] {
   cursor: pointer;
 }
@@ -282,4 +308,49 @@
 .kanban-add-actions button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .kanban-column {
+    min-height: 0;
+    padding: 0.5rem;
+    border: none;
+    border-radius: var(--radius);
+    background: #EBECF0;
+  }
+
+  .kanban-column-over {
+    background: var(--accent-soft);
+  }
+
+  .kanban-column-header {
+    flex-wrap: nowrap;
+    margin: 0.15rem 0.15rem 0.6rem;
+  }
+
+  .kanban-column-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .kanban-column-edit,
+  .kanban-column-refresh,
+  .kanban-column-delete,
+  .kanban-column-done-toggle {
+    display: none;
+  }
+
+  .kanban-add-btn {
+    border: none;
+    text-align: start;
+    font-size: 0.88rem;
+  }
+
+  .kanban-add-form input,
+  .kanban-add-form textarea,
+  .kanban-add-form select {
+    font-size: 16px;
+  }
 }

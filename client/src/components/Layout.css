@@ -394,6 +394,8 @@
   flex: 1;
   min-width: 0;
   overflow-x: hidden;
+  /* clip, unlike hidden, does not become the scroll container for sticky toolbars */
+  overflow-x: clip;
 }
 
 /* Mobile drawer sidebar */

@@ -362,9 +362,9 @@ public class QuestService : IQuestService
                     User = mover,
                     Order = 0
                 };
-                // A preset key on an entity discovered through a navigation is tracked as Modified (UPDATE of a missing row).
+                // Added via DbSet: a preset key discovered through the navigation is tracked as Modified (UPDATE of a missing row).
+                // Relationship fixup also puts it into quest.Assignees.
                 _db.QuestAssignees.Add(moverAssignment);
-                quest.Assignees.Add(moverAssignment);
                 quest.AssigneeId = userId;
             }
 

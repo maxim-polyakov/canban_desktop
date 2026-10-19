@@ -143,17 +143,18 @@ public sealed class JiraPlatformService : IJiraPlatformService
 
     public async Task<QuestLinkDto> AddLinkAsync(Guid questId, Guid userId, CreateQuestLinkRequest request, CancellationToken ct)
     {
-        if (questId == request.TargetQuestId) throw new ArgumentException("Cannot link a quest to itself");
         var source = await _db.Quests.FirstOrDefaultAsync(q => q.Id == questId, ct) ?? throw new KeyNotFoundException("Quest not found");
-        var target = await _db.Quests.FirstOrDefaultAsync(q => q.Id == request.TargetQuestId, ct) ?? throw new KeyNotFoundException("Target quest not found");
+        var target = await ResolveLinkTargetAsync(source, request, ct)
+            ?? throw new KeyNotFoundException($"Задача «{request.Target ?? request.TargetQuestId?.ToString()}» не найдена на этой доске");
+        if (target.Id == questId) throw new ArgumentException("Нельзя связать задачу саму с собой");
         if (source.BoardId != target.BoardId) throw new ArgumentException("Linked quests must be on the same board");
-        var exists = await _db.QuestLinks.AnyAsync(x => x.SourceQuestId == questId && x.TargetQuestId == request.TargetQuestId && x.Type == request.Type, ct);
-        if (exists) throw new ArgumentException("Link already exists");
+        var exists = await _db.QuestLinks.AnyAsync(x => x.SourceQuestId == questId && x.TargetQuestId == target.Id && x.Type == request.Type, ct);
+        if (exists) throw new ArgumentException("Такая связь уже есть");
         var link = new QuestLink
         {
             Id = Guid.NewGuid(),
             SourceQuestId = questId,
-            TargetQuestId = request.TargetQuestId,
+            TargetQuestId = target.Id,
             Type = request.Type,
             CreatedAt = DateTime.UtcNow,
             CreatedByUserId = userId
@@ -163,6 +164,18 @@ public sealed class JiraPlatformService : IJiraPlatformService
         await EnqueueAsync("IssueUpdated", new { questId, boardId = source.BoardId, field = "link" }, ct);
         await _db.SaveChangesAsync(ct);
         return new QuestLinkDto(link.Id, source.Id, target.Id, link.Type, source.IssueKey, target.IssueKey, source.Title, target.Title);
+    }
+
+    private async Task<Quest?> ResolveLinkTargetAsync(Quest source, CreateQuestLinkRequest request, CancellationToken ct)
+    {
+        if (request.TargetQuestId is { } id && id != Guid.Empty)
+            return await _db.Quests.FirstOrDefaultAsync(q => q.Id == id, ct);
+        var target = request.Target?.Trim();
+        if (string.IsNullOrEmpty(target)) throw new ArgumentException("Укажите ключ или ID связанной задачи");
+        if (Guid.TryParse(target, out var parsed))
+            return await _db.Quests.FirstOrDefaultAsync(q => q.Id == parsed, ct);
+        var key = target.ToUpperInvariant();
+        return await _db.Quests.FirstOrDefaultAsync(q => q.BoardId == source.BoardId && q.IssueKey == key, ct);
     }
 
     public async Task<bool> DeleteLinkAsync(Guid questId, Guid id, CancellationToken ct)

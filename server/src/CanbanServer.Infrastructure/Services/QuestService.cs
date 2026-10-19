@@ -339,14 +339,17 @@ public class QuestService : IQuestService
             {
                 var mover = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
                     ?? throw new ArgumentException("Mover not found");
-                quest.Assignees.Add(new QuestAssignee
+                var moverAssignment = new QuestAssignee
                 {
                     Id = Guid.NewGuid(),
                     QuestId = quest.Id,
                     UserId = userId,
                     User = mover,
                     Order = 0
-                });
+                };
+                // A preset key on an entity discovered through a navigation is tracked as Modified (UPDATE of a missing row).
+                _db.QuestAssignees.Add(moverAssignment);
+                quest.Assignees.Add(moverAssignment);
                 quest.AssigneeId = userId;
             }
 

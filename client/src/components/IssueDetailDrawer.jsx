@@ -372,7 +372,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     event.preventDefault();
     if (!linkQuestId.trim()) return;
     try {
-      const created = await questLinks.create(questId, { targetQuestId: linkQuestId.trim(), type: linkType });
+      const created = await questLinks.create(questId, { target: linkQuestId.trim(), type: linkType });
       setLinks((current) => [...current, created]);
       setLinkQuestId('');
     } catch (e) { setAuxError(e.message); }
@@ -617,7 +617,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
               <h4>{t('Связи задач')}</h4>
               <form className="issue-drawer-inline-form" onSubmit={handleAddLink}>
                 <select value={linkType} onChange={(e) => setLinkType(Number(e.target.value))}>{LINK_TYPE_LABELS.map((label, index) => <option key={label} value={index}>{t(label)}</option>)}</select>
-                <input value={linkQuestId} onChange={(e) => setLinkQuestId(e.target.value)} placeholder={t('ID связанной задачи')} />
+                <input value={linkQuestId} onChange={(e) => setLinkQuestId(e.target.value)} placeholder={t('Ключ задачи, например KAN-12')} />
                 <button type="submit">{t('Добавить')}</button>
               </form>
               <ul className="issue-drawer-compact-list">{links.map((link) => <li key={link.id}>⛓ {t(LINK_TYPE_LABELS[link.type] || 'связана с')} · <strong>{link.targetKey || link.targetQuestId}</strong> {link.targetTitle || ''}</li>)}</ul>

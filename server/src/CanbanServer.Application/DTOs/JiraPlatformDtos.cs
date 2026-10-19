@@ -6,7 +6,8 @@ public record WorkflowTransitionDto(Guid Id, Guid BoardId, Guid SourceColumnId, 
 public record UpsertWorkflowTransitionRequest(Guid SourceColumnId, Guid TargetColumnId, string Name, string? AllowedIssueTypes, string? AllowedRoles, string? ConditionsJson, bool Enabled = true);
 
 public record QuestLinkDto(Guid Id, Guid SourceQuestId, Guid TargetQuestId, QuestLinkType Type, string? SourceKey, string? TargetKey, string? SourceTitle, string? TargetTitle);
-public record CreateQuestLinkRequest(Guid TargetQuestId, QuestLinkType Type);
+/// <param name="Target">Issue key (e.g. KAN-12) or quest id; used when TargetQuestId is not set.</param>
+public record CreateQuestLinkRequest(Guid? TargetQuestId, QuestLinkType Type, string? Target = null);
 
 public record BoardComponentDto(Guid Id, Guid BoardId, string Name, string? Description, Guid? LeadUserId, bool Archived);
 public record UpsertBoardComponentRequest(string Name, string? Description, Guid? LeadUserId, bool Archived = false);

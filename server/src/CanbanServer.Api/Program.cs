@@ -200,6 +200,19 @@ app.Use(async (context, next) =>
     catch (UnauthorizedAccessException ex) { context.Response.StatusCode = StatusCodes.Status403Forbidden; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }
     catch (Exception ex) when (ex is ArgumentException or FormatException or InvalidOperationException or System.Text.Json.JsonException)
     { context.Response.StatusCode = StatusCodes.Status400BadRequest; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }
+    catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex) when (!context.Response.HasStarted)
+    {
+        app.Logger.LogWarning(ex, "Concurrency conflict on {Method} {Path}", context.Request.Method, context.Request.Path);
+        context.Response.StatusCode = StatusCodes.Status409Conflict;
+        await context.Response.WriteAsJsonAsync(new { error = "Данные изменились, обновите страницу." });
+    }
+    // Without this the 500 is produced after CORS headers are dropped and browsers report "Failed to fetch".
+    catch (Exception ex) when (!context.Response.HasStarted && !context.RequestAborted.IsCancellationRequested)
+    {
+        app.Logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { error = "Внутренняя ошибка сервера." });
+    }
 });
 app.UseAuthentication();
 app.UseAuthorization();

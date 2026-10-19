@@ -354,7 +354,7 @@ public class HomeService
         var dueBefore = DateTime.UtcNow - UpdateInterval;
         var owned = await Visible(viewer).AsNoTracking()
             .Where(i => !i.IsArchived && (i.OwnerUserId == userId || _db.HomeItemMembers.Any(m => m.ItemId == i.Id && m.UserId == userId && m.Role == Contributor))
-                        && i.Status != "done" && i.Status != "cancelled" && (i.LastUpdateAt == null || i.LastUpdateAt < dueBefore))
+                        && i.Status != "done" && i.Status != "cancelled" && (i.LastUpdateAt ?? i.CreatedAt) < dueBefore)
             .Where(i => normalizedKind == null || i.Kind == normalizedKind)
             .OrderBy(i => i.Name).Take(100).ToListAsync(ct);
         var related = await _db.HomeItems.AsNoTracking().Where(i => updated.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);

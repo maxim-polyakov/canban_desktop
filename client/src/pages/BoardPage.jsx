@@ -3,10 +3,11 @@ import { useParams, useNavigate } from '../i18n/navigation.jsx';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { boards, bulk, columns, quests, sprints as sprintsApi, teams, workflows } from '../api.js';
+import { boards, bulk, columns, quests, sprints as sprintsApi, teams } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import { buildQuestFilter } from '../utils/jqlFilter.js';
+import { moveQuestInColumns } from '../utils/boardMoves.js';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -52,10 +53,16 @@ export default function BoardPage() {
   const [filterPriority, setFilterPriority] = useState('');
   const [selectedQuestIds, setSelectedQuestIds] = useState([]);
 
+  const loadSeqRef = useRef(0);
+  const pendingMovesRef = useRef(0);
+
   const loadBoard = useCallback(async () => {
     if (!boardId) return;
+    const seq = ++loadSeqRef.current;
     try {
       const data = await boards.getById(boardId);
+      // A stale response would snap an optimistically moved card back to its old column.
+      if (seq !== loadSeqRef.current || pendingMovesRef.current > 0) return;
       setBoard(data);
       setEditBoardName(data?.name ?? '');
       setEditBoardDesc(data?.description ?? '');
@@ -128,31 +135,28 @@ export default function BoardPage() {
     const col = board?.columns?.find((c) => c.id === targetColumnId);
     const questIds = (col?.quests ?? []).map((q) => q.id);
     const fromCol = board?.columns?.find((c) => (c.quests ?? []).some((q) => q.id === questIdMoved));
-    const sameColumn = fromCol?.id === targetColumnId;
+    if (!fromCol) return;
+    const sameColumn = fromCol.id === targetColumnId;
+    const reordered = questIds.filter((id) => id !== questIdMoved);
+    if (sameColumn) {
+      reordered.splice(Math.min(newOrder, reordered.length), 0, questIdMoved);
+      if (reordered.every((id, i) => id === questIds[i])) return;
+    }
+
+    setBoard((current) => current && { ...current, columns: moveQuestInColumns(current.columns, questIdMoved, targetColumnId, newOrder) });
+    pendingMovesRef.current += 1;
     try {
       if (sameColumn) {
-        const reordered = [...questIds];
-        const idx = reordered.indexOf(questIdMoved);
-        if (idx !== -1) {
-          reordered.splice(idx, 1);
-          reordered.splice(Math.min(newOrder, reordered.length), 0, questIdMoved);
-          await quests.reorder({ columnId: targetColumnId, questIdsInOrder: reordered });
-        }
+        await quests.reorder({ columnId: targetColumnId, questIdsInOrder: reordered });
       } else {
-        try {
-          const allowed = await workflows.getTransitions(questIdMoved);
-          if (Array.isArray(allowed) && allowed.length > 0 && !allowed.some((transition) => transition.toColumnId === targetColumnId || transition.targetColumnId === targetColumnId)) {
-            window.alert(t('Этот переход запрещён workflow.'));
-            return;
-          }
-        } catch {
-          // Older servers do not expose workflow constraints; keep legacy movement operational.
-        }
         await quests.move({ questId: questIdMoved, targetColumnId, newOrder });
       }
-      await loadBoard();
     } catch (e) {
       console.error(e);
+      if (/not allowed/i.test(e.message)) window.alert(t('Этот переход запрещён workflow.'));
+    } finally {
+      pendingMovesRef.current -= 1;
+      if (pendingMovesRef.current === 0) loadBoard();
     }
   };
 

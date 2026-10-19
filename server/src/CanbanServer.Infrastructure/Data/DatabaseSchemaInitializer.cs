@@ -167,5 +167,93 @@ public static class DatabaseSchemaInitializer
                 ON "QuestComments" ("AuthorUserId");
             """,
             ct);
+
+        await EnsureJiraLikeSchemaAsync(db, ct);
+    }
+
+    public static async Task EnsureJiraLikeSchemaAsync(
+        CanbanDbContext db,
+        CancellationToken ct = default)
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            ALTER TABLE "Teams" ADD COLUMN IF NOT EXISTS "Key" character varying(16) NOT NULL DEFAULT 'KAN';
+            ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "KeyPrefix" character varying(16) NOT NULL DEFAULT 'KAN';
+            ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "NextIssueNumber" integer NOT NULL DEFAULT 1;
+
+            CREATE TABLE IF NOT EXISTS "Sprints" (
+                "Id" uuid NOT NULL,
+                "BoardId" uuid NOT NULL,
+                "Name" character varying(200) NOT NULL,
+                "Goal" character varying(2000) NULL,
+                "Status" integer NOT NULL,
+                "StartDate" timestamp with time zone NULL,
+                "EndDate" timestamp with time zone NULL,
+                "Order" integer NOT NULL,
+                "CreatedAt" timestamp with time zone NOT NULL,
+                CONSTRAINT "PK_Sprints" PRIMARY KEY ("Id"),
+                CONSTRAINT "FK_Sprints_Boards_BoardId"
+                    FOREIGN KEY ("BoardId") REFERENCES "Boards" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_Sprints_BoardId_Order" ON "Sprints" ("BoardId", "Order");
+            CREATE INDEX IF NOT EXISTS "IX_Sprints_BoardId_Status" ON "Sprints" ("BoardId", "Status");
+
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueKey" character varying(64) NOT NULL DEFAULT '';
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueNumber" integer NOT NULL DEFAULT 0;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueType" integer NOT NULL DEFAULT 2;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "Priority" integer NOT NULL DEFAULT 2;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "Labels" character varying(1000) NOT NULL DEFAULT '';
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "SprintId" uuid NULL;
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'FK_Quests_Sprints_SprintId'
+                ) THEN
+                    ALTER TABLE "Quests"
+                        ADD CONSTRAINT "FK_Quests_Sprints_SprintId"
+                        FOREIGN KEY ("SprintId") REFERENCES "Sprints" ("Id") ON DELETE SET NULL;
+                END IF;
+            END $$;
+
+            CREATE INDEX IF NOT EXISTS "IX_Quests_IssueKey" ON "Quests" ("IssueKey");
+            CREATE INDEX IF NOT EXISTS "IX_Quests_SprintId" ON "Quests" ("SprintId");
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_Quests_BoardId_IssueNumber"
+                ON "Quests" ("BoardId", "IssueNumber")
+                WHERE "IssueNumber" > 0;
+            """,
+            ct);
+
+        // Backfill issue keys for existing quests that do not have them yet.
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            WITH numbered AS (
+                SELECT q."Id",
+                       q."BoardId",
+                       COALESCE(NULLIF(b."KeyPrefix", ''), NULLIF(t."Key", ''), 'KAN') AS prefix,
+                       ROW_NUMBER() OVER (PARTITION BY q."BoardId" ORDER BY q."CreatedAt", q."Order", q."Id") AS n
+                FROM "Quests" q
+                INNER JOIN "Boards" b ON b."Id" = q."BoardId"
+                INNER JOIN "Teams" t ON t."Id" = b."TeamId"
+                WHERE q."IssueNumber" = 0 OR COALESCE(q."IssueKey", '') = ''
+            )
+            UPDATE "Quests" q
+            SET "IssueNumber" = numbered.n,
+                "IssueKey" = numbered.prefix || '-' || numbered.n,
+                "IssueType" = CASE WHEN q."IsEpic" THEN 0 ELSE COALESCE(NULLIF(q."IssueType", 0), 2) END
+            FROM numbered
+            WHERE q."Id" = numbered."Id";
+
+            UPDATE "Boards" b
+            SET "NextIssueNumber" = GREATEST(
+                b."NextIssueNumber",
+                COALESCE((SELECT MAX(q."IssueNumber") + 1 FROM "Quests" q WHERE q."BoardId" = b."Id"), 1)
+            );
+
+            UPDATE "Quests"
+            SET "IssueType" = 0
+            WHERE "IsEpic" = TRUE AND ("IssueType" IS NULL OR "IssueType" = 2);
+            """,
+            ct);
     }
 }

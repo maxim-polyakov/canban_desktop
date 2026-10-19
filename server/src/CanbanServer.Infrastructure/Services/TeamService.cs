@@ -32,7 +32,7 @@ public class TeamService : ITeamService
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (t == null) return null;
         var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
-        return new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId);
+        return new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId, t.Key);
     }
 
     public async Task<List<TeamWithBoardsDto>> GetMyTeamsWithBoardsAsync(Guid userId, CancellationToken ct = default)
@@ -51,8 +51,8 @@ public class TeamService : ITeamService
         {
             var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
             return new TeamWithBoardsDto(
-                new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId),
-                (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId)).OrderBy(b => b.Order).ToList()
+                new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId, t.Key),
+                (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId, b.KeyPrefix)).OrderBy(b => b.Order).ToList()
             );
         }).ToList();
     }
@@ -71,7 +71,8 @@ public class TeamService : ITeamService
             Name = request.Name,
             Description = request.Description,
             CreatedAt = DateTime.UtcNow,
-            OwnerId = ownerId
+            OwnerId = ownerId,
+            Key = NormalizeTeamKey(request.Key, request.Name)
         };
         _db.Teams.Add(team);
         _db.TeamMembers.Add(new TeamMember
@@ -83,7 +84,7 @@ public class TeamService : ITeamService
             JoinedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync(ct);
-        return new TeamDto(team.Id, team.Name, team.Description, team.CreatedAt, team.OwnerId);
+        return new TeamDto(team.Id, team.Name, team.Description, team.CreatedAt, team.OwnerId, team.Key);
     }
 
     public async Task<TeamDto?> UpdateAsync(Guid id, UpdateTeamRequest request, CancellationToken ct = default)
@@ -92,9 +93,17 @@ public class TeamService : ITeamService
         if (t == null) return null;
         if (request.Name != null) t.Name = request.Name;
         if (request.Description != null) t.Description = request.Description;
+        if (request.Key != null) t.Key = NormalizeTeamKey(request.Key, t.Name);
         await _db.SaveChangesAsync(ct);
         var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
-        return new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId);
+        return new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId, t.Key);
+    }
+
+    private static string NormalizeTeamKey(string? key, string? name)
+    {
+        var value = (key ?? name ?? "KAN").Trim().ToUpperInvariant();
+        value = new string(value.Where(char.IsLetterOrDigit).Take(10).ToArray());
+        return string.IsNullOrWhiteSpace(value) ? "KAN" : value;
     }
 
     public async Task<bool> AddMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default)

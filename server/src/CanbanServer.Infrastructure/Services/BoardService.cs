@@ -37,12 +37,13 @@ public class BoardService : IBoardService
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Assignees).ThenInclude(a => a.User)
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.NotificationRecipients)
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.ExternalNotificationRecipients)
+                    .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Sprint)
                     .FirstOrDefaultAsync(x => x.Id == id, ct);
                 if (b == null) return null;
                 var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
                     c.Id, c.BoardId, c.Title, c.Order, c.Kind, c.CreatedAt,
                     c.Quests.OrderBy(q => q.Order).Select(q => MapQuest(q)).ToList())).ToList();
-                return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId);
+                return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId, b.KeyPrefix);
             },
             ct);
     }
@@ -55,14 +56,17 @@ public class BoardService : IBoardService
             async _ =>
             {
                 var list = await _db.Boards.Where(x => x.TeamId == teamId).OrderBy(x => x.Order).ToListAsync(ct);
-                return list.Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId)).ToList();
+                return list.Select(b => new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId, b.KeyPrefix)).ToList();
             },
             ct)) ?? new List<BoardDto>();
     }
 
     public async Task<BoardDto> CreateAsync(CreateBoardRequest request, Guid? createdByUserId, CancellationToken ct = default)
     {
+        var team = await _db.Teams.FirstOrDefaultAsync(t => t.Id == request.TeamId, ct)
+            ?? throw new ArgumentException("Team not found");
         var maxOrder = await _db.Boards.Where(b => b.TeamId == request.TeamId).MaxAsync(b => (int?)b.Order, ct) ?? -1;
+        var keyPrefix = NormalizeKey(request.KeyPrefix ?? team.Key);
         var board = new Board
         {
             Id = Guid.NewGuid(),
@@ -71,7 +75,9 @@ public class BoardService : IBoardService
             Description = request.Description,
             Order = maxOrder + 1,
             CreatedAt = DateTime.UtcNow,
-            CreatedByUserId = createdByUserId
+            CreatedByUserId = createdByUserId,
+            KeyPrefix = keyPrefix,
+            NextIssueNumber = 1
         };
         _db.Boards.Add(board);
 
@@ -87,7 +93,7 @@ public class BoardService : IBoardService
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:team:" + request.TeamId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(board.Id, ct);
-        return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt, board.CreatedByUserId);
+        return new BoardDto(board.Id, board.TeamId, board.Name, board.Description, board.Order, board.CreatedAt, board.CreatedByUserId, board.KeyPrefix);
     }
 
     public async Task<BoardDto?> UpdateAsync(Guid id, UpdateBoardRequest request, CancellationToken ct = default)
@@ -97,11 +103,12 @@ public class BoardService : IBoardService
         if (request.Name != null) b.Name = request.Name;
         if (request.Description != null) b.Description = request.Description;
         if (request.Order != null) b.Order = request.Order.Value;
+        if (request.KeyPrefix != null) b.KeyPrefix = NormalizeKey(request.KeyPrefix);
         await _db.SaveChangesAsync(ct);
         await _cache.InvalidateAsync("board:detail:" + id, ct);
         await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(id, ct);
-        return new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId);
+        return new BoardDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, b.CreatedByUserId, b.KeyPrefix);
     }
 
     public async Task<bool?> DeleteAsync(Guid id, Guid? currentUserId, CancellationToken ct = default)
@@ -123,7 +130,7 @@ public class BoardService : IBoardService
         return true;
     }
 
-    private static QuestDto MapQuest(Quest q) => new(
+    internal static QuestDto MapQuest(Quest q) => new(
         q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId,
         q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt,
         q.CompletedAt, q.Category, q.XpReward, q.IsEpic, q.ParentEpicId,
@@ -131,5 +138,20 @@ public class BoardService : IBoardService
         q.ExternalNotificationRecipients.Select(r => new ExternalNotificationRecipientDto(r.Email, r.DisplayName)).ToList(),
         q.Assignees.OrderBy(a => a.Order)
             .Select(a => new QuestAssigneeDto(a.UserId, a.User.DisplayName, a.User.AvatarUrl)).ToList(),
-        q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList());
+        q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList(),
+        string.IsNullOrWhiteSpace(q.IssueKey) ? string.Empty : q.IssueKey,
+        q.IssueNumber,
+        q.IssueType,
+        q.Priority,
+        q.Labels ?? string.Empty,
+        q.SprintId,
+        q.Sprint?.Name);
+
+    private static string NormalizeKey(string? key)
+    {
+        var value = (key ?? "KAN").Trim().ToUpperInvariant();
+        value = new string(value.Where(char.IsLetterOrDigit).ToArray());
+        if (string.IsNullOrWhiteSpace(value)) value = "KAN";
+        return value.Length > 10 ? value[..10] : value;
+    }
 }

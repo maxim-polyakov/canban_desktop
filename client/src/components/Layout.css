@@ -402,6 +402,25 @@
 }
 
 @media (max-width: 768px) {
+  .layout-header {
+    padding-top: max(0px, env(safe-area-inset-top));
+    padding-left: max(0.85rem, env(safe-area-inset-left));
+    padding-right: max(0.85rem, env(safe-area-inset-right));
+  }
+
+  .layout-board-tabs {
+    position: sticky;
+    top: var(--topbar-height);
+    z-index: 30;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .layout-board-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
   .layout-hamburger {
     display: inline-flex;
   }

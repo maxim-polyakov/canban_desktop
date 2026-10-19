@@ -22,10 +22,20 @@ public class Quest
     public bool IsEpic { get; set; }
     public Guid? ParentEpicId { get; set; }
 
+    /// <summary>Human-readable key, e.g. KAN-12.</summary>
+    public string IssueKey { get; set; } = string.Empty;
+    public int IssueNumber { get; set; }
+    public IssueType IssueType { get; set; } = IssueType.Task;
+    public IssuePriority Priority { get; set; } = IssuePriority.Medium;
+    /// <summary>Comma-separated labels for filtering.</summary>
+    public string Labels { get; set; } = string.Empty;
+    public Guid? SprintId { get; set; }
+
     public Column Column { get; set; } = null!;
     public Board Board { get; set; } = null!;
     public User? Assignee { get; set; }
     public Quest? ParentEpic { get; set; }
+    public Sprint? Sprint { get; set; }
     public ICollection<Quest> SubQuests { get; set; } = new List<Quest>();
     public ICollection<QuestAssignee> Assignees { get; set; } = new List<QuestAssignee>();
     public ICollection<QuestReview> Reviews { get; set; } = new List<QuestReview>();
@@ -43,4 +53,22 @@ public enum QuestCategory
     Design = 3,
     QA = 4,
     Other = 5
+}
+
+public enum IssueType
+{
+    Epic = 0,
+    Story = 1,
+    Task = 2,
+    Bug = 3,
+    Subtask = 4
+}
+
+public enum IssuePriority
+{
+    Lowest = 0,
+    Low = 1,
+    Medium = 2,
+    High = 3,
+    Highest = 4
 }

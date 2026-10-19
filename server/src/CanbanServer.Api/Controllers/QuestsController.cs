@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
+using CanbanServer.Domain.Entities;
 
 namespace CanbanServer.Api.Controllers;
 
@@ -142,6 +143,59 @@ public class QuestsController : ControllerBase
     public async Task<ActionResult<List<QuestDto>>> GetArchive(Guid boardId, CancellationToken ct)
     {
         var list = await _questService.GetArchivedByBoardIdAsync(boardId, ct);
+        return Ok(list);
+    }
+
+    [HttpGet("board/{boardId:guid}/backlog")]
+    public async Task<ActionResult<List<QuestDto>>> GetBacklog(
+        Guid boardId,
+        [FromQuery] Guid? sprintId,
+        [FromQuery] bool? unassignedSprint,
+        [FromQuery] int? issueType,
+        [FromQuery] int? priority,
+        [FromQuery] Guid? assigneeId,
+        [FromQuery] string? text,
+        [FromQuery] string? label,
+        CancellationToken ct)
+    {
+        var filter = new QuestFilterRequest(
+            SprintId: sprintId,
+            UnassignedSprint: unassignedSprint,
+            IssueType: issueType.HasValue ? (IssueType)issueType.Value : null,
+            Priority: priority.HasValue ? (IssuePriority)priority.Value : null,
+            AssigneeId: assigneeId,
+            Text: text,
+            Label: label,
+            BacklogOnly: true);
+        var list = await _questService.GetBacklogByBoardIdAsync(boardId, filter, ct);
+        return Ok(list);
+    }
+
+    [HttpGet("board/{boardId:guid}/filter")]
+    public async Task<ActionResult<List<QuestDto>>> Filter(
+        Guid boardId,
+        [FromQuery] Guid? sprintId,
+        [FromQuery] bool? unassignedSprint,
+        [FromQuery] int? issueType,
+        [FromQuery] int? priority,
+        [FromQuery] Guid? assigneeId,
+        [FromQuery] string? text,
+        [FromQuery] string? label,
+        [FromQuery] Guid? columnId,
+        [FromQuery] bool? backlogOnly,
+        CancellationToken ct)
+    {
+        var filter = new QuestFilterRequest(
+            SprintId: sprintId,
+            UnassignedSprint: unassignedSprint,
+            IssueType: issueType.HasValue ? (IssueType)issueType.Value : null,
+            Priority: priority.HasValue ? (IssuePriority)priority.Value : null,
+            AssigneeId: assigneeId,
+            Text: text,
+            Label: label,
+            ColumnId: columnId,
+            BacklogOnly: backlogOnly);
+        var list = await _questService.FilterByBoardIdAsync(boardId, filter, ct);
         return Ok(list);
     }
 

@@ -325,7 +325,18 @@
 @media (max-width: 700px) {
   .board-page {
     padding: 0.75rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     overflow-x: hidden;
+  }
+
+  .board-toolbar {
+    position: sticky;
+    top: calc(var(--topbar-height, 48px) + 40px);
+    z-index: 20;
+    background: var(--bg);
+    padding-block: 0.35rem;
+    margin-inline: -0.25rem;
+    padding-inline: 0.25rem;
   }
 
   .board-header-row {

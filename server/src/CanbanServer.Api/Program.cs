@@ -145,6 +145,7 @@ builder.Services.AddScoped<IActivityHub, SignalRActivityHub>();
 builder.Services.AddScoped<IBoardHub, SignalRBoardHub>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<ISprintService, SprintService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<IQuestAttachmentStorageService, QuestAttachmentStorageService>();

@@ -384,8 +384,11 @@
     width: 100%;
     max-width: none;
     height: 100dvh;
+    height: 100svh;
     box-shadow: none;
     animation: issue-drawer-slide-up 0.18s ease-out;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   @keyframes issue-drawer-slide-up {

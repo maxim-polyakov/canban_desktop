@@ -48,6 +48,7 @@ public class QuestService : IQuestService
         var q = await _db.Quests
             .Include(x => x.Assignee)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
+            .Include(x => x.Sprint)
             .Include(x => x.NotificationRecipients)
             .Include(x => x.ExternalNotificationRecipients)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -59,6 +60,7 @@ public class QuestService : IQuestService
         var list = await _db.Quests
             .Include(x => x.Assignee)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
+            .Include(x => x.Sprint)
             .Include(x => x.NotificationRecipients)
             .Include(x => x.ExternalNotificationRecipients)
             .Where(x => x.ColumnId == columnId)
@@ -69,11 +71,22 @@ public class QuestService : IQuestService
 
     public async Task<QuestDto> CreateAsync(CreateQuestRequest request, Guid userId, CancellationToken ct = default)
     {
-        var col = await _db.Columns.Include(c => c.Board).FirstOrDefaultAsync(c => c.Id == request.ColumnId, ct)
+        var col = await _db.Columns.Include(c => c.Board).ThenInclude(b => b.Team).FirstOrDefaultAsync(c => c.Id == request.ColumnId, ct)
             ?? throw new ArgumentException("Column not found");
         var assigneeIds = NormalizeAssigneeIds(request.AssigneeIds, request.AssigneeId);
         await ValidateAssigneesAsync(col.Board.TeamId, assigneeIds, ct);
+        if (request.SprintId.HasValue)
+        {
+            var sprintOk = await _db.Sprints.AnyAsync(s => s.Id == request.SprintId && s.BoardId == col.BoardId, ct);
+            if (!sprintOk) throw new ArgumentException("Sprint not found on this board");
+        }
         var maxOrder = await _db.Quests.Where(q => q.ColumnId == request.ColumnId).MaxAsync(q => (int?)q.Order, ct) ?? -1;
+        var issueType = request.IssueType ?? (request.IsEpic ? IssueType.Epic : IssueType.Task);
+        var isEpic = request.IsEpic || issueType == IssueType.Epic;
+        var issueNumber = col.Board.NextIssueNumber++;
+        if (string.IsNullOrWhiteSpace(col.Board.KeyPrefix))
+            col.Board.KeyPrefix = string.IsNullOrWhiteSpace(col.Board.Team?.Key) ? "KAN" : col.Board.Team.Key;
+        var issueKey = $"{col.Board.KeyPrefix}-{issueNumber}";
         var quest = new Quest
         {
             Id = Guid.NewGuid(),
@@ -87,8 +100,14 @@ public class QuestService : IQuestService
             CreatedAt = DateTime.UtcNow,
             Category = request.Category,
             XpReward = request.XpReward,
-            IsEpic = request.IsEpic,
-            ParentEpicId = request.ParentEpicId
+            IsEpic = isEpic,
+            ParentEpicId = request.ParentEpicId,
+            IssueKey = issueKey,
+            IssueNumber = issueNumber,
+            IssueType = issueType,
+            Priority = request.Priority ?? IssuePriority.Medium,
+            Labels = NormalizeLabels(request.Labels),
+            SprintId = request.SprintId
         };
         quest.Assignees = assigneeIds.Select((id, index) => new QuestAssignee
         {
@@ -141,6 +160,28 @@ public class QuestService : IQuestService
         if (request.DueDate != null) q.DueDate = request.DueDate;
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
+        if (request.IssueType != null)
+        {
+            q.IssueType = request.IssueType.Value;
+            q.IsEpic = request.IssueType == IssueType.Epic || (request.IsEpic ?? q.IsEpic);
+        }
+        else if (request.IsEpic != null)
+        {
+            q.IsEpic = request.IsEpic.Value;
+            if (request.IsEpic.Value) q.IssueType = IssueType.Epic;
+        }
+        if (request.Priority != null) q.Priority = request.Priority.Value;
+        if (request.Labels != null) q.Labels = NormalizeLabels(request.Labels);
+        if (request.ParentEpicIdSet) q.ParentEpicId = request.ParentEpicId;
+        if (request.SprintIdSet)
+        {
+            if (request.SprintId.HasValue)
+            {
+                var sprintOk = await _db.Sprints.AnyAsync(s => s.Id == request.SprintId && s.BoardId == q.BoardId, ct);
+                if (!sprintOk) throw new ArgumentException("Sprint not found on this board");
+            }
+            q.SprintId = request.SprintId;
+        }
 
         if (assigneesChanged)
         {
@@ -292,6 +333,7 @@ public class QuestService : IQuestService
             .Include(q => q.Assignee)
             .Include(q => q.Assignees).ThenInclude(a => a.User)
             .Include(q => q.Column)
+            .Include(q => q.Sprint)
             .Include(q => q.NotificationRecipients)
             .Include(q => q.ExternalNotificationRecipients)
             .Where(q => q.BoardId == boardId && q.Column.Kind == ColumnKind.Archive)
@@ -299,6 +341,62 @@ public class QuestService : IQuestService
             .ThenBy(q => q.Order)
             .ToListAsync(ct);
 
+        return list.Select(Map).ToList();
+    }
+
+    public async Task<List<QuestDto>> GetBacklogByBoardIdAsync(Guid boardId, QuestFilterRequest? filter = null, CancellationToken ct = default)
+    {
+        filter ??= new QuestFilterRequest(BacklogOnly: true, UnassignedSprint: true);
+        if (filter.BacklogOnly != false)
+            filter = filter with { BacklogOnly = true };
+        if (filter.UnassignedSprint == null && filter.SprintId == null)
+            filter = filter with { UnassignedSprint = true };
+        return await FilterByBoardIdAsync(boardId, filter, ct);
+    }
+
+    public async Task<List<QuestDto>> FilterByBoardIdAsync(Guid boardId, QuestFilterRequest filter, CancellationToken ct = default)
+    {
+        var query = _db.Quests
+            .Include(q => q.Assignee)
+            .Include(q => q.Assignees).ThenInclude(a => a.User)
+            .Include(q => q.Column)
+            .Include(q => q.Sprint)
+            .Include(q => q.NotificationRecipients)
+            .Include(q => q.ExternalNotificationRecipients)
+            .Where(q => q.BoardId == boardId);
+
+        if (filter.BacklogOnly == true)
+            query = query.Where(q => q.Column.Kind == ColumnKind.Backlog || q.SprintId == null);
+        if (filter.SprintId.HasValue)
+            query = query.Where(q => q.SprintId == filter.SprintId);
+        if (filter.UnassignedSprint == true)
+            query = query.Where(q => q.SprintId == null);
+        if (filter.IssueType.HasValue)
+            query = query.Where(q => q.IssueType == filter.IssueType);
+        if (filter.Priority.HasValue)
+            query = query.Where(q => q.Priority == filter.Priority);
+        if (filter.AssigneeId.HasValue)
+            query = query.Where(q => q.Assignees.Any(a => a.UserId == filter.AssigneeId) || q.AssigneeId == filter.AssigneeId);
+        if (filter.ColumnId.HasValue)
+            query = query.Where(q => q.ColumnId == filter.ColumnId);
+        if (!string.IsNullOrWhiteSpace(filter.Label))
+        {
+            var label = filter.Label.Trim().ToLowerInvariant();
+            query = query.Where(q => q.Labels.ToLower().Contains(label));
+        }
+        if (!string.IsNullOrWhiteSpace(filter.Text))
+        {
+            var text = filter.Text.Trim().ToLowerInvariant();
+            query = query.Where(q =>
+                q.Title.ToLower().Contains(text) ||
+                (q.Description != null && q.Description.ToLower().Contains(text)) ||
+                q.IssueKey.ToLower().Contains(text));
+        }
+
+        var list = await query
+            .OrderBy(q => q.Column.Order)
+            .ThenBy(q => q.Order)
+            .ToListAsync(ct);
         return list.Select(Map).ToList();
     }
 
@@ -395,14 +493,17 @@ public class QuestService : IQuestService
         return true;
     }
 
-    private static QuestDto Map(Quest q) => new(
-        q.Id, q.ColumnId, q.BoardId, q.Title, q.Description, q.AssigneeId,
-        q.Assignee?.DisplayName, q.Assignee?.AvatarUrl, q.Order, q.DueDate, q.CreatedAt, q.CompletedAt,
-        q.Category, q.XpReward, q.IsEpic, q.ParentEpicId, q.NotificationRecipients.Select(r => r.UserId).ToList(),
-        q.ExternalNotificationRecipients.Select(r => new ExternalNotificationRecipientDto(r.Email, r.DisplayName)).ToList(),
-        q.Assignees.OrderBy(a => a.Order).Select(a => new QuestAssigneeDto(a.UserId, a.User.DisplayName, a.User.AvatarUrl)).ToList(),
-        q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList()
-    );
+    private static QuestDto Map(Quest q) => BoardService.MapQuest(q);
+
+    private static string NormalizeLabels(string? labels)
+    {
+        if (string.IsNullOrWhiteSpace(labels)) return string.Empty;
+        return string.Join(",", labels
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => x.Trim())
+            .Where(x => x.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase));
+    }
 
     private static List<Guid> NormalizeAssigneeIds(IEnumerable<Guid>? assigneeIds, Guid? legacyAssigneeId)
     {

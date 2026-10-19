@@ -184,5 +184,21 @@ public class DashboardConfiguration : IEntityTypeConfiguration<Dashboard>
     {
         b.HasKey(x => x.Id);
         b.Property(x => x.Name).HasMaxLength(200);
+        b.Property(x => x.Description).HasMaxLength(2000);
+        b.Property(x => x.Template).HasMaxLength(32);
+        b.Property(x => x.Viewers).HasMaxLength(16);
+        b.Property(x => x.Editors).HasMaxLength(16);
+        b.HasIndex(x => x.OwnerUserId);
+    }
+}
+
+public class DashboardStarConfiguration : IEntityTypeConfiguration<DashboardStar>
+{
+    public void Configure(EntityTypeBuilder<DashboardStar> b)
+    {
+        b.HasKey(x => new { x.DashboardId, x.UserId });
+        b.HasIndex(x => x.UserId);
+        b.HasOne<Dashboard>().WithMany().HasForeignKey(x => x.DashboardId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

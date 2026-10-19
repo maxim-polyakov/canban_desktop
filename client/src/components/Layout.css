@@ -671,9 +671,43 @@ button.app-nav-item:hover,
 }
 
 .app-flyout-title {
-  padding: 0.35rem 0.5rem 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.25rem 0.25rem 0.5rem;
   font-weight: 600;
 }
+
+.app-flyout-close { width: 28px; height: 28px; }
+
+.app-nav-tree-toggle { flex: 1; min-width: 0; text-align: left; font: inherit; cursor: pointer; }
+.app-nav-tree-icon { position: relative; display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; flex-shrink: 0; }
+.app-nav-tree-chevron { position: absolute; opacity: 0; }
+.app-nav-tree-icon:not(:has(.app-nav-tree-glyph)) .app-nav-tree-chevron,
+.app-nav-tree-toggle:hover .app-nav-tree-chevron,
+.app-nav-tree-toggle:focus-visible .app-nav-tree-chevron { opacity: 1; }
+.app-nav-tree-toggle:hover .app-nav-tree-glyph,
+.app-nav-tree-toggle:focus-visible .app-nav-tree-glyph { opacity: 0; }
+.app-nav-tree { display: flex; flex-direction: column; gap: 2px; padding-left: 12px; }
+.app-nav-tree .app-nav-section { padding-left: 0.5rem; }
+.app-nav-tree-hint { margin: 0.25rem 0.5rem 0.35rem; color: var(--text-muted); font-size: 0.8rem; line-height: 1.35; }
+
+.app-flyout-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0.35rem 0.5rem 0.5rem;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.app-flyout-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.app-flyout-search input { flex: 1; min-width: 0; padding: 6px 0; border: 0; outline: 0; background: none; color: inherit; font: inherit; }
+
+.app-flyout-footer-icon { display: flex; align-items: center; gap: 8px; }
 
 .app-flyout-empty {
   margin: 0.25rem 0.5rem 0.5rem;

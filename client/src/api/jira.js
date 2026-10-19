@@ -226,25 +226,17 @@ export const reports = {
   get: (boardId, type, params) => apiJson(`/api/reports/boards/${boardId}/${type}${buildQuery(params)}`),
 };
 
-export function parseGadgets(dashboard) {
-  try {
-    const parsed = JSON.parse(dashboard?.layoutJson || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-const saveLayout = (dashboard, gadgets) => apiJson(`/api/dashboards/${dashboard.id}`, json('PUT', {
-  name: dashboard.name, shared: Boolean(dashboard.shared), layoutJson: JSON.stringify(gadgets),
-}));
-
 export const dashboards = {
-  getAll: () => apiJson('/api/dashboards'),
-  create: (data) => apiJson('/api/dashboards', json('POST', { shared: false, layoutJson: '[]', ...data })),
+  list: (trash = false) => apiJson(`/api/dashboards${buildQuery({ trash: trash || undefined })}`),
+  create: (data) => apiJson('/api/dashboards', json('POST', data)),
+  get: (id) => apiJson(`/api/dashboards/${id}`),
   update: (id, data) => apiJson(`/api/dashboards/${id}`, json('PUT', data)),
-  addGadget: (dashboard, gadget) => saveLayout(dashboard, [...parseGadgets(dashboard), { id: `g-${Date.now()}`, ...gadget }]),
-  deleteGadget: (dashboard, gadgetId) => saveLayout(dashboard, parseGadgets(dashboard).filter((g) => g.id !== gadgetId)),
+  data: (id) => apiJson(`/api/dashboards/${id}/data`),
+  copy: (id, name) => apiJson(`/api/dashboards/${id}/copy`, json('POST', { name })),
+  trash: (id) => remove(`/api/dashboards/${id}`),
+  restore: (id) => api(`/api/dashboards/${id}/restore`, { method: 'POST' }).then(okOrThrow),
+  purge: (id) => remove(`/api/dashboards/${id}/purge`),
+  star: (id, starred) => api(`/api/dashboards/${id}/star`, { method: starred ? 'PUT' : 'DELETE' }).then(okOrThrow),
 };
 
 export const permissions = {

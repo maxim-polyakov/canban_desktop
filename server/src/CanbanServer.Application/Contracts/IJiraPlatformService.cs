@@ -40,8 +40,6 @@ public interface IJiraPlatformService
     Task<ImportExecuteResult> ExecuteImportAsync(Guid userId, ImportExecuteRequest request, CancellationToken ct);
     Task<string> ExportAsync(Guid boardId, string format, CancellationToken ct);
     Task<object> GetReportAsync(Guid boardId, string kind, Guid? releaseId, CancellationToken ct);
-    Task<List<DashboardDto>> GetDashboardsAsync(Guid userId, CancellationToken ct);
-    Task<DashboardDto> SaveDashboardAsync(Guid userId, Guid? id, UpsertDashboardRequest request, CancellationToken ct);
     Task<List<AutomationRuleDto>> GetAutomationRulesAsync(Guid boardId, CancellationToken ct);
     Task<AutomationRuleDto> SaveAutomationRuleAsync(Guid boardId, Guid? id, UpsertAutomationRuleRequest request, CancellationToken ct);
     Task<bool> DeleteAutomationRuleAsync(Guid boardId, Guid id, CancellationToken ct);

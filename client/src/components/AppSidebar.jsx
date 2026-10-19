@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from '../i18n/navigation.jsx';
+import { createPortal } from 'react-dom';
+import { Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import NavIcon from './NavIcons.jsx';
 import SpaceAvatar from './SpaceAvatar.jsx';
@@ -8,6 +9,9 @@ import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { usePrefs } from '../utils/preferences.js';
 import { PlansFlyoutContent } from '../pages/plans/PlansPages.jsx';
 import { useBilling } from '../utils/billing.js';
+import { dashboards as dashboardsApi, spaces as spacesApi } from '../api.js';
+import { DASHBOARDS_CHANGED_EVENT } from '../pages/dashboards/DashboardsPages.jsx';
+import { DEFAULT_FILTERS } from '../utils/issueFilters.js';
 
 export const CREATE_SPACE_EVENT = 'canban:create-space';
 export const SPACES_CHANGED_EVENT = 'canban:spaces-changed';
@@ -43,6 +47,7 @@ function useDismiss(ref, open, onClose, anchor) {
 }
 
 function Flyout({ anchor, onClose, title, children, inline }) {
+  const { t } = useLocalization();
   const ref = useRef(null);
   const [pos, setPos] = useState(null);
   useEffect(() => {
@@ -53,11 +58,41 @@ function Flyout({ anchor, onClose, title, children, inline }) {
   useDismiss(ref, !inline, onClose, anchor);
   if (inline) return <div className="app-flyout app-flyout-inline">{children}</div>;
   if (!pos) return null;
-  return (
+  return createPortal(
     <div ref={ref} className="app-flyout" style={{ top: Math.max(8, pos.top), left: pos.left }} role="dialog" aria-label={title}>
-      <div className="app-flyout-title">{title}</div>
+      <div className="app-flyout-title">
+        <span>{title}</span>
+        <button type="button" className="app-icon-btn app-flyout-close" aria-label={t('Закрыть')} title={t('Закрыть')} onClick={onClose}><NavIcon name="close" size={14} /></button>
+      </div>
       {children}
-    </div>
+    </div>,
+    document.body,
+  );
+}
+
+function SpaceSearch({ boards, activeBoardId, starredIds, onNavigate }) {
+  const { t } = useLocalization();
+  const [query, setQuery] = useState('');
+  const [remote, setRemote] = useState([]);
+  useEffect(() => {
+    spacesApi.getMine().then((list) => setRemote(Array.isArray(list) ? list : [])).catch(() => setRemote([]));
+  }, []);
+  const needle = query.trim().toLowerCase();
+  const all = new Map(boards.map((b) => [b.id, b]));
+  remote.forEach((s) => { if (!all.has(s.id)) all.set(s.id, { id: s.id, name: s.name, teamName: s.teamName, keyPrefix: s.key }); });
+  const results = needle
+    ? [...all.values()].filter((b) => b.name.toLowerCase().includes(needle) || (b.keyPrefix || '').toLowerCase().includes(needle)).slice(0, 12)
+    : [];
+  return (
+    <>
+      <label className="app-flyout-search">
+        <NavIcon name="search" size={14} />
+        <input autoFocus type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Поиск по всем разделам')} aria-label={t('Поиск по всем разделам')} />
+      </label>
+      {results.map((b) => <BoardRow key={b.id} board={b} active={b.id === activeBoardId} starred={starredIds.has(b.id)} onNavigate={onNavigate} showTeam />)}
+      {needle && results.length === 0 && <p className="app-flyout-empty">{t('Разделы не найдены')}</p>}
+      <Link to="/spaces" className="app-flyout-footer app-flyout-footer-icon" onClick={onNavigate}><NavIcon name="list" size={14} />{t('Просмотреть все разделы')}</Link>
+    </>
   );
 }
 
@@ -150,6 +185,121 @@ function SpacesMoreMenu({ onClose, onCustomize, anchor }) {
   );
 }
 
+function useExpanded(key, defaultOpen = false) {
+  const [prefs, setPrefs] = usePrefs();
+  const expanded = prefs.expandedNav || {};
+  const open = expanded[key] ?? defaultOpen;
+  const toggle = () => setPrefs({ expandedNav: { ...expanded, [key]: !open } });
+  return [open, toggle];
+}
+
+/** Expandable sidebar entry: the row toggles its children, like Jira's Filters/Dashboards. */
+function NavGroup({ id, icon, label, children, actions, depth = 0, defaultOpen = false }) {
+  const { t } = useLocalization();
+  const [open, toggle] = useExpanded(id, defaultOpen);
+  return (
+    <>
+      <div className={`app-nav-group-header app-nav-tree-row depth-${depth}`}>
+        <button type="button" className="app-nav-item app-nav-link app-nav-tree-toggle" aria-expanded={open} onClick={toggle}>
+          <span className="app-nav-tree-icon">
+            {icon && <NavIcon name={icon} className="app-nav-tree-glyph" />}
+            <NavIcon name={open ? 'chevronDown' : 'chevronRight'} size={14} className="app-nav-tree-chevron" />
+          </span>
+          <span className="app-nav-label">{t(label)}</span>
+        </button>
+        {actions}
+      </div>
+      {open && <div className={`app-nav-tree depth-${depth}`}>{children}</div>}
+    </>
+  );
+}
+
+function FiltersNav({ onNavigate }) {
+  const { t } = useLocalization();
+  const location = useLocation();
+  const { starredFilters } = useNavHistory();
+  const current = location.pathname === '/issues' ? new URLSearchParams(location.search).get('filter') || '' : null;
+  const row = (to, icon, label, active, key) => (
+    <Link key={key || to} to={to} className={`app-nav-item app-nav-link ${active ? 'is-active' : ''}`} onClick={onNavigate} title={label}>
+      <NavIcon name={icon} />
+      <span className="app-nav-label">{label}</span>
+    </Link>
+  );
+  return (
+    <NavGroup id="filters" icon="filters" label="Фильтры">
+      {row('/issues', 'search', t('Поиск задач'), current === '')}
+      {starredFilters.length > 0 && (
+        <>
+          <div className="app-nav-section">{t('Отмеченные')}</div>
+          {starredFilters.map((f) => row(`/issues?filter=${f.id}`, 'filters', f.isDefault ? t(f.name) : f.name, current === f.id, `star-${f.id}`))}
+        </>
+      )}
+      <NavGroup id="filters-default" label="Фильтры по умолчанию" depth={1} defaultOpen>
+        {DEFAULT_FILTERS.map((f) => row(`/issues?filter=${f.id}`, 'filters', t(f.name), current === f.id, f.id))}
+      </NavGroup>
+      {row('/filters', 'filters', t('Все фильтры'), location.pathname === '/filters')}
+    </NavGroup>
+  );
+}
+
+function DashboardsNav({ onNavigate }) {
+  const { t } = useLocalization();
+  const location = useLocation();
+  const goTo = useNavigate();
+  const { recentDashboards } = useNavHistory();
+  const [list, setList] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    const load = () => dashboardsApi.list().then((v) => { if (alive) setList(Array.isArray(v) ? v : []); }).catch(() => { if (alive) setList([]); });
+    load();
+    window.addEventListener(DASHBOARDS_CHANGED_EVENT, load);
+    return () => { alive = false; window.removeEventListener(DASHBOARDS_CHANGED_EVENT, load); };
+  }, []);
+  const byId = new Map((list || []).map((d) => [d.id, d]));
+  const starred = (list || []).filter((d) => d.starred);
+  const starredIds = new Set(starred.map((d) => d.id));
+  const recent = recentDashboards
+    .filter((d) => !starredIds.has(d.id) && (list === null || byId.has(d.id)))
+    .map((d) => byId.get(d.id) || d)
+    .slice(0, 5);
+  const activeId = /^\/dashboards\/([^/]+)/.exec(location.pathname)?.[1];
+  const row = (d) => (
+    <Link key={d.id} to={`/dashboards/${d.id}`} className={`app-nav-item app-nav-link ${activeId === d.id ? 'is-active' : ''}`} onClick={onNavigate} title={d.name}>
+      <NavIcon name="dashboards" />
+      <span className="app-nav-label">{d.name}</span>
+    </Link>
+  );
+  const create = (
+    <button type="button" className="app-nav-icon-btn" aria-label={t('Создать дашборд')} title={t('Создать дашборд')}
+      onClick={() => { onNavigate?.(); goTo('/dashboards?create=1'); }}>
+      <NavIcon name="plus" size={14} />
+    </button>
+  );
+  return (
+    <NavGroup id="dashboards" icon="dashboards" label="Дашборды" actions={create}>
+      {starred.length > 0 && (
+        <>
+          <div className="app-nav-section">{t('Отмеченные')}</div>
+          {starred.slice(0, 10).map(row)}
+        </>
+      )}
+      {recent.length > 0 && (
+        <>
+          <div className="app-nav-section">{t('Недавние')}</div>
+          {recent.map(row)}
+        </>
+      )}
+      {starred.length === 0 && recent.length === 0 && (
+        <p className="app-nav-tree-hint">{t('Здесь будут отображаться дашборды, которые вы посетили или создали.')}</p>
+      )}
+      <Link to="/dashboards" className={`app-nav-item app-nav-link ${location.pathname === '/dashboards' ? 'is-active' : ''}`} onClick={onNavigate}>
+        <NavIcon name="list" />
+        <span className="app-nav-label">{t('Просмотреть все дашборды')}</span>
+      </Link>
+    </NavGroup>
+  );
+}
+
 export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, onNavigate, inline = false }) {
   const { t } = useLocalization();
   const { recentBoards, starredBoards, viewedIssues } = useNavHistory();
@@ -188,7 +338,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
     );
   };
 
-  const flyoutItem = (name, icon, label, content) => (
+  const flyoutItem = (name, icon, label, content, title = label) => (
     <>
       <button
         type="button"
@@ -202,7 +352,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
         <NavIcon name={inline && flyout === name ? 'chevronDown' : 'chevronRight'} size={14} className="app-nav-chevron" />
       </button>
       {flyout === name && (
-        <Flyout anchor={anchors.current[name]} onClose={closeFlyout} title={t(label)} inline={inline}>{content}</Flyout>
+        <Flyout anchor={anchors.current[name]} onClose={closeFlyout} title={t(title)} inline={inline}>{content}</Flyout>
       )}
     </>
   );
@@ -237,21 +387,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
 
   const plansContent = <PlansFlyoutContent onNavigate={navigate} />;
 
-  const otherSpacesContent = (
-    <>
-      {teamsWithBoards.map(({ team, boards }) => (
-        <div key={team.id}>
-          <div className="app-flyout-section">{team.name}</div>
-          {boards.map((b) => (
-            <BoardRow key={b.id} board={{ ...b, teamName: team.name }} active={b.id === activeBoardId} starred={starredIds.has(b.id)} onNavigate={navigate} />
-          ))}
-          {boards.length === 0 && <p className="app-flyout-empty">{t('Нет досок')}</p>}
-        </div>
-      ))}
-      {teamsWithBoards.length === 0 && <p className="app-flyout-empty">{t('Нет команд')}</p>}
-      <Link to="/spaces" className="app-flyout-footer" onClick={navigate}>{t('Смотреть все разделы')}</Link>
-    </>
-  );
+  const otherSpacesContent = <SpaceSearch boards={allBoards} activeBoardId={activeBoardId} starredIds={starredIds} onNavigate={navigate} />;
 
   return (
     <nav className="app-sidebar-nav" aria-label={t('Навигация')}>
@@ -291,7 +427,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
             <BoardRow key={b.id} board={b} active={b.id === activeBoardId} starred={starredIds.has(b.id)} onNavigate={navigate} />
           ))}
           {allBoards.length === 0 && <p className="app-flyout-empty">{t('Нет досок')}</p>}
-          {flyoutItem('spaces', 'backlog', 'Другие разделы', otherSpacesContent)}
+          {flyoutItem('spaces', 'backlog', 'Другие разделы', otherSpacesContent, 'Разделы')}
         </>
       )}
 
@@ -302,8 +438,8 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
         </>
       )}
 
-      {shown('filters') && item('/issues', 'filters', 'Фильтры')}
-      {shown('dashboards') && item('/dashboards', 'dashboards', 'Дашборды')}
+      {shown('filters') && <FiltersNav onNavigate={navigate} />}
+      {shown('dashboards') && <DashboardsNav onNavigate={navigate} />}
       {shown('assets') && item('/assets', 'assets', 'Активы', { badge: tryBadge })}
       {shown('teams') && item('/teams', 'teams', 'Команды', { external: true })}
       {shown('goals') && item('/goals', 'goals', 'Цели', { external: true })}

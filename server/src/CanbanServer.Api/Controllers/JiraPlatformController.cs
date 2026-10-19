@@ -614,15 +614,4 @@ public class JiraPlatformController : ControllerBase
         await EnsureBoardAsync(boardId, BoardPermission.View, ct);
         return Ok(await _jira.GetReportAsync(boardId, type, releaseId, ct));
     }
-
-    [HttpGet("dashboards")]
-    public async Task<ActionResult> GetDashboards(CancellationToken ct) => Ok(await _jira.GetDashboardsAsync(RequireUser(), ct));
-
-    [HttpPost("dashboards")]
-    public async Task<ActionResult> CreateDashboard([FromBody] UpsertDashboardRequest request, CancellationToken ct) =>
-        Ok(await _jira.SaveDashboardAsync(RequireUser(), null, request, ct));
-
-    [HttpPut("dashboards/{id:guid}")]
-    public async Task<ActionResult> UpdateDashboard(Guid id, [FromBody] UpsertDashboardRequest request, CancellationToken ct) =>
-        Ok(await _jira.SaveDashboardAsync(RequireUser(), id, request, ct));
 }

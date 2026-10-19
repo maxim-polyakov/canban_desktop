@@ -58,6 +58,14 @@ public class HomeService
         _ => throw new KeyNotFoundException("Unknown kind"),
     };
 
+    public async Task<List<HomeItem>> VisibleItemsAsync(Guid userId, string kind, int limit, CancellationToken ct)
+    {
+        var normalizedKind = NormalizeKind(kind);
+        var viewer = await ViewerAsync(userId, ct);
+        return await Visible(viewer).AsNoTracking().Where(i => i.Kind == normalizedKind && !i.IsArchived)
+            .OrderByDescending(i => i.UpdatedAt).Take(limit).ToListAsync(ct);
+    }
+
     public async Task<List<object>> ListAsync(string kind, Guid userId, bool archived, CancellationToken ct)
     {
         kind = NormalizeKind(kind);

@@ -1,0 +1,86 @@
+.inav-page { padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.inav-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.inav-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.inav-title h1 { margin: 0; font-size: 22px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inav-star { display: inline-flex; padding: 4px; border: 0; border-radius: 4px; background: none; color: var(--text-subtle); cursor: pointer; }
+.inav-star:hover { background: var(--surface-hover); }
+.inav-star.is-starred { color: #e2b203; }
+.inav-actions { display: flex; align-items: center; gap: 8px; }
+
+.inav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 0; border-radius: 4px; background: var(--chip-bg, rgba(9, 30, 66, .06)); color: var(--text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.inav-btn:hover { background: var(--surface-hover); text-decoration: none; }
+.inav-btn-primary { background: var(--accent); color: #fff; }
+.inav-btn-primary:hover { background: var(--accent); filter: brightness(1.08); }
+.inav-link { padding: 4px 6px; border: 0; background: none; color: var(--accent); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.inav-link:hover { text-decoration: underline; }
+.inav-icon-btn { display: inline-flex; padding: 4px; border: 0; border-radius: 4px; background: none; color: var(--text-subtle); cursor: pointer; }
+.inav-icon-btn:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+.inav-icon-btn:disabled { opacity: .4; cursor: default; }
+
+.inav-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inav-segment { display: inline-flex; padding: 2px; border: 1px solid var(--border-strong); border-radius: 4px; }
+.inav-segment button { padding: 3px 10px; border: 0; border-radius: 3px; background: none; color: var(--text-subtle); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.inav-segment button.is-active { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.inav-search { display: inline-flex; align-items: center; gap: 6px; width: 200px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface); color: var(--text-subtle); }
+.inav-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.inav-search input { flex: 1; min-width: 0; padding: 5px 0; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 14px; }
+
+.inav-chip-wrap { position: relative; display: inline-flex; align-items: stretch; }
+.inav-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface); color: inherit; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.inav-chip:hover { background: var(--surface-hover); }
+.inav-chip.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.inav-chip-wrap:has(.inav-chip-clear) .inav-chip { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.inav-chip-op { opacity: .75; }
+.inav-chip-count { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.inav-chip-clear { display: inline-flex; align-items: center; padding: 0 7px; border: 1px solid var(--accent); border-left: 0; border-radius: 0 4px 4px 0; background: var(--accent-soft); color: var(--accent); cursor: pointer; }
+.inav-chip-clear:hover { filter: brightness(.95); }
+
+.inav-popover { position: absolute; top: calc(100% + 4px); left: 0; z-index: 45; min-width: 240px; max-width: 320px; padding: 8px; border-radius: 6px; background: var(--surface-overlay, var(--surface)); box-shadow: var(--overlay-shadow, 0 8px 24px rgba(9, 30, 66, .25)); }
+.inav-popover-search { width: 100%; margin-bottom: 6px; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; box-sizing: border-box; }
+.inav-checklist { display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
+.inav-check { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; font-size: 14px; cursor: pointer; }
+.inav-check:hover { background: var(--surface-hover); }
+.inav-menu-item { padding: 7px 10px; border: 0; border-radius: 4px; background: none; color: var(--text); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.inav-menu-item:hover { background: var(--surface-hover); }
+.inav-muted { color: var(--text-subtle); font-size: 13px; margin: 4px 8px; }
+
+.inav-jql { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px; }
+.inav-jql input { flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface); color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
+.inav-jql input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.inav-notice { margin: 0; padding: 8px 12px; border-radius: 4px; background: var(--accent-soft); color: var(--text); font-size: 13px; }
+.inav-error { margin: 0; padding: 8px 12px; border-radius: 4px; background: rgba(226, 72, 61, .1); color: #ae2e24; font-size: 13px; }
+
+.inav-table-card { border: 1px solid var(--border); border-radius: 6px; background: var(--surface); min-width: 0; }
+.inav-table-scroll { overflow-x: auto; }
+.inav-table { width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 14px; }
+.inav-table th { position: sticky; top: 0; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text-subtle); font-size: 12px; font-weight: 600; text-align: left; white-space: nowrap; }
+.inav-table th button { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.inav-table th button:hover { color: var(--text); }
+.inav-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+.inav-table tbody tr:hover { background: var(--surface-hover); }
+.inav-table .is-wide { width: 36%; max-width: 0; }
+.inav-table .is-date { color: var(--text-subtle); font-size: 13px; }
+.inav-issue { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.inav-key { flex-shrink: 0; font-weight: 500; }
+.inav-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.inav-person { display: inline-flex; align-items: center; gap: 6px; }
+.inav-person.is-empty { color: var(--text-subtle); }
+.inav-avatar { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--chip-bg, #dfe1e6); color: var(--text-subtle); font-size: 11px; font-weight: 600; object-fit: cover; flex-shrink: 0; }
+.inav-priority { display: inline-flex; align-items: center; gap: 6px; }
+.inav-status { display: inline-block; padding: 1px 6px; border-radius: 3px; background: var(--chip-bg, #dfe1e6); color: var(--text); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.inav-status.is-progress { background: #cce0ff; color: #0055cc; }
+.inav-status.is-done { background: #baf3db; color: #216e4e; }
+.inav-state { padding: 32px; color: var(--text-subtle); text-align: center; }
+.inav-empty { padding: 56px 16px 64px; text-align: center; }
+.inav-empty h2 { margin: 0 0 8px; font-size: 18px; font-weight: 650; }
+.inav-empty p { max-width: 380px; margin: 0 auto; color: var(--text-subtle); font-size: 14px; }
+.inav-footer { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; color: var(--text-subtle); font-size: 13px; }
+
+.filters-page .inav-empty-art { width: 110px; height: 72px; margin: 0 auto 16px; border-radius: 6px; background: linear-gradient(90deg, var(--accent) 0 22%, var(--chip-bg, #dfe1e6) 22%); }
+.filters-table td .inav-star { padding: 2px; }
+
+@media (max-width: 760px) {
+  .inav-page { padding: 16px 12px 24px; }
+  .inav-search { width: 100%; }
+}

@@ -19,10 +19,11 @@ import HomePage from './pages/HomePage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
 import IssueNavigatorPage from './pages/IssueNavigatorPage.jsx';
+import FiltersPage from './pages/FiltersPage.jsx';
 import RoadmapPage from './pages/RoadmapPage.jsx';
 import ProjectSettingsPage from './pages/ProjectSettingsPage.jsx';
 import OperationsPage from './pages/OperationsPage.jsx';
-import DashboardsPage from './pages/DashboardsPage.jsx';
+import { DashboardPage, DashboardsListPage } from './pages/dashboards/DashboardsPages.jsx';
 import ForYouPage from './pages/ForYouPage.jsx';
 import SpacesPage from './pages/SpacesPage.jsx';
 import SpaceTemplatesPage from './pages/spaces/SpaceTemplatesPage.jsx';
@@ -138,7 +139,10 @@ export default function App() {
           <Route path="board/:boardId/features" element={<SpaceFeaturesPage mode="features" />} />
           <Route path="board/:boardId/access" element={<SpaceFeaturesPage mode="access" />} />
           <Route path="issues" element={<IssueNavigatorPage />} />
-          <Route path="dashboards" element={<DashboardsPage />} />
+          <Route path="filters" element={<FiltersPage />} />
+          <Route path="dashboards" element={<DashboardsListPage />} />
+          <Route path="dashboards/:dashboardId" element={<DashboardPage />} />
+          <Route path="dashboards/:dashboardId/edit" element={<DashboardPage editing />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:userId" element={<ProfilePage />} />
           <Route path="users" element={<UsersPage />} />

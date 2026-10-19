@@ -204,6 +204,24 @@ public class Dashboard
     public Guid Id { get; set; }
     public Guid OwnerUserId { get; set; }
     public string Name { get; set; } = "";
+    public string? Description { get; set; }
+    /// <summary>Legacy flag kept in sync with <see cref="Viewers"/> == "org".</summary>
     public bool Shared { get; set; }
+    /// <summary>blank, space-team, devops or my-work.</summary>
+    public string Template { get; set; } = "blank";
+    /// <summary>private (owner only) or org (people who share a team with the owner).</summary>
+    public string Viewers { get; set; } = "private";
+    public string Editors { get; set; } = "private";
     public string LayoutJson { get; set; } = "[]";
+    public string FiltersJson { get; set; } = "{}";
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
+}
+
+public class DashboardStar
+{
+    public Guid DashboardId { get; set; }
+    public Guid UserId { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

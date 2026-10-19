@@ -1,5 +1,5 @@
 import {
-  automations, bulk, components, dashboards, importExport, integrations, parseGadgets, questLinks, search, toBulkEditRequest, workflows,
+  automations, bulk, components, dashboards, importExport, integrations, questLinks, search, toBulkEditRequest, workflows,
 } from './jira.js';
 
 beforeEach(() => {
@@ -60,11 +60,15 @@ test('automation and integration routes are board scoped', async () => {
   expect(fetch.mock.calls[3][0]).toBe('/api/integrations/github/quests/q1/sync');
 });
 
-test('dashboard gadgets are persisted in layoutJson', async () => {
-  const dashboard = { id: 'd1', name: 'Main', shared: false, layoutJson: '[{"id":"g1","type":"velocity"}]' };
-  expect(parseGadgets(dashboard)).toHaveLength(1);
-  expect(parseGadgets({ layoutJson: 'broken' })).toEqual([]);
-  await dashboards.deleteGadget(dashboard, 'g1');
-  expect(fetch.mock.calls[0][0]).toBe('/api/dashboards/d1');
-  expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ name: 'Main', shared: false, layoutJson: '[]' });
+test('dashboard routes cover trash, stars and widget data', async () => {
+  await dashboards.list(true);
+  expect(fetch.mock.calls[0][0]).toBe('/api/dashboards?trash=true');
+  await dashboards.update('d1', { layout: { rows: [] } });
+  expect(fetch.mock.calls[1][0]).toBe('/api/dashboards/d1');
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ layout: { rows: [] } });
+  await dashboards.star('d1', false);
+  expect(fetch.mock.calls[2][0]).toBe('/api/dashboards/d1/star');
+  expect(fetch.mock.calls[2][1].method).toBe('DELETE');
+  await dashboards.data('d1');
+  expect(fetch.mock.calls[3][0]).toBe('/api/dashboards/d1/data');
 });

@@ -85,6 +85,17 @@ const PATHS = {
   link: <><path d="M6.75 9.25a2.5 2.5 0 0 0 3.5 0l2.5-2.5a2.5 2.5 0 0 0-3.5-3.5l-.75.75" /><path d="M9.25 6.75a2.5 2.5 0 0 0-3.5 0l-2.5 2.5a2.5 2.5 0 0 0 3.5 3.5l.75-.75" /></>,
   activity: <path d="M1.5 8h3l2-5 3 10 2-5h3" />,
   columns: <><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5" /><path d="M6 2.75v10.5M10 2.75v10.5" /></>,
+  arrowUp: <path d="M8 13V3M4 7l4-4 4 4" />,
+  arrowDown: <path d="M8 3v10M4 9l4 4 4-4" />,
+  chevronLeft: <path d="M10 3.5 5.5 8l4.5 4.5" />,
+  refresh: <><path d="M13.25 8a5.25 5.25 0 1 1-1.54-3.71" /><path d="M13.25 2.5v3h-3" /></>,
+  copy: <><rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.25" /><path d="M10.75 5.25V3.5a1.25 1.25 0 0 0-1.25-1.25h-6A1.25 1.25 0 0 0 2.25 3.5v6a1.25 1.25 0 0 0 1.25 1.25h1.75" /></>,
+  megaphone: <><path d="M2.25 6.25v3.5h2.5l6 3.25V3l-6 3.25z" /><path d="M5.25 9.75 6.25 13.5M13 6.25v3.5" /></>,
+  expand: <path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9" />,
+  info: <><circle cx="8" cy="8" r="6.25" /><path d="M8 7.25V11M8 5h.01" /></>,
+  chart: <path d="M2.5 13.5h11M4.5 11V8M8 11V4.5M11.5 11V6.5" />,
+  code: <path d="M5.5 4 1.75 8l3.75 4M10.5 4l3.75 4-3.75 4M9.25 2.75l-2.5 10.5" />,
+  inbox: <><path d="M1.75 9.25 3.5 3.25h9l1.75 6v3.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z" /><path d="M1.75 9.25h3.5l1 1.75h3.5l1-1.75h3.5" /></>,
 };
 
 export default function NavIcon({ name, size = 16, className = '', filled = false }) {

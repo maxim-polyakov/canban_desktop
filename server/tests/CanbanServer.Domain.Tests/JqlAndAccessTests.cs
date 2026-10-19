@@ -24,6 +24,34 @@ public class JqlAndAccessTests
         Assert.NotNull(query.Where);
     }
 
+    private static bool Matches(string jql, Quest quest, Guid userId, DateTime? updated = null) =>
+        JqlService.Matches(new JqlParser(jql).Parse(), quest, new JqlService.JqlContext(userId, DateTime.UtcNow, q => updated ?? q.CreatedAt));
+
+    [Fact]
+    public void Jql_DefaultFilters_MatchExpectedIssues()
+    {
+        var me = Guid.NewGuid();
+        var open = new Quest { IssueKey = "KAN-1", AssigneeId = me, ReporterId = me, CreatedAt = DateTime.UtcNow.AddDays(-2), Column = new Column { Kind = ColumnKind.InProgress, Title = "В работе" } };
+        var done = new Quest { IssueKey = "KAN-2", ReporterId = Guid.NewGuid(), CreatedAt = DateTime.UtcNow.AddDays(-30), CompletedAt = DateTime.UtcNow.AddDays(-1), Column = new Column { Kind = ColumnKind.Done, Title = "Готово" } };
+
+        Assert.True(Matches("assignee = currentUser() AND resolution = Unresolved", open, me));
+        Assert.False(Matches("assignee = currentUser() AND resolution = Unresolved", done, me));
+        Assert.True(Matches("reporter = currentUser()", open, me));
+        Assert.False(Matches("reporter = currentUser()", done, me));
+        Assert.True(Matches("statusCategory = Done", done, me));
+        Assert.True(Matches("statusCategory != Done", open, me));
+        Assert.True(Matches("statusCategory = \"In Progress\"", open, me));
+        Assert.True(Matches("created >= -1w", open, me));
+        Assert.False(Matches("created >= -1w", done, me));
+        Assert.True(Matches("resolved >= -1w", done, me));
+        Assert.False(Matches("resolved >= -1w", open, me));
+        Assert.True(Matches("updated >= -7d", done, me, DateTime.UtcNow.AddHours(-3)));
+        Assert.True(Matches("key in (KAN-2, KAN-9)", done, me));
+        Assert.False(Matches("key in (KAN-2, KAN-9)", open, me));
+        Assert.True(Matches("text ~ \"kan-1\"", open, me));
+        Assert.True(Matches("created >= \"2000-01-01\"", open, me));
+    }
+
     [Fact]
     public void ProjectAccess_MapsRoles()
     {

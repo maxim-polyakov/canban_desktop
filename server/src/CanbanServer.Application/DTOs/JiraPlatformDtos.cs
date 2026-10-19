@@ -29,7 +29,9 @@ public record MyWorkItemDto(Guid QuestId, Guid BoardId, string BoardName, string
 public record SavedFilterDto(Guid Id, Guid OwnerUserId, Guid? BoardId, string Name, string Jql, bool Shared, DateTime CreatedAt, DateTime UpdatedAt);
 public record UpsertSavedFilterRequest(string Name, string Jql, Guid? BoardId = null, bool Shared = false);
 
-public record JqlSearchResult(List<QuestDto> Items, int Total, int Page, int PageSize);
+public record JqlSearchResult(List<QuestDto> Items, int Total, int Page, int PageSize, List<JqlIssueDetails>? Details = null);
+public record JqlIssueDetails(Guid Id, string StatusName, string StatusCategory, Guid? ReporterId, string? ReporterName, string? ReporterAvatarUrl,
+    string BoardName, string BoardKey, DateTime UpdatedAt);
 
 public record AutomationRuleDto(Guid Id, Guid BoardId, string Name, AutomationTrigger Trigger, string? ConditionsJson, string ActionsJson, bool Enabled);
 public record UpsertAutomationRuleRequest(string Name, AutomationTrigger Trigger, string? ConditionsJson, string ActionsJson, bool Enabled = true);
@@ -53,6 +55,3 @@ public record ImportPreviewRequest(string Format, string Content);
 public record ImportPreviewResult(int ValidRows, int InvalidRows, List<string> Errors, List<Dictionary<string, string>> Sample);
 public record ImportExecuteRequest(string Format, string Content, Guid BoardId, Guid ColumnId);
 public record ImportExecuteResult(int CreatedCount, List<string> Errors);
-
-public record DashboardDto(Guid Id, Guid OwnerUserId, string Name, bool Shared, string LayoutJson);
-public record UpsertDashboardRequest(string Name, bool Shared, string LayoutJson);

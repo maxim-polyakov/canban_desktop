@@ -731,29 +731,6 @@ public sealed class JiraPlatformService : IJiraPlatformService
         };
     }
 
-    public async Task<List<DashboardDto>> GetDashboardsAsync(Guid userId, CancellationToken ct) =>
-        (await _db.Dashboards.AsNoTracking().Where(x => x.OwnerUserId == userId || x.Shared).OrderBy(x => x.Name).ToListAsync(ct))
-        .Select(x => new DashboardDto(x.Id, x.OwnerUserId, x.Name, x.Shared, x.LayoutJson)).ToList();
-
-    public async Task<DashboardDto> SaveDashboardAsync(Guid userId, Guid? id, UpsertDashboardRequest request, CancellationToken ct)
-    {
-        Dashboard entity;
-        if (id.HasValue)
-            entity = await _db.Dashboards.FirstOrDefaultAsync(x => x.Id == id && x.OwnerUserId == userId, ct)
-                ?? throw new KeyNotFoundException("Dashboard not found");
-        else
-        {
-            entity = new Dashboard { Id = Guid.NewGuid(), OwnerUserId = userId };
-            _db.Dashboards.Add(entity);
-        }
-        entity.Name = request.Name.Trim();
-        entity.Shared = request.Shared;
-        entity.LayoutJson = string.IsNullOrWhiteSpace(request.LayoutJson) ? "[]" : request.LayoutJson;
-        _ = JsonDocument.Parse(entity.LayoutJson);
-        await _db.SaveChangesAsync(ct);
-        return new DashboardDto(entity.Id, entity.OwnerUserId, entity.Name, entity.Shared, entity.LayoutJson);
-    }
-
     public async Task<List<AutomationRuleDto>> GetAutomationRulesAsync(Guid boardId, CancellationToken ct) =>
         (await _db.AutomationRules.AsNoTracking().Where(x => x.BoardId == boardId).OrderBy(x => x.Name).ToListAsync(ct))
         .Select(x => new AutomationRuleDto(x.Id, x.BoardId, x.Name, x.Trigger, x.ConditionsJson, x.ActionsJson, x.Enabled)).ToList();

@@ -4,8 +4,10 @@ const KEYS = {
   recentBoards: 'canban.nav.recentBoards',
   starredBoards: 'canban.nav.starredBoards',
   viewedIssues: 'canban.nav.viewedIssues',
+  starredFilters: 'canban.nav.starredFilters',
+  recentDashboards: 'canban.nav.recentDashboards',
 };
-const LIMITS = { recentBoards: 10, starredBoards: 50, viewedIssues: 50 };
+const LIMITS = { recentBoards: 10, starredBoards: 50, viewedIssues: 50, starredFilters: 50, recentDashboards: 10 };
 const EVENT = 'canban-nav-history';
 
 function read(kind) {
@@ -31,22 +33,30 @@ function pushFront(kind, item) {
   write(kind, [{ ...item, at: Date.now() }, ...read(kind).filter((x) => x.id !== item.id)]);
 }
 
+function toggle(kind, item) {
+  const list = read(kind);
+  if (list.some((x) => x.id === item.id)) write(kind, list.filter((x) => x.id !== item.id));
+  else write(kind, [{ ...item, at: Date.now() }, ...list]);
+}
+
 export const getRecentBoards = () => read('recentBoards');
 export const getStarredBoards = () => read('starredBoards');
 export const getViewedIssues = () => read('viewedIssues');
+export const getStarredFilters = () => read('starredFilters');
+export const getRecentDashboards = () => read('recentDashboards');
 
 export const rememberBoard = (board) => pushFront('recentBoards', board);
 export const rememberIssue = (issue) => pushFront('viewedIssues', issue);
+export const rememberDashboard = (dashboard) => pushFront('recentDashboards', dashboard);
+export const forgetDashboard = (id) => write('recentDashboards', read('recentDashboards').filter((x) => x.id !== id));
 
 export function isBoardStarred(boardId) {
   return read('starredBoards').some((x) => x.id === boardId);
 }
 
-export function toggleStarredBoard(board) {
-  const list = read('starredBoards');
-  if (list.some((x) => x.id === board.id)) write('starredBoards', list.filter((x) => x.id !== board.id));
-  else write('starredBoards', [{ ...board, at: Date.now() }, ...list]);
-}
+export const toggleStarredBoard = (board) => toggle('starredBoards', board);
+export const isFilterStarred = (filterId) => read('starredFilters').some((x) => x.id === filterId);
+export const toggleStarredFilter = (filter) => toggle('starredFilters', filter);
 
 /** Re-renders on any history change (this tab or another one). */
 export function useNavHistory() {
@@ -61,5 +71,11 @@ export function useNavHistory() {
       window.removeEventListener('storage', onStorage);
     };
   }, []);
-  return { recentBoards: getRecentBoards(), starredBoards: getStarredBoards(), viewedIssues: getViewedIssues() };
+  return {
+    recentBoards: getRecentBoards(),
+    starredBoards: getStarredBoards(),
+    viewedIssues: getViewedIssues(),
+    starredFilters: getStarredFilters(),
+    recentDashboards: getRecentDashboards(),
+  };
 }

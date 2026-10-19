@@ -113,6 +113,28 @@ export const search = {
   issues: (params) => apiJson(`/api/search/issues${buildQuery(params)}`),
 };
 
+export const plans = {
+  list: () => apiJson('/api/plans'),
+  create: (data) => apiJson('/api/plans', json('POST', data)),
+  get: (id) => apiJson(`/api/plans/${id}`),
+  update: (id, data) => apiJson(`/api/plans/${id}`, json('PUT', data)),
+  delete: (id) => remove(`/api/plans/${id}`),
+  timeline: (id, scenarioId) => apiJson(`/api/plans/${id}/timeline${buildQuery({ scenarioId })}`),
+  addTeam: (id, data) => apiJson(`/api/plans/${id}/teams`, json('POST', data)),
+  updateTeam: (id, teamId, data) => apiJson(`/api/plans/${id}/teams/${teamId}`, json('PUT', data)),
+  deleteTeam: (id, teamId) => remove(`/api/plans/${id}/teams/${teamId}`),
+  addScenario: (id, data) => apiJson(`/api/plans/${id}/scenarios`, json('POST', data)),
+  updateScenario: (id, scenarioId, data) => apiJson(`/api/plans/${id}/scenarios/${scenarioId}`, json('PUT', data)),
+  deleteScenario: (id, scenarioId) => remove(`/api/plans/${id}/scenarios/${scenarioId}`),
+  applyScenario: (id, scenarioId) => apiJson(`/api/plans/${id}/scenarios/${scenarioId}/apply`, json('POST')),
+  schedule: (id, scenarioId, questId, data) => apiJson(`/api/plans/${id}/scenarios/${scenarioId}/items/${questId}`, json('PUT', data)),
+  resetSchedule: (id, scenarioId, questId) => remove(`/api/plans/${id}/scenarios/${scenarioId}/items/${questId}`),
+  exclude: (id, questId) => api(`/api/plans/${id}/exclusions`, json('POST', { questId })).then((r) => r.ok),
+  include: (id, questId) => remove(`/api/plans/${id}/exclusions/${questId}`),
+  addDependency: (id, data) => apiJson(`/api/plans/${id}/dependencies`, json('POST', data)),
+  removeDependency: (id, linkId) => remove(`/api/plans/${id}/dependencies/${linkId}`),
+};
+
 export const savedFilters = {
   getAll: () => apiJson('/api/savedFilters'),
   create: (data) => apiJson('/api/savedFilters', json('POST', data)),

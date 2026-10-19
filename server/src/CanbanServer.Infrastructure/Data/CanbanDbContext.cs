@@ -54,6 +54,12 @@ public class CanbanDbContext : DbContext
     public DbSet<AssetAttributeValue> AssetAttributeValues => Set<AssetAttributeValue>();
     public DbSet<AssetQuestLink> AssetQuestLinks => Set<AssetQuestLink>();
     public DbSet<AssetObjectChange> AssetObjectChanges => Set<AssetObjectChange>();
+    public DbSet<Plan> Plans => Set<Plan>();
+    public DbSet<PlanSource> PlanSources => Set<PlanSource>();
+    public DbSet<PlanTeam> PlanTeams => Set<PlanTeam>();
+    public DbSet<PlanScenario> PlanScenarios => Set<PlanScenario>();
+    public DbSet<PlanScheduleItem> PlanScheduleItems => Set<PlanScheduleItem>();
+    public DbSet<PlanExclusion> PlanExclusions => Set<PlanExclusion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

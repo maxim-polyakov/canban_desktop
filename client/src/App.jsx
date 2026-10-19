@@ -26,6 +26,7 @@ import DashboardsPage from './pages/DashboardsPage.jsx';
 import ForYouPage from './pages/ForYouPage.jsx';
 import SpacesPage from './pages/SpacesPage.jsx';
 import SpaceTemplatesPage from './pages/spaces/SpaceTemplatesPage.jsx';
+import { CreatePlanPage, PlanPage, PlansListPage } from './pages/plans/PlansPages.jsx';
 import { SpaceCalendarPage, SpaceFeaturesPage, SpaceListPage, SpaceSummaryPage } from './pages/spaces/SpaceViews.jsx';
 import { KudosPage, PeoplePage, PersonPage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
 import { GoalsPage, ProjectsPage } from './pages/WorkspacePages.jsx';
@@ -79,6 +80,9 @@ export default function App() {
           <Route path="for-you" element={<ForYouPage />} />
           <Route path="spaces" element={<SpacesPage />} />
           <Route path="spaces/templates" element={<SpaceTemplatesPage />} />
+          <Route path="plans" element={<PlansListPage />} />
+          <Route path="plans/new" element={<CreatePlanPage />} />
+          <Route path="plans/:planId" element={<PlanPage />} />
           <Route path="spaces/templates/:templateId" element={<SpaceTemplatesPage />} />
           <Route path="teams" element={<TeamsHomePage />} />
           <Route path="teams/list" element={<TeamsListPage />} />

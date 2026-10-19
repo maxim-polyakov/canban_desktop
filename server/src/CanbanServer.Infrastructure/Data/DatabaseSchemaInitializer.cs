@@ -13,6 +13,7 @@ public static partial class DatabaseSchemaInitializer
         await EnsureJiraLikeSchemaAsync(db, ct);
         await EnsureJiraPlatformSchemaAsync(db, ct);
         await EnsureAssetsSchemaAsync(db, ct);
+        await EnsurePlansSchemaAsync(db, ct);
 
         await db.Database.ExecuteSqlRawAsync(
             """

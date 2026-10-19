@@ -6,6 +6,7 @@ import SpaceAvatar from './SpaceAvatar.jsx';
 import { IssueTypeIcon } from './IssueIcons.jsx';
 import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { usePrefs } from '../utils/preferences.js';
+import { PlansFlyoutContent } from '../pages/plans/PlansPages.jsx';
 
 export const CREATE_SPACE_EVENT = 'canban:create-space';
 export const SPACES_CHANGED_EVENT = 'canban:spaces-changed';
@@ -231,16 +232,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
     </>
   );
 
-  const plansContent = (
-    <>
-      <div className="app-flyout-section">{t('Планы разделов')}</div>
-      {allBoards.map((b) => (
-        <BoardRow key={b.id} board={b} to={`/board/${b.id}/roadmap`} active={pathname === `/board/${b.id}/roadmap`} starred={starredIds.has(b.id)} onNavigate={navigate} showTeam />
-      ))}
-      {allBoards.length === 0 && <p className="app-flyout-empty">{t('Создайте раздел, чтобы планировать работу на временной шкале.')}</p>}
-      <Link to="/spaces" className="app-flyout-footer" onClick={navigate}>{t('Смотреть все разделы')}</Link>
-    </>
-  );
+  const plansContent = <PlansFlyoutContent onNavigate={navigate} />;
 
   const otherSpacesContent = (
     <>

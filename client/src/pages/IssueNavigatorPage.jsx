@@ -223,7 +223,7 @@ export default function IssueNavigatorPage() {
   const detailsById = new Map(result.details.map((d) => [d.id, d]));
   const fmtDate = (value) => (value ? new Date(value).toLocaleString(locale || undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
 
-  const spaceOptions = spaceList.map((s) => ({ id: s.key, label: s.name }));
+  const spaceOptions = spaceList.map((s) => ({ id: s.id, label: s.name }));
   const assigneeOptions = [
     { id: 'currentUser', label: t('Текущий пользователь') },
     { id: 'empty', label: t('Не назначено') },

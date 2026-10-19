@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
+using CanbanServer.Domain.Entities;
 
 namespace CanbanServer.Api.Controllers;
 
@@ -53,10 +54,26 @@ public class TeamsController : ControllerBase
     }
 
     [HttpPost("{teamId:guid}/members/{userId:guid}")]
-    public async Task<ActionResult> AddMember(Guid teamId, Guid userId, CancellationToken ct)
+    public async Task<ActionResult> AddMember(Guid teamId, Guid userId, [FromQuery] TeamRole? role, CancellationToken ct)
     {
         var added = await _teamService.AddMemberAsync(teamId, userId, ct);
+        if (role.HasValue)
+        {
+            var result = await _teamService.SetMemberRoleAsync(teamId, userId, role.Value, User.GetUserId(), ct);
+            if (result == null) return NotFound();
+            if (result == false) return Forbid();
+            return NoContent();
+        }
         return added ? NoContent() : BadRequest();
+    }
+
+    [HttpPut("{teamId:guid}/members/{userId:guid}/role")]
+    public async Task<ActionResult> SetMemberRole(Guid teamId, Guid userId, [FromBody] SetTeamMemberRoleRequest request, CancellationToken ct)
+    {
+        var result = await _teamService.SetMemberRoleAsync(teamId, userId, request.Role, User.GetUserId(), ct);
+        if (result == null) return NotFound();
+        if (result == false) return Forbid();
+        return NoContent();
     }
 
     /// <summary>Отправить приглашение в команду по email. Приглашённый увидит его и сможет принять или отклонить.</summary>

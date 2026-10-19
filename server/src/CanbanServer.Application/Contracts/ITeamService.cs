@@ -1,4 +1,5 @@
 using CanbanServer.Application.DTOs;
+using CanbanServer.Domain.Entities;
 
 namespace CanbanServer.Application.Contracts;
 
@@ -10,6 +11,8 @@ public interface ITeamService
     Task<TeamDto> CreateAsync(CreateTeamRequest request, Guid ownerId, CancellationToken ct = default);
     Task<TeamDto?> UpdateAsync(Guid id, UpdateTeamRequest request, CancellationToken ct = default);
     Task<bool> AddMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default);
+    /// <returns>true — роль изменена, false — нет прав (только создатель или админ команды), null — участник не найден</returns>
+    Task<bool?> SetMemberRoleAsync(Guid teamId, Guid userId, TeamRole role, Guid? requestedByUserId, CancellationToken ct = default);
     /// <summary>Отправить приглашение в команду по email. Создаёт запись приглашения; пользователь подтверждает сам.</summary>
     /// <returns>true — приглашение отправлено, false — уже в команде или приглашение уже отправлено, null — пользователь не найден</returns>
     Task<bool?> InviteByEmailAsync(Guid teamId, string email, Guid inviterUserId, CancellationToken ct = default);

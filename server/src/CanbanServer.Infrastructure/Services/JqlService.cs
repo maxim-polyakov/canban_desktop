@@ -149,7 +149,8 @@ public sealed class JqlService : IJqlQueryService
         "duedate" => q.DueDate,
         "resolution" or "resolved" or "resolutiondate" => q.CompletedAt,
         "board" or "boardid" => q.BoardId,
-        "project" or "space" => q.Board?.KeyPrefix,
+        // Key prefixes aren't unique across spaces, so the id is matched too.
+        "project" or "space" => $"{q.Board?.KeyPrefix},{q.BoardId}",
         _ => throw new ArgumentException($"Unsupported JQL field '{field}'")
     };
 

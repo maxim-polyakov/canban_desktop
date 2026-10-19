@@ -122,6 +122,23 @@ public class TeamService : ITeamService
         return true;
     }
 
+    public async Task<bool?> SetMemberRoleAsync(Guid teamId, Guid userId, TeamRole role, Guid? requestedByUserId, CancellationToken ct = default)
+    {
+        var member = await _db.TeamMembers.FirstOrDefaultAsync(x => x.TeamId == teamId && x.UserId == userId, ct);
+        var team = await _db.Teams.AsNoTracking().FirstOrDefaultAsync(t => t.Id == teamId, ct);
+        if (member == null || team == null) return null;
+        if (!requestedByUserId.HasValue) return false;
+        var allowed = team.OwnerId == requestedByUserId.Value
+            || await _db.TeamMembers.AnyAsync(x => x.TeamId == teamId && x.UserId == requestedByUserId.Value && x.Role == TeamRole.Admin, ct);
+        if (!allowed) return false;
+        if (member.Role != role)
+        {
+            member.Role = role;
+            await _db.SaveChangesAsync(ct);
+        }
+        return true;
+    }
+
     public async Task<bool?> RemoveMemberAsync(Guid teamId, Guid userId, Guid? requestedByUserId, CancellationToken ct = default)
     {
         var m = await _db.TeamMembers.FirstOrDefaultAsync(x => x.TeamId == teamId && x.UserId == userId, ct);

@@ -53,6 +53,20 @@ public class JqlAndAccessTests
     }
 
     [Fact]
+    public void Jql_Project_MatchesKeyOrSpaceId()
+    {
+        var me = Guid.NewGuid();
+        var a = new Quest { BoardId = Guid.NewGuid(), Board = new Board { KeyPrefix = "KAN" }, Column = new Column { Kind = ColumnKind.Backlog } };
+        var b = new Quest { BoardId = Guid.NewGuid(), Board = new Board { KeyPrefix = "KAN" }, Column = new Column { Kind = ColumnKind.Backlog } };
+
+        Assert.True(Matches("project = KAN", a, me));
+        Assert.True(Matches("project = KAN", b, me));
+        Assert.True(Matches($"project in (\"{a.BoardId}\")", a, me));
+        Assert.False(Matches($"project in (\"{a.BoardId}\")", b, me));
+        Assert.True(Matches($"project not in (\"{a.BoardId}\")", b, me));
+    }
+
+    [Fact]
     public void ProjectAccess_MapsRoles()
     {
         var service = new ProjectAccessService(null!);

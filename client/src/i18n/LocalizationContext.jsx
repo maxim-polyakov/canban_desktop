@@ -96,7 +96,8 @@ function translateTemplate(source, translated, value) {
 }
 
 export function createTranslator(language) {
-  const phrases = catalog[language]?.phrases || {};
+  const own = catalog[language]?.phrases || {};
+  const phrases = language === 'ru' || language === 'en' ? own : { ...catalog.en?.phrases, ...own };
   const templates = Object.keys(phrases).filter((key) => key.includes('${'));
   return (value, vars) => {
     if (value == null) return value;

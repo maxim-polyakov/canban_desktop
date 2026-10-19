@@ -157,6 +157,12 @@ export const home = {
   tags: () => apiJson('/api/home/tags'),
 };
 
+export const billing = {
+  get: () => apiJson('/api/billing'),
+  quote: (plan, cycle) => apiJson(`/api/billing/quote${buildQuery({ plan, cycle })}`),
+  change: (plan, cycle) => apiJson('/api/billing/plan', json('PUT', { plan, cycle })),
+};
+
 export const savedFilters = {
   getAll: () => apiJson('/api/savedFilters'),
   create: (data) => apiJson('/api/savedFilters', json('POST', data)),

@@ -65,6 +65,8 @@ public class CanbanDbContext : DbContext
     public DbSet<HomeItemLink> HomeItemLinks => Set<HomeItemLink>();
     public DbSet<HomeItemWork> HomeItemWorks => Set<HomeItemWork>();
     public DbSet<HomeStatusUpdate> HomeStatusUpdates => Set<HomeStatusUpdate>();
+    public DbSet<BillingSubscription> BillingSubscriptions => Set<BillingSubscription>();
+    public DbSet<BillingPlanChange> BillingPlanChanges => Set<BillingPlanChange>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -5,6 +5,7 @@ import { adminInfo, integrations, spaces as spacesApi } from '../../api.js';
 import NavIcon from '../../components/NavIcons.jsx';
 import SpaceAvatar from '../../components/SpaceAvatar.jsx';
 import UsersPage from '../UsersPage.jsx';
+import { useBilling } from '../../utils/billing.js';
 import SettingsShell, { ADMIN_NAV, SettingsSection } from './SettingsShell.jsx';
 
 function useSystemInfo() {
@@ -24,6 +25,7 @@ function StatusLozenge({ ok, okLabel = 'Настроено', offLabel = 'Не н
 export function AdminOverviewPage() {
   const { t } = useLocalization();
   const { info, error } = useSystemInfo();
+  const billing = useBilling();
   const cards = [
     ['users', 'Пользователи', '/admin/users', 'teams'],
     ['teams', 'Команды', '/teams', 'teams'],
@@ -52,10 +54,12 @@ export function AdminOverviewPage() {
       <SettingsSection title={t('Тарифный план')}>
         <div className="settings-row">
           <span className="settings-row-text">
-            <span className="settings-row-title">{t('Канбан')} · {t('Бесплатно')}</span>
-            <span className="settings-row-desc">{t('Все функции доступны без ограничений по числу пользователей.')}</span>
+            <span className="settings-row-title">{t('Канбан')} · {billing ? billing.planName : '…'}</span>
+            <span className="settings-row-desc">
+              {billing?.complimentary ? t('Предоставлен бесплатно') : billing ? `${t('Пользователи')}: ${billing.usage.users}${billing.limits.maxUsers != null ? ` / ${billing.limits.maxUsers}` : ''}` : ''}
+            </span>
           </span>
-          <Link to="/admin/billing" className="app-btn">{t('Предварительный просмотр счёта')}</Link>
+          <Link to="/admin/billing" className="app-btn">{t('Тариф и счёт')}</Link>
         </div>
       </SettingsSection>
     </SettingsShell>
@@ -216,57 +220,6 @@ export function AdminAppsPage() {
       </SettingsSection>
       <SettingsSection title={<span className="settings-table-name"><NavIcon name="automation" size={18} />{t('Вебхуки')}</span>} description={t('Отправляют подписанные HTTP-запросы при событиях задач.')}>
         {table(webhooks, 'Вебхуки не настроены.')}
-      </SettingsSection>
-    </SettingsShell>
-  );
-}
-
-export function AdminBillingPage() {
-  const { t, formatDate } = useLocalization();
-  const { info } = useSystemInfo();
-  const now = new Date();
-  const nextBill = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const lines = [
-    ['Канбан', 'Бесплатно', info?.users],
-    ['Автоматизация', 'Включено в план', null],
-    ['Интеграция с GitHub', 'Включено в план', null],
-  ];
-  return (
-    <SettingsShell nav={ADMIN_NAV} wide breadcrumbs={[['Настройки Канбан', '/admin'], ['Платежи'], ['Предварительный просмотр счёта']]} title={t('Предварительный просмотр счёта')} description={t('Оценка следующего счёта по текущим подпискам и числу пользователей.')}>
-      <div className="settings-cards">
-        <div className="settings-card">
-          <div className="settings-card-label">{t('Следующий счёт')}</div>
-          <div className="settings-card-value">0 ₽</div>
-          <div className="settings-card-sub">{formatDate(nextBill, { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-        </div>
-        <div className="settings-card">
-          <div className="settings-card-label">{t('Пользователи')}</div>
-          <div className="settings-card-value">{info?.users ?? '…'}</div>
-          <div className="settings-card-sub">{t('Без ограничений')}</div>
-        </div>
-        <div className="settings-card">
-          <div className="settings-card-label">{t('Тарифный план')}</div>
-          <div className="settings-card-value">{t('Бесплатно')}</div>
-          <div className="settings-card-sub">{t('Ежемесячно')}</div>
-        </div>
-      </div>
-      <SettingsSection title={t('Сведения о счёте')}>
-        <div className="settings-table-wrap">
-          <table className="settings-table">
-            <thead><tr><th>{t('Продукт')}</th><th>{t('План')}</th><th className="is-narrow">{t('Пользователи')}</th><th className="is-narrow">{t('Сумма')}</th></tr></thead>
-            <tbody>
-              {lines.map(([product, plan, users]) => (
-                <tr key={product}>
-                  <td>{t(product)}</td>
-                  <td>{t(plan)}</td>
-                  <td className="is-narrow">{users ?? '—'}</td>
-                  <td className="is-narrow">0 ₽</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="billing-total"><span>{t('Итого')}</span><strong>0 ₽</strong></div>
       </SettingsSection>
     </SettingsShell>
   );

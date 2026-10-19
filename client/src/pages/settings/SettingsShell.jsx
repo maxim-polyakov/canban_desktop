@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from '../../i18n/navigation.jsx';
 import { useLocalization } from '../../i18n/LocalizationContext.jsx';
 import NavIcon from '../../components/NavIcons.jsx';
+import { useBilling } from '../../utils/billing.js';
 import './Settings.css';
 
 export const PERSONAL_NAV = {
@@ -27,13 +28,18 @@ export const ADMIN_NAV = {
     { title: 'Разделы', items: [['/spaces', 'spaces', 'Управление разделами']] },
     { title: 'Приложения', items: [['/admin/apps', 'appsAdd', 'Подключённые приложения']] },
     { title: 'Пользователи', items: [['/admin/users', 'teams', 'Пользователи']] },
-    { title: 'Платежи', items: [['/admin/billing', 'billing', 'Предварительный просмотр счёта']] },
+    { title: 'Платежи', items: [
+      ['/admin/billing', 'billing', 'Тариф и счёт'],
+      ['/admin/billing/plans', 'card', 'Тарифные планы', { upsell: true }],
+    ] },
   ],
 };
 
 export default function SettingsShell({ nav, breadcrumbs = [], title, description, actions, children, wide = false }) {
   const { t } = useLocalization();
   const { pathname } = useLocation();
+  const billing = useBilling();
+  const hideUpsell = !billing || billing.hideUpsell;
   return (
     <div className="settings-shell">
       <aside className="settings-nav" aria-label={t(nav.title)}>
@@ -44,7 +50,7 @@ export default function SettingsShell({ nav, breadcrumbs = [], title, descriptio
         {nav.groups.map((group, index) => (
           <div key={group.title || index} className="settings-nav-group">
             {group.title && <div className="settings-nav-group-title">{t(group.title)}</div>}
-            {group.items.map(([to, icon, label]) => (
+            {group.items.filter(([, , , opts]) => !(opts?.upsell && hideUpsell)).map(([to, icon, label]) => (
               <Link key={to} to={to} className={`settings-nav-item ${pathname === to ? 'is-active' : ''}`} aria-current={pathname === to ? 'page' : undefined}>
                 <NavIcon name={icon} />
                 <span>{t(label)}</span>

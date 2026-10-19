@@ -7,6 +7,7 @@ import { IssueTypeIcon } from './IssueIcons.jsx';
 import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { usePrefs } from '../utils/preferences.js';
 import { PlansFlyoutContent } from '../pages/plans/PlansPages.jsx';
+import { useBilling } from '../utils/billing.js';
 
 export const CREATE_SPACE_EVENT = 'canban:create-space';
 export const SPACES_CHANGED_EVENT = 'canban:spaces-changed';
@@ -153,6 +154,8 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
   const { t } = useLocalization();
   const { recentBoards, starredBoards, viewedIssues } = useNavHistory();
   const [prefs] = usePrefs();
+  const billing = useBilling();
+  const tryBadge = billing && !billing.hideUpsell ? 'Попробуйте' : undefined;
   const [flyout, setFlyout] = useState(null);
   const [spacesMenu, setSpacesMenu] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -295,13 +298,13 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
       {shown('recommended') && (
         <>
           <div className="app-nav-section">{t('Рекомендации')}</div>
-          {item('/spaces/templates', 'template', 'Шаблоны', { badge: 'Попробуйте' })}
+          {item('/spaces/templates', 'template', 'Шаблоны', { badge: tryBadge })}
         </>
       )}
 
       {shown('filters') && item('/issues', 'filters', 'Фильтры')}
       {shown('dashboards') && item('/dashboards', 'dashboards', 'Дашборды')}
-      {shown('assets') && item('/assets', 'assets', 'Активы', { badge: 'Попробуйте' })}
+      {shown('assets') && item('/assets', 'assets', 'Активы', { badge: tryBadge })}
       {shown('teams') && item('/teams', 'teams', 'Команды', { external: true })}
       {shown('goals') && item('/goals', 'goals', 'Цели', { external: true })}
       {shown('projects') && item('/projects', 'projects', 'Проекты', { external: true })}

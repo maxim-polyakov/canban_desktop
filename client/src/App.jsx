@@ -35,7 +35,8 @@ import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
 import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
 import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
 import SpaceSettingsPage from './pages/settings/SpaceSettingsPage.jsx';
-import { AdminAppsPage, AdminBillingPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
+import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
+import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
 import { useApplyTheme, usePrefs } from './utils/preferences.js';
 
 const HOME_REDIRECTS = { spaces: '/spaces', issues: '/issues' };
@@ -114,6 +115,8 @@ export default function App() {
           <Route path="admin/apps" element={<AdminAppsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/billing" element={<AdminBillingPage />} />
+          <Route path="admin/billing/plans" element={<AdminBillingPlansPage />} />
+          <Route path="admin/billing/change" element={<AdminBillingChangePage />} />
           <Route path="board/:boardId/settings" element={<SpaceSettingsPage />} />
           <Route path="board/:boardId" element={<BoardPage />} />
           <Route path="board/:boardId/issue/:questId" element={<BoardPage />} />

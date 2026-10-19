@@ -310,7 +310,7 @@
   position: absolute;
   z-index: 70;
   top: calc(100% + 6px);
-  left: 0;
+  inset-inline-start: 0;
   min-width: 220px;
   padding: 0.4rem 0;
   background: var(--surface-overlay);
@@ -319,8 +319,8 @@
 }
 
 .app-menu-right {
-  left: auto;
-  right: 0;
+  inset-inline-start: auto;
+  inset-inline-end: 0;
 }
 
 .app-menu-item {
@@ -334,7 +334,7 @@
   border: 0;
   color: var(--text);
   font-size: 0.9rem;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 

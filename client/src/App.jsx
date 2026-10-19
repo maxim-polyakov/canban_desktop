@@ -26,7 +26,8 @@ import DashboardsPage from './pages/DashboardsPage.jsx';
 import ForYouPage from './pages/ForYouPage.jsx';
 import SpacesPage from './pages/SpacesPage.jsx';
 import { KudosPage, PeoplePage, PersonPage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
-import { AssetsPage, GoalsPage, ProjectsPage } from './pages/WorkspacePages.jsx';
+import { GoalsPage, ProjectsPage } from './pages/WorkspacePages.jsx';
+import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
 import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
 import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
@@ -84,7 +85,10 @@ export default function App() {
           <Route path="kudos" element={<KudosPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="goals" element={<GoalsPage />} />
-          <Route path="assets" element={<AssetsPage />} />
+          <Route path="assets" element={<AssetsHomePage />} />
+          <Route path="assets/search" element={<AssetSearchPage />} />
+          <Route path="assets/schema/:schemaId" element={<AssetSchemaPage />} />
+          <Route path="assets/object/:objectId" element={<AssetObjectPage />} />
           <Route path="settings/personal/general" element={<PersonalGeneralPage />} />
           <Route path="settings/personal/notifications" element={<PersonalNotificationsPage />} />
           <Route path="settings/issues/issue-types" element={<IssueTypesPage />} />

@@ -12,6 +12,7 @@ public static partial class DatabaseSchemaInitializer
         // so querying existing rows first would crash during a rolling schema upgrade.
         await EnsureJiraLikeSchemaAsync(db, ct);
         await EnsureJiraPlatformSchemaAsync(db, ct);
+        await EnsureAssetsSchemaAsync(db, ct);
 
         await db.Database.ExecuteSqlRawAsync(
             """

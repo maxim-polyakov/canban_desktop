@@ -47,6 +47,13 @@ public class CanbanDbContext : DbContext
     public DbSet<GitHubIntegration> GitHubIntegrations => Set<GitHubIntegration>();
     public DbSet<DevelopmentLink> DevelopmentLinks => Set<DevelopmentLink>();
     public DbSet<Dashboard> Dashboards => Set<Dashboard>();
+    public DbSet<AssetSchema> AssetSchemas => Set<AssetSchema>();
+    public DbSet<AssetObjectType> AssetObjectTypes => Set<AssetObjectType>();
+    public DbSet<AssetAttribute> AssetAttributes => Set<AssetAttribute>();
+    public DbSet<AssetObject> AssetObjects => Set<AssetObject>();
+    public DbSet<AssetAttributeValue> AssetAttributeValues => Set<AssetAttributeValue>();
+    public DbSet<AssetQuestLink> AssetQuestLinks => Set<AssetQuestLink>();
+    public DbSet<AssetObjectChange> AssetObjectChanges => Set<AssetObjectChange>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

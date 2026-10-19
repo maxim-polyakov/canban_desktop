@@ -1,8 +1,8 @@
-import { api, apiForm, apiJson, buildQuery } from './transport.js';
+import { api, apiForm, apiJson, buildQuery, responseErrorMessage } from './transport.js';
 
 const json = (method, body) => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
-const remove = (url) => api(url, { method: 'DELETE' }).then((response) => {
-  if (!response.ok) throw new Error(response.statusText);
+const remove = (url) => api(url, { method: 'DELETE' }).then(async (response) => {
+  if (!response.ok) throw new Error(responseErrorMessage(response.status, await response.text(), response.statusText));
   return true;
 });
 
@@ -55,6 +55,35 @@ export const people = {
 export const kudos = {
   get: (scope = 'all', userId) => apiJson(`/api/kudos${buildQuery({ scope, userId })}`),
   send: (data) => apiJson('/api/kudos', json('POST', data)),
+};
+
+export const assets = {
+  getSchemas: () => apiJson('/api/assets/schemas'),
+  createSchema: (data) => apiJson('/api/assets/schemas', json('POST', data)),
+  getSchema: (id) => apiJson(`/api/assets/schemas/${id}`),
+  updateSchema: (id, data) => apiJson(`/api/assets/schemas/${id}`, json('PUT', data)),
+  deleteSchema: (id) => remove(`/api/assets/schemas/${id}`),
+  createType: (schemaId, data) => apiJson(`/api/assets/schemas/${schemaId}/types`, json('POST', data)),
+  updateType: (id, data) => apiJson(`/api/assets/types/${id}`, json('PUT', data)),
+  deleteType: (id) => remove(`/api/assets/types/${id}`),
+  createAttribute: (typeId, data) => apiJson(`/api/assets/types/${typeId}/attributes`, json('POST', data)),
+  updateAttribute: (id, data) => apiJson(`/api/assets/attributes/${id}`, json('PUT', data)),
+  deleteAttribute: (id) => remove(`/api/assets/attributes/${id}`),
+  search: (params) => apiJson(`/api/assets/objects${buildQuery(params)}`),
+  getObject: (id) => apiJson(`/api/assets/objects/${id}`),
+  createObject: (data) => apiJson('/api/assets/objects', json('POST', data)),
+  updateObject: (id, data) => apiJson(`/api/assets/objects/${id}`, json('PUT', data)),
+  deleteObject: (id) => remove(`/api/assets/objects/${id}`),
+  getGraph: (id, depth = 2) => apiJson(`/api/assets/objects/${id}/graph${buildQuery({ depth })}`),
+  linkIssue: (id, data) => apiJson(`/api/assets/objects/${id}/issues`, json('POST', data)),
+  unlinkIssue: (id, questId) => remove(`/api/assets/objects/${id}/issues/${questId}`),
+  getForQuest: (questId) => apiJson(`/api/assets/quests/${questId}`),
+  importCsv: (typeId, content) => apiJson(`/api/assets/types/${typeId}/import`, json('POST', { content })),
+  exportCsv: async (typeId) => {
+    const response = await api(`/api/assets/types/${typeId}/export`);
+    if (!response.ok) throw new Error((await response.text()) || response.statusText);
+    return response.blob();
+  },
 };
 
 export const adminInfo = {

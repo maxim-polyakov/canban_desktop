@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from '../i18n/navigation.jsx';
+import { Link } from '../i18n/navigation.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { achievements as achievementsApi, components as componentsApi, releases as releasesApi, search, spaces as spacesApi } from '../api.js';
+import { achievements as achievementsApi, search, spaces as spacesApi } from '../api.js';
 import NavIcon from '../components/NavIcons.jsx';
 import SpaceAvatar from '../components/SpaceAvatar.jsx';
 import { IssueTypeIcon } from '../components/IssueIcons.jsx';
@@ -214,102 +214,6 @@ export function GoalsPage() {
         </table>
         {!all && <p className="settings-empty">{t('Загрузка...')}</p>}
         {all && rows.length === 0 && <p className="settings-empty">{t('Нет целей в этой категории.')}</p>}
-      </div>
-    </PageFrame>
-  );
-}
-
-/** Jira "Assets" maps to the managed catalog of components and releases across spaces. */
-export function AssetsPage() {
-  const { t, formatDate } = useLocalization();
-  const navigate = useNavigate();
-  const [items, setItems] = useState(null);
-  const [spaceList, setSpaceList] = useState([]);
-  const [target, setTarget] = useState('');
-  const [query, setQuery] = useState('');
-  const [kind, setKind] = useState('all');
-
-  useEffect(() => {
-    spacesApi.getMine().then(async (list) => {
-      setSpaceList(list);
-      setTarget(list[0]?.id || '');
-      const perSpace = await Promise.all(list.map(async (space) => {
-        const [comps, rels] = await Promise.all([
-          componentsApi.getByBoard(space.id).catch(() => []),
-          releasesApi.getByBoard(space.id).catch(() => []),
-        ]);
-        return [
-          ...comps.map((c) => ({ id: c.id, kind: 'component', name: c.name, description: c.description, archived: c.archived, space })),
-          ...rels.map((r) => ({ id: r.id, kind: 'release', name: r.name, description: r.description, status: r.status, date: r.releaseDate, space })),
-        ];
-      }));
-      setItems(perSpace.flat());
-    }).catch(() => setItems([]));
-  }, []);
-
-  const rows = (items || []).filter((item) => {
-    const needle = query.trim().toLowerCase();
-    if (kind !== 'all' && item.kind !== kind) return false;
-    return !needle || item.name.toLowerCase().includes(needle) || (item.description || '').toLowerCase().includes(needle);
-  });
-
-  const releaseStatus = (s) => (s === 1 ? ['Выпущен', 'is-success'] : s === 2 ? ['В архиве', ''] : ['Не выпущен', 'is-info']);
-
-  return (
-    <PageFrame
-      title={t('Активы')}
-      description={t('Каталог компонентов и релизов во всех разделах: что вы разрабатываете и поставляете.')}
-      actions={spaceList.length > 0 && (
-        <>
-          <select className="app-select" value={target} onChange={(e) => setTarget(e.target.value)} aria-label={t('Раздел')}>
-            {spaceList.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <button type="button" className="app-btn" disabled={!target} onClick={() => navigate(`/board/${target}/releases`)}>{t('Создать релиз')}</button>
-          <button type="button" className="app-btn app-btn-primary" disabled={!target} onClick={() => navigate(`/board/${target}/components`)}>{t('Создать компонент')}</button>
-        </>
-      )}
-    >
-      <div className="settings-toolbar">
-        <SearchBox value={query} onChange={setQuery} placeholder={t('Поиск по активам')} />
-        <select className="app-select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label={t('Тип')}>
-          <option value="all">{t('Все типы')}</option>
-          <option value="component">{t('Компоненты')}</option>
-          <option value="release">{t('Релизы')}</option>
-        </select>
-      </div>
-      <div className="settings-table-wrap">
-        <table className="settings-table">
-          <thead>
-            <tr>
-              <th>{t('Имя')}</th>
-              <th className="is-narrow">{t('Тип')}</th>
-              <th className="hide-mobile">{t('Описание')}</th>
-              <th>{t('Раздел')}</th>
-              <th className="is-narrow">{t('Статус')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((item) => {
-              const [label, tone] = item.kind === 'release' ? releaseStatus(item.status) : item.archived ? ['В архиве', ''] : ['Активен', 'is-success'];
-              const jql = item.kind === 'release' ? `fixVersion = "${item.name}"` : `component = "${item.name}"`;
-              return (
-                <tr key={`${item.kind}-${item.id}`}>
-                  <td>
-                    <Link to={`/issues?jql=${encodeURIComponent(jql)}`} className="settings-table-name">
-                      <NavIcon name={item.kind === 'release' ? 'releases' : 'components'} />{item.name}
-                    </Link>
-                  </td>
-                  <td className="is-narrow">{t(item.kind === 'release' ? 'Релиз' : 'Компонент')}</td>
-                  <td className="hide-mobile">{item.description || (item.date ? formatDate(item.date, { dateStyle: 'medium' }) : '—')}</td>
-                  <td><Link to={`/board/${item.space.id}/${item.kind === 'release' ? 'releases' : 'components'}`}>{item.space.name}</Link></td>
-                  <td className="is-narrow"><span className={`settings-lozenge ${tone}`}>{t(label)}</span></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {!items && <p className="settings-empty">{t('Загрузка...')}</p>}
-        {items && rows.length === 0 && <p className="settings-empty">{t('Активов пока нет. Создайте компонент или релиз в разделе.')}</p>}
       </div>
     </PageFrame>
   );

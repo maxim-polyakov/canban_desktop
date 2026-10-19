@@ -10,6 +10,7 @@ import { IssueTypeIcon, PriorityIcon, WatcherBadge } from './IssueIcons.jsx';
 import AssigneeAvatar from './AssigneeAvatar.jsx';
 import AssigneeSelect from './AssigneeSelect.jsx';
 import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
+import IssueAssetsField from './IssueAssetsField.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
@@ -624,6 +625,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
               </form>
               <ul className="issue-drawer-compact-list">{links.map((link) => <li key={link.id}>⛓ {t(LINK_TYPE_LABELS[link.type] || 'связана с')} · <strong>{link.targetKey || link.targetQuestId}</strong> {link.targetTitle || ''}</li>)}</ul>
             </section>
+
+            <IssueAssetsField questId={questId} />
 
             <section className="issue-drawer-section">
               <div className="issue-drawer-section-header">

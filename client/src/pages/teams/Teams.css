@@ -208,3 +208,5 @@
   .teams-people-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .teams-person-kudos { opacity: 1; }
 }
+
+.layout-main:has(.teams-page) { background: var(--surface); }

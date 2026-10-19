@@ -1471,3 +1471,5 @@ button.app-menu-item { width: 100%; border: 0; background: transparent; text-ali
 @media (max-width: 768px) {
   .app-nav-group-header .app-nav-icon-btn, .app-nav-external { opacity: 1; }
 }
+
+.app-customize-modal .app-modal-hint { padding: 0 20px; margin: 0 0 8px; }

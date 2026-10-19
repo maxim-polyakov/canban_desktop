@@ -303,7 +303,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
       {shown('recommended') && (
         <>
           <div className="app-nav-section">{t('Рекомендации')}</div>
-          {item('/spaces?templates=1', 'template', 'Шаблоны разделов', { badge: 'Попробуйте', active: false })}
+          {item('/spaces?templates=1', 'template', 'Шаблоны', { badge: 'Попробуйте', active: false })}
         </>
       )}
 

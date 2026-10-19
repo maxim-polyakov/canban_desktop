@@ -94,7 +94,11 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       setLabels(q?.labels ?? '');
       setDueDate(q?.dueDate ? String(q.dueDate).slice(0, 10) : '');
       setSprintId(q?.sprintId ?? '');
+      setComponent(q?.component ?? '');
+      setFixVersion(q?.fixVersion ?? '');
+      setStoryPoints(typeof q?.storyPoints === 'number' ? String(q.storyPoints) : '');
       setNotificationRecipientIds(q?.notificationRecipientIds ?? []);
+      setWatcherError('');
     }).catch(() => setQuest(null)).finally(() => {
       if (questIdRef.current === questId) setLoading(false);
     });

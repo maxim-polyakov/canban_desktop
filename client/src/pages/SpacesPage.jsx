@@ -106,7 +106,7 @@ export default function SpacesPage() {
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return list
-      .filter((s) => !needle || s.name.toLowerCase().includes(needle) || s.key.toLowerCase().includes(needle))
+      .filter((s) => !needle || s.name.toLowerCase().includes(needle) || s.key.toLowerCase().includes(needle) || (s.teamName || '').toLowerCase().includes(needle))
       .filter((s) => type === 'all' || (type === 'scrum') === Boolean(s.hasSprints))
       .sort((a, b) => SORTERS[sort.by](a, b) * sort.dir);
   }, [list, query, type, sort]);

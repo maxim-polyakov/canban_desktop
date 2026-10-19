@@ -70,7 +70,7 @@ function Flyout({ anchor, onClose, title, children, inline }) {
   );
 }
 
-function SpaceSearch({ boards, activeBoardId, starredIds, onNavigate }) {
+function SpaceSearch({ boards, teams = [], activeBoardId, starredIds, onNavigate }) {
   const { t } = useLocalization();
   const [query, setQuery] = useState('');
   const [remote, setRemote] = useState([]);
@@ -81,16 +81,34 @@ function SpaceSearch({ boards, activeBoardId, starredIds, onNavigate }) {
   const all = new Map(boards.map((b) => [b.id, b]));
   remote.forEach((s) => { if (!all.has(s.id)) all.set(s.id, { id: s.id, name: s.name, teamName: s.teamName, keyPrefix: s.key }); });
   const results = needle
-    ? [...all.values()].filter((b) => b.name.toLowerCase().includes(needle) || (b.keyPrefix || '').toLowerCase().includes(needle)).slice(0, 12)
+    ? [...all.values()].filter((b) => b.name.toLowerCase().includes(needle)
+      || (b.keyPrefix || '').toLowerCase().includes(needle)
+      || (b.teamName || '').toLowerCase().includes(needle)).slice(0, 12)
     : [];
+  const teamResults = needle ? teams.filter((team) => (team.name || '').toLowerCase().includes(needle)).slice(0, 6) : [];
   return (
     <>
       <label className="app-flyout-search">
         <NavIcon name="search" size={14} />
         <input autoFocus type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Поиск по всем разделам')} aria-label={t('Поиск по всем разделам')} />
       </label>
+      {teamResults.length > 0 && results.length > 0 && <div className="app-nav-section">{t('Разделы')}</div>}
       {results.map((b) => <BoardRow key={b.id} board={b} active={b.id === activeBoardId} starred={starredIds.has(b.id)} onNavigate={onNavigate} showTeam />)}
-      {needle && results.length === 0 && <p className="app-flyout-empty">{t('Разделы не найдены')}</p>}
+      {teamResults.length > 0 && (
+        <>
+          <div className="app-nav-section">{t('Команды')}</div>
+          {teamResults.map((team) => (
+            <Link key={team.id} to={`/teams/${team.id}`} className="app-nav-item app-nav-link" onClick={onNavigate} title={team.name}>
+              <NavIcon name="teams" />
+              <span className="app-nav-text">
+                <span className="app-nav-label">{team.name}</span>
+                <span className="app-nav-sub">{t('Команда')} · {team.boardCount} {t('разд.')}</span>
+              </span>
+            </Link>
+          ))}
+        </>
+      )}
+      {needle && results.length === 0 && teamResults.length === 0 && <p className="app-flyout-empty">{t('Разделы не найдены')}</p>}
       <Link to="/spaces" className="app-flyout-footer app-flyout-footer-icon" onClick={onNavigate}><NavIcon name="list" size={14} />{t('Просмотреть все разделы')}</Link>
     </>
   );
@@ -387,7 +405,8 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
 
   const plansContent = <PlansFlyoutContent onNavigate={navigate} />;
 
-  const otherSpacesContent = <SpaceSearch boards={allBoards} activeBoardId={activeBoardId} starredIds={starredIds} onNavigate={navigate} />;
+  const searchTeams = teamsWithBoards.map(({ team, boards }) => ({ id: team.id, name: team.name, boardCount: boards.length }));
+  const otherSpacesContent = <SpaceSearch boards={allBoards} teams={searchTeams} activeBoardId={activeBoardId} starredIds={starredIds} onNavigate={navigate} />;
 
   return (
     <nav className="app-sidebar-nav" aria-label={t('Навигация')}>

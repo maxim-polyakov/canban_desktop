@@ -82,6 +82,13 @@ public class TeamsController : ControllerBase
     {
         var inviterId = User.GetUserId();
         if (!inviterId.HasValue) return Unauthorized();
+        if (request?.UserId is Guid userId)
+        {
+            var byId = await _teamService.InviteUserAsync(teamId, userId, inviterId.Value, ct);
+            if (byId == null) return NotFound("Пользователь не найден.");
+            if (byId == false) return BadRequest("Пользователь уже в команде или приглашение уже отправлено.");
+            return NoContent();
+        }
         if (request == null || string.IsNullOrWhiteSpace(request.Email))
             return BadRequest("Укажите email.");
         var result = await _teamService.InviteByEmailAsync(teamId, request.Email.Trim(), inviterId.Value, ct);

@@ -179,18 +179,24 @@ public class TeamService : ITeamService
     {
         var normalized = email?.Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(normalized)) return null;
-        var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.Email != null && u.Email.Trim().ToLower() == normalized, ct);
-        if (user == null) return null;
-        if (await _db.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == user.Id, ct))
+        var userId = await _db.Users
+            .Where(u => u.Email != null && u.Email.Trim().ToLower() == normalized)
+            .Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
+        return userId == null ? null : await InviteUserAsync(teamId, userId.Value, inviterUserId, ct);
+    }
+
+    public async Task<bool?> InviteUserAsync(Guid teamId, Guid userId, Guid inviterUserId, CancellationToken ct = default)
+    {
+        if (!await _db.Users.AnyAsync(u => u.Id == userId, ct)) return null;
+        if (await _db.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == userId, ct))
             return false;
-        if (await _db.TeamInvites.AnyAsync(i => i.TeamId == teamId && i.InvitedUserId == user.Id, ct))
+        if (await _db.TeamInvites.AnyAsync(i => i.TeamId == teamId && i.InvitedUserId == userId, ct))
             return false;
         _db.TeamInvites.Add(new TeamInvite
         {
             Id = Guid.NewGuid(),
             TeamId = teamId,
-            InvitedUserId = user.Id,
+            InvitedUserId = userId,
             InvitedByUserId = inviterUserId,
             CreatedAt = DateTime.UtcNow
         });

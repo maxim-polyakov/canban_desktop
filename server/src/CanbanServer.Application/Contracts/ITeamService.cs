@@ -16,6 +16,8 @@ public interface ITeamService
     /// <summary>Отправить приглашение в команду по email. Создаёт запись приглашения; пользователь подтверждает сам.</summary>
     /// <returns>true — приглашение отправлено, false — уже в команде или приглашение уже отправлено, null — пользователь не найден</returns>
     Task<bool?> InviteByEmailAsync(Guid teamId, string email, Guid inviterUserId, CancellationToken ct = default);
+    /// <returns>true — приглашение отправлено, false — уже в команде или приглашение уже отправлено, null — пользователь не найден</returns>
+    Task<bool?> InviteUserAsync(Guid teamId, Guid userId, Guid inviterUserId, CancellationToken ct = default);
     Task<List<TeamInviteDto>> GetPendingInvitesForUserAsync(Guid userId, CancellationToken ct = default);
     Task<bool?> AcceptInviteAsync(Guid inviteId, Guid userId, CancellationToken ct = default);
     Task<bool> DeclineInviteAsync(Guid inviteId, Guid userId, CancellationToken ct = default);

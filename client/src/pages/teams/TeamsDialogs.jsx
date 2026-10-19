@@ -92,28 +92,48 @@ export function CreateTeamDialog({ open, onClose, onCreated }) {
 export function InvitePeopleDialog({ open, teams, defaultTeamId, onClose, onDone }) {
   const { t } = useLocalization();
   const [teamId, setTeamId] = useState('');
-  const [emails, setEmails] = useState('');
+  const [query, setQuery] = useState('');
+  const [picked, setPicked] = useState([]);
+  const [people, setPeople] = useState([]);
+  const [memberIds, setMemberIds] = useState([]);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
   useEffect(() => {
-    if (open) { setTeamId(defaultTeamId || teams[0]?.id || ''); setEmails(''); setResult(null); }
+    if (!open) return;
+    setTeamId(defaultTeamId || teams[0]?.id || ''); setQuery(''); setPicked([]); setResult(null);
+    usersApi.getAll().then((list) => setPeople(Array.isArray(list) ? list : [])).catch(() => setPeople([]));
   }, [open, defaultTeamId, teams]);
+  useEffect(() => {
+    if (!open || !teamId) return;
+    teamsApi.getMembers(teamId).then((list) => setMemberIds((list || []).map((m) => m.userId))).catch(() => setMemberIds([]));
+  }, [open, teamId]);
   if (!open) return null;
+
+  const needle = query.trim().toLowerCase();
+  const pickedIds = picked.map((p) => p.id);
+  const suggestions = needle && !needle.includes('@')
+    ? people.filter((p) => !pickedIds.includes(p.id) && !memberIds.includes(p.id) && (p.displayName || '').toLowerCase().includes(needle)).slice(0, 8)
+    : [];
+  const emails = needle.includes('@') ? query.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean) : [];
+  const pick = (person) => { setPicked((list) => [...list, person]); setQuery(''); };
 
   const submit = async (e) => {
     e.preventDefault();
-    const list = emails.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
-    if (!teamId || list.length === 0) return;
+    if (!teamId || (picked.length === 0 && emails.length === 0)) return;
     setSaving(true);
     const sent = [];
     const failed = [];
-    for (const email of list) {
+    for (const person of picked) {
+      const r = await teamsApi.inviteUser(teamId, person.id);
+      if (r.ok) sent.push(person.displayName); else failed.push(`${person.displayName}: ${r.error}`);
+    }
+    for (const email of emails) {
       const r = await teamsApi.inviteByEmail(teamId, email);
       if (r.ok) sent.push(email); else failed.push(`${email}: ${r.error}`);
     }
     setSaving(false);
     setResult({ sent, failed });
-    if (sent.length) { setEmails(''); onDone?.(); }
+    if (sent.length) { setPicked([]); setQuery(''); onDone?.(); }
   };
 
   return (
@@ -123,7 +143,7 @@ export function InvitePeopleDialog({ open, teams, defaultTeamId, onClose, onDone
       onSubmit={submit}
       footer={<>
         <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Закрыть')}</button>
-        <button type="submit" className="app-btn app-btn-primary" disabled={saving || !teamId || !emails.trim()}>{saving ? '…' : t('Пригласить')}</button>
+        <button type="submit" className="app-btn app-btn-primary" disabled={saving || !teamId || (picked.length === 0 && emails.length === 0)}>{saving ? '…' : t('Пригласить')}</button>
       </>}
     >
       {teams.length === 0 ? <p className="app-modal-hint">{t('Сначала создайте команду, чтобы приглашать в неё людей.')}</p> : (
@@ -134,10 +154,35 @@ export function InvitePeopleDialog({ open, teams, defaultTeamId, onClose, onDone
               {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
             </select>
           </label>
-          <label className="app-field">
-            <span>{t('Адреса эл. почты')} <span className="app-required">*</span></span>
-            <input value={emails} autoFocus onChange={(e) => setEmails(e.target.value)} placeholder="name@example.com, ..." />
-          </label>
+          <div className="app-field">
+            <label htmlFor="invite-people-search">{t('Пользователи')} <span className="app-required">*</span></label>
+            {picked.length > 0 && (
+              <div className="invite-picked">
+                {picked.map((p) => (
+                  <span key={p.id} className="invite-chip">
+                    {p.displayName}
+                    <button type="button" aria-label={t('Убрать')} onClick={() => setPicked((list) => list.filter((x) => x.id !== p.id))}><NavIcon name="close" size={12} /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input id="invite-people-search" value={query} autoFocus autoComplete="off" onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && suggestions.length) { e.preventDefault(); pick(suggestions[0]); } }}
+              placeholder={t('Имя или адрес эл. почты')} role="combobox" aria-expanded={suggestions.length > 0} aria-controls="invite-people-options" />
+            {suggestions.length > 0 && (
+              <ul className="invite-options" id="invite-people-options" role="listbox">
+                {suggestions.map((p) => (
+                  <li key={p.id} role="option" aria-selected="false">
+                    <button type="button" onClick={() => pick(p)}>
+                      {p.avatarUrl ? <img src={p.avatarUrl} alt="" /> : <span className="invite-avatar">{(p.displayName || '?').slice(0, 1).toUpperCase()}</span>}
+                      {p.displayName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {needle && !needle.includes('@') && suggestions.length === 0 && <span className="app-modal-hint">{t('Никого не найдено')}</span>}
+          </div>
           <p className="app-modal-hint">{t('Пользователь получит приглашение и появится в команде после его принятия.')}</p>
         </>
       )}

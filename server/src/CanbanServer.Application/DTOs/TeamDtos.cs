@@ -8,7 +8,7 @@ public record TeamMemberDto(Guid UserId, string DisplayName, string Email, strin
 public record TeamWithBoardsDto(TeamDto Team, List<BoardDto> Boards);
 public record CreateTeamRequest(string Name, string? Description, string? Key = null);
 public record UpdateTeamRequest(string? Name, string? Description, string? Key = null);
-public record InviteMemberRequest(string Email);
+public record InviteMemberRequest(string? Email, Guid? UserId = null);
 
 public record SetTeamMemberRoleRequest(TeamRole Role);
 

@@ -198,6 +198,13 @@ export const teams = {
     if (res.status === 400) return { ok: false, error: text || 'Пользователь уже в команде или приглашение уже отправлено.' };
     return { ok: false, error: text || 'Ошибка при отправке приглашения.' };
   },
+  inviteUser: async (teamId, userId) => {
+    const res = await api(`/api/teams/${teamId}/members/invite`, { method: 'POST', body: JSON.stringify({ userId }) });
+    if (res.ok) return { ok: true };
+    const text = await res.text();
+    if (res.status === 400) return { ok: false, error: text || 'Пользователь уже в команде или приглашение уже отправлено.' };
+    return { ok: false, error: text || 'Ошибка при отправке приглашения.' };
+  },
   getMyInvites: () => apiJson('/api/teams/invites/my'),
   acceptInvite: (inviteId) => api(`/api/teams/invites/${inviteId}/accept`, { method: 'POST' }).then((r) => r.ok),
   declineInvite: (inviteId) => api(`/api/teams/invites/${inviteId}/decline`, { method: 'POST' }).then((r) => r.ok),

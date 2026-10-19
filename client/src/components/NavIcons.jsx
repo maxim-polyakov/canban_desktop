@@ -83,6 +83,8 @@ const PATHS = {
   list: <path d="M5.5 3.5h8.5M5.5 8h8.5M5.5 12.5h8.5M2 3.5h.5M2 8h.5M2 12.5h.5" />,
   calendar: <><rect x="1.75" y="2.75" width="12.5" height="11.5" rx="1.5" /><path d="M1.75 6.5h12.5M5 1.5v2.5M11 1.5v2.5M4.5 9.25h1M7.5 9.25h1M10.5 9.25h1M4.5 11.75h1M7.5 11.75h1" /></>,
   link: <><path d="M6.75 9.25a2.5 2.5 0 0 0 3.5 0l2.5-2.5a2.5 2.5 0 0 0-3.5-3.5l-.75.75" /><path d="M9.25 6.75a2.5 2.5 0 0 0-3.5 0l-2.5 2.5a2.5 2.5 0 0 0 3.5 3.5l.75-.75" /></>,
+  activity: <path d="M1.5 8h3l2-5 3 10 2-5h3" />,
+  columns: <><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5" /><path d="M6 2.75v10.5M10 2.75v10.5" /></>,
 };
 
 export default function NavIcon({ name, size = 16, className = '', filled = false }) {

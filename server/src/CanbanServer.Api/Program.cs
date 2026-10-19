@@ -155,6 +155,7 @@ builder.Services.AddScoped<IJiraPlatformService, JiraPlatformService>();
 builder.Services.AddScoped<IJqlQueryService, JqlService>();
 builder.Services.AddScoped<AssetService>();
 builder.Services.AddScoped<PlanService>();
+builder.Services.AddScoped<HomeService>();
 builder.Services.AddHttpClient("outbox");
 builder.Services.AddHttpClient(GitHubAppClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddSingleton<IGitHubAppClient, GitHubAppClient>();

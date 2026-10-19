@@ -1,10 +1,11 @@
 import { api, apiForm, apiJson, buildQuery, responseErrorMessage } from './transport.js';
 
 const json = (method, body) => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
-const remove = (url) => api(url, { method: 'DELETE' }).then(async (response) => {
+const okOrThrow = async (response) => {
   if (!response.ok) throw new Error(responseErrorMessage(response.status, await response.text(), response.statusText));
   return true;
-});
+};
+const remove = (url) => api(url, { method: 'DELETE' }).then(okOrThrow);
 
 export const workflows = {
   getByBoard: (boardId) => apiJson(`/api/workflows/board/${boardId}`),
@@ -133,6 +134,27 @@ export const plans = {
   include: (id, questId) => remove(`/api/plans/${id}/exclusions/${questId}`),
   addDependency: (id, data) => apiJson(`/api/plans/${id}/dependencies`, json('POST', data)),
   removeDependency: (id, linkId) => remove(`/api/plans/${id}/dependencies/${linkId}`),
+};
+
+export const home = {
+  list: (kind, archived = false) => apiJson(`/api/home/${kind}${buildQuery({ archived: archived || undefined })}`),
+  create: (kind, data) => apiJson(`/api/home/${kind}`, json('POST', data)),
+  get: (id) => apiJson(`/api/home/items/${id}`),
+  update: (id, data) => apiJson(`/api/home/items/${id}`, json('PUT', data)),
+  delete: (id) => remove(`/api/home/items/${id}`),
+  archive: (id, archived) => apiJson(`/api/home/items/${id}/archive`, json('POST', { archived })),
+  follow: (id) => api(`/api/home/items/${id}/follow`, { method: 'POST' }).then(okOrThrow),
+  unfollow: (id) => remove(`/api/home/items/${id}/follow`),
+  addContributor: (id, userId) => api(`/api/home/items/${id}/contributors`, json('POST', { userId })).then(okOrThrow),
+  removeContributor: (id, userId) => remove(`/api/home/items/${id}/contributors/${userId}`),
+  link: (id, targetId) => api(`/api/home/items/${id}/links`, json('POST', { targetId })).then(okOrThrow),
+  unlink: (id, targetId) => remove(`/api/home/items/${id}/links/${targetId}`),
+  addWork: (id, data) => apiJson(`/api/home/items/${id}/work`, json('POST', data)),
+  removeWork: (id, questId) => remove(`/api/home/items/${id}/work/${questId}`),
+  addUpdate: (id, data) => apiJson(`/api/home/items/${id}/updates`, json('POST', data)),
+  deleteUpdate: (id, updateId) => remove(`/api/home/items/${id}/updates/${updateId}`),
+  feed: (kind, scope) => apiJson(`/api/home/updates${buildQuery({ kind, scope })}`),
+  tags: () => apiJson('/api/home/tags'),
 };
 
 export const savedFilters = {

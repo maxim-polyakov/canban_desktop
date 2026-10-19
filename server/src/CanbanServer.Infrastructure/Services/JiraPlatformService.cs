@@ -1018,7 +1018,9 @@ public sealed class JiraPlatformService : IJiraPlatformService
             var owner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == ownerId, ct);
             result.Insert(0, new BoardMemberPermissionDto(ownerId, owner?.DisplayName, owner?.Email, null, true, BoardPermission.Admin));
         }
-        var current = result.FirstOrDefault(m => m.UserId == userId)?.Permission ?? BoardPermission.View;
+        var current = result.FirstOrDefault(m => m.UserId == userId)?.Permission
+            ?? (await _access.GetBoardAccessAsync(boardId, userId, ct)).Permission
+            ?? BoardPermission.View;
         return new BoardPermissionsDto(boardId, current, result.OrderByDescending(m => m.Permission).ThenBy(m => m.DisplayName).ToList());
     }
 

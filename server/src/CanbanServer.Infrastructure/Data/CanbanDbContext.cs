@@ -60,6 +60,11 @@ public class CanbanDbContext : DbContext
     public DbSet<PlanScenario> PlanScenarios => Set<PlanScenario>();
     public DbSet<PlanScheduleItem> PlanScheduleItems => Set<PlanScheduleItem>();
     public DbSet<PlanExclusion> PlanExclusions => Set<PlanExclusion>();
+    public DbSet<HomeItem> HomeItems => Set<HomeItem>();
+    public DbSet<HomeItemMember> HomeItemMembers => Set<HomeItemMember>();
+    public DbSet<HomeItemLink> HomeItemLinks => Set<HomeItemLink>();
+    public DbSet<HomeItemWork> HomeItemWorks => Set<HomeItemWork>();
+    public DbSet<HomeStatusUpdate> HomeStatusUpdates => Set<HomeStatusUpdate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -340,9 +340,5 @@
   .settings-table .hide-mobile { display: none; }
 }
 
-.workspace-progress { display: inline-flex; align-items: center; gap: 8px; min-width: 140px; }
-.workspace-progress-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--lozenge-bg); overflow: hidden; }
-.workspace-progress-bar > span { display: block; height: 100%; background: var(--success); border-radius: 3px; }
-.workspace-progress-text { color: var(--text-subtle); font-size: 12px; white-space: nowrap; }
 a.settings-card { color: inherit; }
 a.settings-card:hover { text-decoration: none; background: var(--surface-hover); }

@@ -8,6 +8,7 @@ import SpaceAvatar from './SpaceAvatar.jsx';
 import AppSidebar, { CREATE_SPACE_EVENT, SPACES_CHANGED_EVENT } from './AppSidebar.jsx';
 import CreateSpaceDialog from './CreateSpaceDialog.jsx';
 import { isTeamsHubPath, TeamsHubSidebar } from '../pages/teams/TeamsPages.jsx';
+import { HomeHubSidebar, isHomeHubPath } from '../pages/home/HomePages.jsx';
 import NotificationsPanel from './NotificationsPanel.jsx';
 import HelpPanel from './HelpPanel.jsx';
 import CreateIssueDialog from './CreateIssueDialog.jsx';
@@ -367,6 +368,8 @@ export default function Layout() {
 
   const sidebar = (inline) => (isTeamsHubPath(location.pathname) ? (
     <TeamsHubSidebar pathname={location.pathname} onNavigate={() => setMobileSidebarOpen(false)} />
+  ) : isHomeHubPath(location.pathname) ? (
+    <HomeHubSidebar pathname={location.pathname} onNavigate={() => setMobileSidebarOpen(false)} />
   ) : (
     <AppSidebar
       teamsWithBoards={teamsWithBoards}

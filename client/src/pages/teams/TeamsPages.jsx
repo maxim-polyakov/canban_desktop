@@ -16,11 +16,11 @@ export const TEAMS_HUB_NAV = [
   ['/teams/list', 'teams', 'Команды', (p) => p === '/teams/list' || /^\/teams\/(?!list$|manage$)[^/]+/.test(p)],
   ['/people', 'person', 'Люди', (p) => p.startsWith('/people')],
   ['/kudos', 'sparkle', 'Похвала', (p) => p.startsWith('/kudos')],
-  ['/goals', 'goals', 'Goals', (p) => p.startsWith('/goals')],
-  ['/projects', 'projects', 'Projects', (p) => p.startsWith('/projects')],
+  ['/goals', 'goals', 'Цели', () => false],
+  ['/projects', 'projects', 'Проекты', () => false],
 ];
 
-export const isTeamsHubPath = (pathname) => /^\/(teams|people|kudos|goals|projects)(\/|$)/.test(pathname) && pathname !== '/teams/manage';
+export const isTeamsHubPath = (pathname) => /^\/(teams|people|kudos)(\/|$)/.test(pathname) && pathname !== '/teams/manage';
 
 export function TeamsHubSidebar({ pathname, onNavigate }) {
   const { t } = useLocalization();

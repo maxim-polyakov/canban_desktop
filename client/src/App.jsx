@@ -29,7 +29,7 @@ import SpaceTemplatesPage from './pages/spaces/SpaceTemplatesPage.jsx';
 import { CreatePlanPage, PlanPage, PlansListPage } from './pages/plans/PlansPages.jsx';
 import { SpaceCalendarPage, SpaceFeaturesPage, SpaceListPage, SpaceSummaryPage } from './pages/spaces/SpaceViews.jsx';
 import { KudosPage, PeoplePage, PersonPage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
-import { GoalsPage, ProjectsPage } from './pages/WorkspacePages.jsx';
+import { HomeDirectoryPage, HomeItemPage, HomeUpdatesPage } from './pages/home/HomePages.jsx';
 import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
 import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
@@ -91,8 +91,16 @@ export default function App() {
           <Route path="people" element={<PeoplePage />} />
           <Route path="people/:userId" element={<PersonPage />} />
           <Route path="kudos" element={<KudosPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="goals" element={<GoalsPage />} />
+          <Route path="projects" element={<HomeDirectoryPage key="projects" kind="projects" />} />
+          <Route path="projects/following" element={<HomeDirectoryPage key="projects-following" kind="projects" view="following" />} />
+          <Route path="projects/archived" element={<HomeDirectoryPage key="projects-archived" kind="projects" view="archived" />} />
+          <Route path="projects/updates" element={<HomeUpdatesPage key="projects-updates" kind="projects" />} />
+          <Route path="projects/:itemId" element={<HomeItemPage key="projects-item" kind="projects" />} />
+          <Route path="goals" element={<HomeDirectoryPage key="goals" kind="goals" />} />
+          <Route path="goals/following" element={<HomeDirectoryPage key="goals-following" kind="goals" view="following" />} />
+          <Route path="goals/archived" element={<HomeDirectoryPage key="goals-archived" kind="goals" view="archived" />} />
+          <Route path="goals/updates" element={<HomeUpdatesPage key="goals-updates" kind="goals" />} />
+          <Route path="goals/:itemId" element={<HomeItemPage key="goals-item" kind="goals" />} />
           <Route path="assets" element={<AssetsHomePage />} />
           <Route path="assets/search" element={<AssetSearchPage />} />
           <Route path="assets/schema/:schemaId" element={<AssetSchemaPage />} />

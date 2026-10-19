@@ -25,6 +25,7 @@ Options:
 Environment:
   COMPOSE_K3S_EXTRA_NAMESERVERS   Public DNS for Maildev/SMTP Deployments (default: 8.8.8.8,1.1.1.1)
   COMPOSE_K3S_SKIP_SMTP_DNS       Set to 1 to skip Maildev dnsConfig on the Deployment
+  COMPOSE_K3S_MERGE_ENV_SERVICES  Space-separated services whose Compose env is merged into the Deployment (default: api)
   COMPOSE_K3S_STRICT_ROLLOUT      Set to 1 to fail when kubectl rollout status fails
   COMPOSE_BAKE                    Default 0 — avoid compose bake metadata-file races on build
   BUILDX_NO_DEFAULT_ATTESTATIONS  Default 1 — skip provenance attestation (metadata-file flake)
@@ -171,6 +172,48 @@ PY
   log "Compose environment synchronized for $namespace/$deployment"
 }
 
+# Adds/updates variables from the Compose service (including env_file) without
+# removing ones that exist only on the Deployment, e.g. ASPNETCORE_URLS.
+merge_compose_service_environment() {
+  local namespace=$1 deployment=$2 service=$3
+  local env_lines status
+  env_lines=$(mktemp)
+  chmod 600 "$env_lines"
+
+  if ! python3 - "$config_json" "$service" "$env_lines" <<'PY'
+import json
+import sys
+
+config_path, service_name, output_path = sys.argv[1:]
+with open(config_path, encoding="utf-8") as stream:
+    service = json.load(stream)["services"][service_name]
+
+environment = service.get("environment") or {}
+if isinstance(environment, list):
+    environment = dict(str(item).partition("=")[::2] for item in environment)
+
+with open(output_path, "w", encoding="utf-8") as stream:
+    for name, value in sorted(environment.items()):
+        value = "" if value is None else str(value)
+        if "\n" in value:
+            raise SystemExit(f"multi-line value is not supported for {name}")
+        stream.write(f"{name}={value}\n")
+PY
+  then
+    rm -f "$env_lines"
+    die "cannot prepare Compose environment for $service"
+  fi
+
+  if "${kube[@]}" set env deployment/"$deployment" -n "$namespace" -e - <"$env_lines" >/dev/null; then
+    status=0
+  else
+    status=$?
+  fi
+  rm -f "$env_lines"
+  ((status == 0)) || return "$status"
+  log "Compose environment merged for $namespace/$deployment"
+}
+
 apply_schema_patches() {
   local namespace=$1 deployment=$2 service=$3 source_image=$4
 
@@ -230,6 +273,9 @@ print(
       -p "$maildev_dns_patch" >/dev/null
     log "Maildev/SMTP Deployment dnsConfig set for $namespace/$deployment"
     fix_maildev_container_command "$namespace" "$deployment" "$source_image" "$service"
+  fi
+  if [[ " ${COMPOSE_K3S_MERGE_ENV_SERVICES:-api} " == *" $service "* ]]; then
+    merge_compose_service_environment "$namespace" "$deployment" "$service"
   fi
   apply_project_storage "$namespace" "$deployment"
   apply_failover_patches "$namespace" "$deployment"

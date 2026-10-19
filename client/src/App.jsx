@@ -24,7 +24,23 @@ import ProjectSettingsPage from './pages/ProjectSettingsPage.jsx';
 import OperationsPage from './pages/OperationsPage.jsx';
 import DashboardsPage from './pages/DashboardsPage.jsx';
 import ForYouPage from './pages/ForYouPage.jsx';
-import NotificationSettingsPage from './pages/NotificationSettingsPage.jsx';
+import SpacesPage from './pages/SpacesPage.jsx';
+import { KudosPage, PeoplePage, PersonPage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
+import { AssetsPage, GoalsPage, ProjectsPage } from './pages/WorkspacePages.jsx';
+import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
+import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
+import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
+import SpaceSettingsPage from './pages/settings/SpaceSettingsPage.jsx';
+import { AdminAppsPage, AdminBillingPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
+import { useApplyTheme, usePrefs } from './utils/preferences.js';
+
+const HOME_REDIRECTS = { spaces: '/spaces', issues: '/issues' };
+
+function HomeRoute() {
+  const [prefs] = usePrefs();
+  const target = HOME_REDIRECTS[prefs.homePage];
+  return target ? <Navigate to={target} replace /> : <ForYouPage />;
+}
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -36,6 +52,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const { user } = useAuth();
+  useApplyTheme();
   return (
     <div className="app">
       {!user && <LanguageSelector className="language-selector-public" />}
@@ -55,9 +72,29 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<ForYouPage />} />
-          <Route path="spaces" element={<HomePage />} />
-          <Route path="notifications-settings" element={<NotificationSettingsPage />} />
+          <Route index element={<HomeRoute />} />
+          <Route path="for-you" element={<ForYouPage />} />
+          <Route path="spaces" element={<SpacesPage />} />
+          <Route path="teams" element={<TeamsHomePage />} />
+          <Route path="teams/list" element={<TeamsListPage />} />
+          <Route path="teams/manage" element={<HomePage />} />
+          <Route path="teams/:teamId" element={<TeamPage />} />
+          <Route path="people" element={<PeoplePage />} />
+          <Route path="people/:userId" element={<PersonPage />} />
+          <Route path="kudos" element={<KudosPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="goals" element={<GoalsPage />} />
+          <Route path="assets" element={<AssetsPage />} />
+          <Route path="settings/personal/general" element={<PersonalGeneralPage />} />
+          <Route path="settings/personal/notifications" element={<PersonalNotificationsPage />} />
+          <Route path="settings/issues/issue-types" element={<IssueTypesPage />} />
+          <Route path="notifications-settings" element={<Navigate to="/settings/personal/notifications" replace />} />
+          <Route path="admin" element={<AdminOverviewPage />} />
+          <Route path="admin/system" element={<AdminSystemPage />} />
+          <Route path="admin/apps" element={<AdminAppsPage />} />
+          <Route path="admin/users" element={<AdminUsersPage />} />
+          <Route path="admin/billing" element={<AdminBillingPage />} />
+          <Route path="board/:boardId/settings" element={<SpaceSettingsPage />} />
           <Route path="board/:boardId" element={<BoardPage />} />
           <Route path="board/:boardId/issue/:questId" element={<BoardPage />} />
           <Route path="board/:boardId/backlog" element={<BacklogPage />} />

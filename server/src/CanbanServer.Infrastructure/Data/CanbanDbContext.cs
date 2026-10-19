@@ -39,6 +39,7 @@ public class CanbanDbContext : DbContext
     public DbSet<QuestChange> QuestChanges => Set<QuestChange>();
     public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
     public DbSet<SavedFilter> SavedFilters => Set<SavedFilter>();
+    public DbSet<Kudos> Kudos => Set<Kudos>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<AutomationRule> AutomationRules => Set<AutomationRule>();
     public DbSet<OutboundWebhook> OutboundWebhooks => Set<OutboundWebhook>();

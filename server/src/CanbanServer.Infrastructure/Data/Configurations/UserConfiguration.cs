@@ -10,6 +10,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.HasKey(u => u.Id);
         builder.HasIndex(u => u.Email).IsUnique();
+        builder.Property(u => u.EmailFormat).HasMaxLength(8);
         builder.HasOne(u => u.Character).WithOne(c => c.User).HasForeignKey<Character>(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -44,7 +44,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  box-shadow: var(--raised-shadow);
   color: var(--text);
 }
 
@@ -89,7 +89,7 @@
   display: inline-flex;
   gap: 2px;
   padding: 2px;
-  background: #F1F2F4;
+  background: var(--chip-bg);
   border-radius: 6px;
   overflow-x: auto;
   max-width: 100%;
@@ -115,21 +115,21 @@
 }
 
 .foryou-tab:hover {
-  background: rgba(9, 30, 66, 0.06);
+  background: var(--nav-hover);
 }
 
 .foryou-tab.is-active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  box-shadow: var(--raised-shadow);
 }
 
 .foryou-tab-count {
   min-width: 1.15rem;
   padding: 0 0.3rem;
-  background: #CCE0FF;
+  background: var(--count-bg);
   border-radius: 3px;
-  color: #0055CC;
+  color: var(--count-text);
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.15rem;
@@ -159,7 +159,7 @@
 }
 
 .foryou-row:hover {
-  background: rgba(9, 30, 66, 0.06);
+  background: var(--nav-hover);
   text-decoration: none;
 }
 
@@ -199,9 +199,9 @@
   flex-shrink: 0;
   max-width: 9rem;
   padding: 0 0.35rem;
-  background: #DFE1E6;
+  background: var(--lozenge-bg);
   border-radius: 3px;
-  color: #172B4D;
+  color: var(--lozenge-text);
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1.1rem;

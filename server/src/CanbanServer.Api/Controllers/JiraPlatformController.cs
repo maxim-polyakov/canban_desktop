@@ -268,6 +268,162 @@ public class JiraPlatformController : ControllerBase
     public async Task<ActionResult> MarkAllRead(CancellationToken ct) =>
         Ok(new { updated = await _jira.MarkAllNotificationsReadAsync(RequireUser(), ct) });
 
+    public record PersonalSettingsDto(bool EmailNotificationsEnabled, bool EmailWhenAssignee, bool EmailWhenReporter,
+        bool EmailOwnChanges, string EmailFormat, bool AutoWatch);
+
+    [HttpGet("me/settings")]
+    public async Task<ActionResult> GetPersonalSettings(CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var u = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct);
+        if (u == null) return NotFound();
+        return Ok(new PersonalSettingsDto(u.EmailNotificationsEnabled, u.EmailWhenAssignee, u.EmailWhenReporter, u.EmailOwnChanges, u.EmailFormat, u.AutoWatch));
+    }
+
+    [HttpPut("me/settings")]
+    public async Task<ActionResult> SavePersonalSettings([FromBody] PersonalSettingsDto request, CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        if (u == null) return NotFound();
+        if (request.EmailFormat is not ("html" or "text")) throw new ArgumentException("EmailFormat must be html or text");
+        u.EmailNotificationsEnabled = request.EmailNotificationsEnabled;
+        u.EmailWhenAssignee = request.EmailWhenAssignee;
+        u.EmailWhenReporter = request.EmailWhenReporter;
+        u.EmailOwnChanges = request.EmailOwnChanges;
+        u.EmailFormat = request.EmailFormat;
+        u.AutoWatch = request.AutoWatch;
+        await _db.SaveChangesAsync(ct);
+        return Ok(request);
+    }
+
+    [HttpGet("me/spaces")]
+    public async Task<ActionResult> GetMySpaces(CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var spaces = await _db.Boards.AsNoTracking()
+            .Where(b => b.Team.OwnerId == userId || b.Team.Members.Any(m => m.UserId == userId))
+            .Select(b => new
+            {
+                id = b.Id,
+                name = b.Name,
+                description = b.Description,
+                key = b.KeyPrefix,
+                teamId = b.TeamId,
+                teamName = b.Team.Name,
+                leadId = b.Team.OwnerId,
+                leadName = _db.Users.Where(u => u.Id == b.Team.OwnerId).Select(u => u.DisplayName).FirstOrDefault(),
+                leadAvatarUrl = _db.Users.Where(u => u.Id == b.Team.OwnerId).Select(u => u.AvatarUrl).FirstOrDefault(),
+                issueCount = _db.Quests.Count(q => q.BoardId == b.Id),
+                hasSprints = _db.Sprints.Any(s => s.BoardId == b.Id),
+                lastIssueUpdate = _db.QuestChanges.Where(c => _db.Quests.Any(q => q.Id == c.QuestId && q.BoardId == b.Id)).Max(c => (DateTime?)c.CreatedAt)
+                    ?? _db.Quests.Where(q => q.BoardId == b.Id).Max(q => (DateTime?)q.CreatedAt),
+            })
+            .OrderBy(x => x.name)
+            .ToListAsync(ct);
+        return Ok(spaces);
+    }
+
+    [HttpGet("admin/system")]
+    public async Task<ActionResult> GetSystemInfo([FromServices] IConfiguration config, [FromServices] IWebHostEnvironment env, CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var myTeams = _db.Teams.Where(t => t.OwnerId == userId || t.Members.Any(m => m.UserId == userId));
+        return Ok(new
+        {
+            name = "Канбан",
+            environment = env.EnvironmentName,
+            version = typeof(JiraPlatformController).Assembly.GetName().Version?.ToString(),
+            mailFromName = config["Smtp:FromName"] ?? "Canban",
+            mailFromAddress = config["Smtp:FromAddress"],
+            mailConfigured = !string.IsNullOrWhiteSpace(config["Smtp:Host"]),
+            githubAppConfigured = !string.IsNullOrWhiteSpace(config["GitHub:AppId"]),
+            googleSignIn = !string.IsNullOrWhiteSpace(config["Google:ClientId"]),
+            attachmentsStorage = string.IsNullOrWhiteSpace(config["S3:Bucket"]) ? "local" : "s3",
+            users = await _db.Users.CountAsync(ct),
+            teams = await myTeams.CountAsync(ct),
+            spaces = await _db.Boards.CountAsync(b => myTeams.Any(t => t.Id == b.TeamId), ct),
+            issues = await _db.Quests.CountAsync(q => myTeams.Any(t => t.Id == q.Board.TeamId), ct),
+        });
+    }
+
+    public record SendKudosRequest(Guid ToUserId, string Message, string? Kind);
+
+    public static readonly string[] KudosKinds = { "thanks", "teamwork", "help", "idea", "celebrate" };
+
+    [HttpGet("me/people")]
+    public async Task<ActionResult> GetPeopleIWorkWith(CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var myTeamIds = _db.Teams.Where(t => t.OwnerId == userId || t.Members.Any(m => m.UserId == userId)).Select(t => t.Id);
+        var memberIds = await _db.TeamMembers.Where(m => myTeamIds.Contains(m.TeamId)).Select(m => new { m.UserId, m.TeamId }).ToListAsync(ct);
+        var ownerIds = await _db.Teams.Where(t => myTeamIds.Contains(t.Id) && t.OwnerId != null).Select(t => new { UserId = t.OwnerId!.Value, TeamId = t.Id }).ToListAsync(ct);
+        var shared = memberIds.Concat(ownerIds).Where(x => x.UserId != userId)
+            .GroupBy(x => x.UserId).ToDictionary(g => g.Key, g => g.Select(x => x.TeamId).Distinct().Count());
+        var ids = shared.Keys.ToList();
+        var people = await _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id))
+            .Select(u => new { id = u.Id, displayName = u.DisplayName, avatarUrl = u.AvatarUrl, email = u.Email })
+            .ToListAsync(ct);
+        return Ok(people.Select(p => new { p.id, p.displayName, p.avatarUrl, p.email, sharedTeams = shared[p.id] })
+            .OrderByDescending(p => p.sharedTeams).ThenBy(p => p.displayName));
+    }
+
+    [HttpGet("kudos")]
+    public async Task<ActionResult> GetKudos([FromQuery] string scope = "all", [FromQuery] Guid? userId = null, CancellationToken ct = default)
+    {
+        var me = RequireUser();
+        var subject = userId ?? me;
+        var query = _db.Kudos.AsNoTracking();
+        query = scope switch
+        {
+            "received" => query.Where(k => k.ToUserId == subject),
+            "given" => query.Where(k => k.FromUserId == subject),
+            _ => query.Where(k => k.ToUserId == subject || k.FromUserId == subject),
+        };
+        var list = await query.OrderByDescending(k => k.CreatedAt).Take(200)
+            .Select(k => new
+            {
+                id = k.Id,
+                kind = k.Kind,
+                message = k.Message,
+                createdAt = k.CreatedAt,
+                fromUserId = k.FromUserId,
+                fromName = _db.Users.Where(u => u.Id == k.FromUserId).Select(u => u.DisplayName).FirstOrDefault(),
+                fromAvatarUrl = _db.Users.Where(u => u.Id == k.FromUserId).Select(u => u.AvatarUrl).FirstOrDefault(),
+                toUserId = k.ToUserId,
+                toName = _db.Users.Where(u => u.Id == k.ToUserId).Select(u => u.DisplayName).FirstOrDefault(),
+                toAvatarUrl = _db.Users.Where(u => u.Id == k.ToUserId).Select(u => u.AvatarUrl).FirstOrDefault(),
+            })
+            .ToListAsync(ct);
+        return Ok(list);
+    }
+
+    [HttpPost("kudos")]
+    public async Task<ActionResult> SendKudos([FromBody] SendKudosRequest request, CancellationToken ct)
+    {
+        var me = RequireUser();
+        var message = (request.Message ?? "").Trim();
+        if (request.ToUserId == me) return BadRequest("Нельзя отправить похвалу самому себе");
+        if (message.Length == 0 || message.Length > 1000) return BadRequest("Сообщение должно содержать от 1 до 1000 символов");
+        var kind = KudosKinds.Contains(request.Kind) ? request.Kind! : "thanks";
+        var recipient = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.ToUserId, ct);
+        if (recipient == null) return NotFound("Пользователь не найден");
+        var senderName = await _db.Users.Where(u => u.Id == me).Select(u => u.DisplayName).FirstOrDefaultAsync(ct) ?? "";
+        var kudos = new Kudos { Id = Guid.NewGuid(), FromUserId = me, ToUserId = recipient.Id, Kind = kind, Message = message, CreatedAt = DateTime.UtcNow };
+        _db.Kudos.Add(kudos);
+        _db.AppNotifications.Add(new AppNotification
+        {
+            Id = Guid.NewGuid(),
+            UserId = recipient.Id,
+            Type = "kudos",
+            Title = $"{senderName} отправил(а) вам похвалу",
+            Body = message,
+            CreatedAt = kudos.CreatedAt,
+        });
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { id = kudos.Id, kind, message, createdAt = kudos.CreatedAt, toUserId = recipient.Id, toName = recipient.DisplayName, toAvatarUrl = recipient.AvatarUrl });
+    }
+
     [HttpGet("me/work")]
     public async Task<ActionResult> GetMyWork([FromQuery] string kind = "assigned", [FromQuery] string? ids = null, CancellationToken ct = default)
     {

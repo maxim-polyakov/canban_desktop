@@ -11,6 +11,8 @@ public class Quest
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public Guid? AssigneeId { get; set; }
+    /// <summary>Author of the issue; null for issues created before reporters were tracked.</summary>
+    public Guid? ReporterId { get; set; }
     public int Order { get; set; }
     public DateTime? DueDate { get; set; }
     public DateTime CreatedAt { get; set; }

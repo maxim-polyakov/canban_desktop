@@ -5,7 +5,9 @@ import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { teams as teamsApi, character as characterApi, notifications as notificationsApi, search as searchApi } from '../api.js';
 import NavIcon from './NavIcons.jsx';
 import SpaceAvatar from './SpaceAvatar.jsx';
-import AppSidebar from './AppSidebar.jsx';
+import AppSidebar, { CREATE_SPACE_EVENT, SPACES_CHANGED_EVENT } from './AppSidebar.jsx';
+import CreateSpaceDialog from './CreateSpaceDialog.jsx';
+import { isTeamsHubPath, TeamsHubSidebar } from '../pages/teams/TeamsPages.jsx';
 import NotificationsPanel from './NotificationsPanel.jsx';
 import HelpPanel from './HelpPanel.jsx';
 import CreateIssueDialog from './CreateIssueDialog.jsx';
@@ -24,6 +26,7 @@ const SPACE_TABS = [
   ['archive', '/archive', 'archive', 'Архив'],
 ];
 const SPACE_SETTINGS = [
+  ['settings', 'settings', 'Сведения'],
   ['components', 'components', 'Компоненты'],
   ['workflow', 'workflow', 'Workflow'],
   ['permissions', 'lock', 'Разрешения'],
@@ -230,6 +233,7 @@ export default function Layout() {
   const [createOpen, setCreateOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [createSpace, setCreateSpace] = useState(null);
 
   const loadTeams = useCallback(() => {
     teamsApi.getMyTeamsWithBoards().then((list) => setTeamsWithBoards(normalizeTeams(list))).catch(() => setTeamsWithBoards([]));
@@ -241,7 +245,7 @@ export default function Layout() {
   }, [loadTeams]);
 
   useEffect(() => {
-    if (location.pathname === '/spaces' || location.pathname === '/') loadTeams();
+    if (['/', '/for-you', '/spaces', '/teams'].includes(location.pathname)) loadTeams();
   }, [location.pathname, loadTeams]);
 
   useEffect(() => {
@@ -271,6 +275,22 @@ export default function Layout() {
     setMobileSearchOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    const onCreateSpace = (e) => setCreateSpace({ template: e.detail?.template });
+    window.addEventListener(CREATE_SPACE_EVENT, onCreateSpace);
+    window.addEventListener(SPACES_CHANGED_EVENT, loadTeams);
+    return () => {
+      window.removeEventListener(CREATE_SPACE_EVENT, onCreateSpace);
+      window.removeEventListener(SPACES_CHANGED_EVENT, loadTeams);
+    };
+  }, [loadTeams]);
+
+  const handleSpaceCreated = (board, template) => {
+    setCreateSpace(null);
+    window.dispatchEvent(new CustomEvent(SPACES_CHANGED_EVENT));
+    navigate(template === 'scrum' ? `/board/${board.id}/backlog` : `/board/${board.id}`);
+  };
+
   const closeMenu = useCallback(() => setMenu(null), []);
   useOutsideClose(settingsRef, menu === 'settings', closeMenu);
   useOutsideClose(profileRef, menu === 'profile', closeMenu);
@@ -278,7 +298,7 @@ export default function Layout() {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') {
-        setMenu(null); setPanel(null); setMobileSidebarOpen(false); setCreateOpen(false);
+        setMenu(null); setPanel(null); setMobileSidebarOpen(false); setCreateOpen(false); setCreateSpace(null);
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target) || document.querySelector('[aria-modal="true"]')) return;
@@ -302,7 +322,9 @@ export default function Layout() {
 
   const handleLogout = () => { setMenu(null); logout(); navigate('/login'); };
 
-  const sidebar = (inline) => (
+  const sidebar = (inline) => (isTeamsHubPath(location.pathname) ? (
+    <TeamsHubSidebar pathname={location.pathname} onNavigate={() => setMobileSidebarOpen(false)} />
+  ) : (
     <AppSidebar
       teamsWithBoards={teamsWithBoards}
       activeBoardId={boardId}
@@ -310,7 +332,7 @@ export default function Layout() {
       inline={inline}
       onNavigate={() => setMobileSidebarOpen(false)}
     />
-  );
+  ));
 
   return (
     <div className={`layout-shell ${sidebarCollapsed ? 'layout-sidebar-collapsed' : ''} ${panel ? 'layout-has-panel' : ''}`}>
@@ -388,6 +410,13 @@ export default function Layout() {
         <HelpPanel open={panel === 'help'} onClose={() => setPanel(null)} />
       </div>
 
+      <CreateSpaceDialog
+        open={Boolean(createSpace)}
+        initialTemplate={createSpace?.template}
+        teamsWithBoards={teamsWithBoards}
+        onClose={() => setCreateSpace(null)}
+        onCreated={handleSpaceCreated}
+      />
       <CreateIssueDialog open={createOpen} onClose={() => setCreateOpen(false)} boards={allBoards} defaultBoardId={boardId} />
     </div>
   );

@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '../i18n/navigation.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import NavIcon from './NavIcons.jsx';
 import LanguageSelector from './LanguageSelector.jsx';
+import { usePrefs } from '../utils/preferences.js';
+
+export const THEME_OPTIONS = [
+  ['light', 'sun', 'Светлая'],
+  ['dark', 'moon', 'Темная'],
+  ['system', 'monitor', 'Как в браузере'],
+];
 
 function MenuLink({ to, icon, title, description, onClose }) {
   const { t } = useLocalization();
@@ -22,26 +29,29 @@ export function SettingsMenu({ boardId, onClose }) {
   return (
     <div className="app-menu app-menu-right app-settings-menu" role="menu">
       <div className="app-settings-heading">{t('Персональные настройки')}</div>
-      <MenuLink to="/profile" icon="person" title="Общие настройки" description="Управление языком, профилем, персонажем и другими персональными настройками" onClose={onClose} />
-      <MenuLink to="/notifications-settings" icon="bell" title="Настройки уведомлений" description="Управление получением уведомлений по электронной почте и в приложении" onClose={onClose} />
+      <MenuLink to="/settings/personal/general" icon="person" title="Общие" description="Язык, тема, главная страница и отслеживание задач" onClose={onClose} />
+      <MenuLink to="/settings/personal/notifications" icon="bell" title="Электронные письма и уведомления" description="Какие письма вы получаете и в каком формате" onClose={onClose} />
       {boardId && (
         <>
           <div className="app-settings-heading">{t('Настройки раздела')}</div>
-          <MenuLink to={`/board/${boardId}/workflow`} icon="workflow" title="Задачи" description="Настройка рабочих процессов, переходов и условий" onClose={onClose} />
-          <MenuLink to={`/board/${boardId}/permissions`} icon="lock" title="Разрешения" description="Роли и уровни доступа участников раздела" onClose={onClose} />
-          <MenuLink to={`/board/${boardId}/automations`} icon="automation" title="Автоматизация" description="Правила, которые выполняются при изменении задач" onClose={onClose} />
-          <MenuLink to={`/board/${boardId}/integrations`} icon="integrations" title="Приложения и интеграции" description="GitHub, вебхуки и другие подключения" onClose={onClose} />
+          <MenuLink to={`/board/${boardId}/settings`} icon="settings" title="Конфигурация раздела" description="Сведения, ключ, участники, рабочие процессы и интеграции раздела" onClose={onClose} />
         </>
       )}
-      <div className="app-settings-heading">{t('Администрирование')}</div>
-      <MenuLink to="/spaces" icon="spaces" title="Разделы" description="Управление разделами, командами и приглашениями" onClose={onClose} />
-      <MenuLink to="/users" icon="teams" title="Пользователи" description="Участники сайта и их профили" onClose={onClose} />
+      <div className="app-settings-heading">{t('Настройки Канбан')}</div>
+      <MenuLink to="/admin/system" icon="system" title="Система" description="Общая конфигурация, почта и языки" onClose={onClose} />
+      <MenuLink to="/spaces" icon="spaces" title="Разделы" description="Управление разделами, их ключами и руководителями" onClose={onClose} />
+      <MenuLink to="/settings/issues/issue-types" icon="issues" title="Задачи" description="Типы задач и их иерархия" onClose={onClose} />
+      <MenuLink to="/admin/apps" icon="appsAdd" title="Приложения" description="GitHub и вебхуки во всех разделах" onClose={onClose} />
+      <MenuLink to="/admin/users" icon="teams" title="Управление пользователями" description="Пользователи, команды и доступ" onClose={onClose} />
+      <MenuLink to="/admin/billing" icon="billing" title="Платежи" description="Тарифный план и предварительный просмотр счёта" onClose={onClose} />
     </div>
   );
 }
 
 export function ProfileMenu({ user, character, onClose, onLogout, onSwitchAccount }) {
   const { t } = useLocalization();
+  const [prefs, setPrefs] = usePrefs();
+  const [themeOpen, setThemeOpen] = useState(false);
   return (
     <div className="app-menu app-menu-right app-profile-menu" role="menu">
       <div className="app-profile-card">
@@ -55,7 +65,21 @@ export function ProfileMenu({ user, character, onClose, onLogout, onSwitchAccoun
         </span>
       </div>
       <Link to="/profile" className="app-menu-item" role="menuitem" onClick={onClose}><NavIcon name="person" />{t('Профиль')}</Link>
-      <Link to="/profile" className="app-menu-item" role="menuitem" onClick={onClose}><NavIcon name="settings" />{t('Настройки аккаунта')}</Link>
+      <Link to="/settings/personal/general" className="app-menu-item" role="menuitem" onClick={onClose}><NavIcon name="settings" />{t('Настройки аккаунта')}</Link>
+      <button type="button" className="app-menu-item" role="menuitem" aria-expanded={themeOpen} onClick={() => setThemeOpen((v) => !v)}>
+        <NavIcon name="theme" />{t('Тема')}
+        <NavIcon name={themeOpen ? 'chevronDown' : 'chevronRight'} size={14} className="app-menu-item-chevron" />
+      </button>
+      {themeOpen && (
+        <div className="app-menu-submenu" role="group" aria-label={t('Тема')}>
+          {THEME_OPTIONS.map(([value, icon, label]) => (
+            <button key={value} type="button" role="menuitemradio" aria-checked={prefs.theme === value} className={`app-menu-item ${prefs.theme === value ? 'is-active' : ''}`} onClick={() => setPrefs({ theme: value })}>
+              <NavIcon name={icon} />{t(label)}
+              {prefs.theme === value && <NavIcon name="check" size={14} className="app-menu-item-chevron" />}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="app-menu-item app-menu-language">
         <NavIcon name="globe" />
         <LanguageSelector className="language-selector-profile" />

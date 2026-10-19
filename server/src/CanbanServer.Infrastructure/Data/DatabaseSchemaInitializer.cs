@@ -215,6 +215,14 @@ public static partial class DatabaseSchemaInitializer
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "OriginalEstimateMinutes" integer NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "RemainingEstimateMinutes" integer NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "DescriptionDocumentJson" text NULL;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "ReporterId" uuid NULL;
+
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailNotificationsEnabled" boolean NOT NULL DEFAULT TRUE;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailWhenAssignee" boolean NOT NULL DEFAULT TRUE;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailWhenReporter" boolean NOT NULL DEFAULT TRUE;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailOwnChanges" boolean NOT NULL DEFAULT FALSE;
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailFormat" character varying(8) NOT NULL DEFAULT 'html';
+            ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AutoWatch" boolean NOT NULL DEFAULT TRUE;
 
             DO $$
             BEGIN

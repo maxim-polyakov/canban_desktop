@@ -46,6 +46,11 @@ public static partial class DatabaseSchemaInitializer
               "Id" uuid PRIMARY KEY, "UserId" uuid NOT NULL, "QuestId" uuid NULL, "Type" varchar(64) NOT NULL,
               "Title" varchar(300) NOT NULL, "Body" text NULL, "Read" boolean NOT NULL DEFAULT false, "CreatedAt" timestamptz NOT NULL);
             CREATE INDEX IF NOT EXISTS "IX_AppNotifications_UserId_Read_CreatedAt" ON "AppNotifications"("UserId","Read","CreatedAt");
+            CREATE TABLE IF NOT EXISTS "Kudos" (
+              "Id" uuid PRIMARY KEY, "FromUserId" uuid NOT NULL, "ToUserId" uuid NOT NULL, "Kind" varchar(32) NOT NULL DEFAULT 'thanks',
+              "Message" varchar(1000) NOT NULL, "CreatedAt" timestamptz NOT NULL);
+            CREATE INDEX IF NOT EXISTS "IX_Kudos_ToUserId_CreatedAt" ON "Kudos"("ToUserId","CreatedAt");
+            CREATE INDEX IF NOT EXISTS "IX_Kudos_FromUserId_CreatedAt" ON "Kudos"("FromUserId","CreatedAt");
             CREATE TABLE IF NOT EXISTS "SavedFilters" (
               "Id" uuid PRIMARY KEY, "OwnerUserId" uuid NOT NULL, "BoardId" uuid NULL, "Name" varchar(200) NOT NULL,
               "Jql" varchar(4000) NOT NULL, "Shared" boolean NOT NULL DEFAULT false, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL);
@@ -123,6 +128,8 @@ public static partial class DatabaseSchemaInitializer
             SELECT pg_temp.ensure_fk('"WorkLogs"','FK_WorkLogs_Quest','FOREIGN KEY ("QuestId") REFERENCES "Quests"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"QuestChanges"','FK_QuestChanges_Quest','FOREIGN KEY ("QuestId") REFERENCES "Quests"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"AppNotifications"','FK_AppNotifications_User','FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"Kudos"','FK_Kudos_FromUser','FOREIGN KEY ("FromUserId") REFERENCES "Users"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"Kudos"','FK_Kudos_ToUser','FOREIGN KEY ("ToUserId") REFERENCES "Users"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"SavedFilters"','FK_SavedFilters_User','FOREIGN KEY ("OwnerUserId") REFERENCES "Users"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"AutomationRules"','FK_AutomationRules_Board','FOREIGN KEY ("BoardId") REFERENCES "Boards"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"OutboundWebhooks"','FK_OutboundWebhooks_Board','FOREIGN KEY ("BoardId") REFERENCES "Boards"("Id") ON DELETE CASCADE');

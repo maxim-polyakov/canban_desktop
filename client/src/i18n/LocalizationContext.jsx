@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import catalog from './translations.json';
 import { applyLocale, detectLanguage, getIntlLocale, LANGUAGES, RTL_CODES } from './locale.js';
+import { getPrefs } from '../utils/preferences.js';
 
 const LocalizationContext = createContext(null);
 const originalText = new WeakMap();
@@ -172,7 +173,14 @@ export function LocalizationProvider({ children }) {
     languages: LANGUAGES,
     locale: getIntlLocale(language),
     isRtl: RTL_CODES.has(language),
-    formatDate: (value, options) => new Intl.DateTimeFormat(getIntlLocale(language), options).format(new Date(value)),
+    formatDate: (value, options) => {
+      const timeZone = getPrefs().timeZone || undefined;
+      try {
+        return new Intl.DateTimeFormat(getIntlLocale(language), { timeZone, ...options }).format(new Date(value));
+      } catch {
+        return new Intl.DateTimeFormat(getIntlLocale(language), options).format(new Date(value));
+      }
+    },
   }), [language, setLanguage, t]);
 
   return <LocalizationContext.Provider value={value}>{children}</LocalizationContext.Provider>;

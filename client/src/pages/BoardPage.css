@@ -47,11 +47,16 @@
 .board-more {
   position: relative;
   flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+.board-more-menu button:hover:not(:disabled) {
+  background: var(--nav-hover);
 }
 
 .board-more-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   font-size: 1.1rem;
   line-height: 1;

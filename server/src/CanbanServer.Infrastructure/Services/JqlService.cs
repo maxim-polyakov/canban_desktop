@@ -19,7 +19,7 @@ public sealed class JqlService : IJqlQueryService
         var offset = (page - 1) * pageSize;
         var ast = Parse(text);
         var query = _db.Quests.AsNoTracking()
-            .Include(q => q.Column).Include(q => q.Sprint).Include(q => q.Assignee)
+            .Include(q => q.Column).Include(q => q.Sprint).Include(q => q.Assignee).Include(q => q.Board)
             .Include(q => q.Assignees).ThenInclude(a => a.User)
             .Include(q => q.NotificationRecipients).Include(q => q.ExternalNotificationRecipients)
             .Where(q => q.Board.Team.OwnerId == userId || q.Board.Team.Members.Any(m => m.UserId == userId));
@@ -72,7 +72,7 @@ public sealed class JqlService : IJqlQueryService
         "type" or "issuetype" => q.IssueType.ToString(),
         "priority" => q.Priority.ToString(),
         "assignee" => q.Assignees.Count > 0 ? string.Join(",", q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId)) : q.AssigneeId,
-        "reporter" => null,
+        "reporter" => q.ReporterId,
         "sprint" => q.SprintId,
         "labels" or "label" => q.Labels,
         "component" => q.Component,
@@ -83,6 +83,7 @@ public sealed class JqlService : IJqlQueryService
         "duedate" => q.DueDate,
         "resolution" => q.CompletedAt,
         "board" or "boardid" => q.BoardId,
+        "project" or "space" => q.Board?.KeyPrefix,
         _ => throw new ArgumentException($"Unsupported JQL field '{field}'")
     };
 

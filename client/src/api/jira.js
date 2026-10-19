@@ -39,6 +39,28 @@ export const notifications = {
   markAllRead: () => apiJson('/api/notifications/read-all', json('POST')),
 };
 
+export const personalSettings = {
+  get: () => apiJson('/api/me/settings'),
+  save: (data) => apiJson('/api/me/settings', json('PUT', data)),
+};
+
+export const spaces = {
+  getMine: () => apiJson('/api/me/spaces'),
+};
+
+export const people = {
+  workWith: () => apiJson('/api/me/people'),
+};
+
+export const kudos = {
+  get: (scope = 'all', userId) => apiJson(`/api/kudos${buildQuery({ scope, userId })}`),
+  send: (data) => apiJson('/api/kudos', json('POST', data)),
+};
+
+export const adminInfo = {
+  system: () => apiJson('/api/admin/system'),
+};
+
 export const myWork = {
   get: (kind, ids) => apiJson(`/api/me/work${buildQuery({ kind, ids: ids?.length ? ids.join(',') : undefined })}`),
 };

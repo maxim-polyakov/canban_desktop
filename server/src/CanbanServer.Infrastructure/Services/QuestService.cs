@@ -110,6 +110,7 @@ public class QuestService : IQuestService
             Title = request.Title,
             Description = request.Description,
             AssigneeId = assigneeIds.Count == 0 ? null : assigneeIds[0],
+            ReporterId = userId,
             Order = maxOrder + 1,
             DueDate = request.DueDate,
             CreatedAt = DateTime.UtcNow,

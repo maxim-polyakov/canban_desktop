@@ -106,6 +106,16 @@ public class AppNotification
     public DateTime CreatedAt { get; set; }
 }
 
+public class Kudos
+{
+    public Guid Id { get; set; }
+    public Guid FromUserId { get; set; }
+    public Guid ToUserId { get; set; }
+    public string Kind { get; set; } = "thanks";
+    public string Message { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+}
+
 public class SavedFilter
 {
     public Guid Id { get; set; }

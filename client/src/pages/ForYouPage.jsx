@@ -99,7 +99,7 @@ export default function ForYouPage() {
 
   const selectTab = (key) => {
     setTab(key);
-    navigate(key === 'worked' ? '/' : `/?tab=${key}`, { replace: true });
+    navigate(key === 'worked' ? '/for-you' : `/for-you?tab=${key}`, { replace: true });
   };
 
   return (

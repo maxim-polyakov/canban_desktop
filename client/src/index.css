@@ -40,6 +40,74 @@
   --shadow-lg: 0 12px 32px rgba(9, 30, 66, 0.22);
   /* legacy alias kept so --error references in older CSS still resolve */
   --error: #DE350B;
+  --surface-sunken: #F7F8F9;
+  --surface-overlay: #FFFFFF;
+  --column-bg: #EBECF0;
+  --chip-bg: #F1F2F4;
+  --lozenge-bg: #DFE1E6;
+  --lozenge-text: #172B4D;
+  --count-bg: #CCE0FF;
+  --count-text: #0055CC;
+  --input-border: #8590A2;
+  --overlay-shadow: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+  --raised-shadow: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #1D2125;
+  --surface: #22272B;
+  --surface-hover: #2C333A;
+  --surface-sunken: #161A1D;
+  --surface-overlay: #282E33;
+  --border: #38414A;
+  --border-strong: #5A6977;
+  --text: #B6C2CF;
+  --text-muted: #8C9BAB;
+  --text-subtle: #9FADBC;
+  --accent: #579DFF;
+  --accent-rgb: 87, 157, 255;
+  --accent-hover: #85B8FF;
+  --accent-soft: #1C2B41;
+  --success: #4BCE97;
+  --success-soft: #164B35;
+  --danger: #F87168;
+  --danger-soft: #5D1F1A;
+  --warning: #F5CD47;
+  --warning-soft: #533F04;
+  --error: #F87168;
+  --nav-hover: rgba(161, 189, 217, 0.08);
+  --nav-pressed: rgba(161, 189, 217, 0.2);
+  --nav-selected-bg: #1C2B41;
+  --nav-selected-text: #579DFF;
+  --brand: #579DFF;
+  --brand-hover: #85B8FF;
+  --column-bg: #161A1D;
+  --chip-bg: #2C333A;
+  --lozenge-bg: #454F59;
+  --lozenge-text: #DEE4EA;
+  --count-bg: #09326C;
+  --count-text: #85B8FF;
+  --input-border: #738496;
+  --shadow-sm: 0 1px 2px rgba(1, 4, 4, 0.5);
+  --shadow-md: 0 4px 12px rgba(1, 4, 4, 0.5);
+  --shadow-lg: 0 12px 32px rgba(1, 4, 4, 0.6);
+  --overlay-shadow: 0 8px 12px rgba(1, 4, 4, 0.36), 0 0 1px rgba(1, 4, 4, 0.5);
+  --raised-shadow: 0 1px 1px rgba(1, 4, 4, 0.5), 0 0 1px rgba(1, 4, 4, 0.5);
+  color-scheme: dark;
+}
+
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] select {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+:root[data-theme='dark'] .app-btn-primary,
+:root[data-theme='dark'] .jira-button-primary {
+  color: #1D2125;
 }
 
 html, body {

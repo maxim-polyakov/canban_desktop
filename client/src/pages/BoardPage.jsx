@@ -313,50 +313,7 @@ export default function BoardPage() {
 
   return (
     <div className="page board-page">
-      <div className="board-header-row">
-        <div className="board-header-main">
-          <h1 className="board-title" title={board.name}>
-            {board.keyPrefix && <span className="board-key-chip">{board.keyPrefix}</span>}
-            <span className="board-title-text">{board.name}</span>
-          </h1>
-          {board.description && <p className="board-desc">{board.description}</p>}
-        </div>
-        {isMobile ? (
-          <div className="board-more">
-            <button type="button" className="board-btn board-more-btn" aria-label={t('Действия с доской')} aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}>⋯</button>
-            {moreOpen && (
-              <>
-                <div className="board-more-backdrop" onClick={() => setMoreOpen(false)} />
-                <div className="board-more-menu" role="menu">
-                  <button type="button" role="menuitem" disabled={archiving || completedQuestCount === 0} onClick={() => { setMoreOpen(false); handleArchiveCompleted(); }}>
-                    {archiving ? 'Архивация...' : `Архивировать выполненные (${completedQuestCount})`}
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setEditBoardOpen(true); }}>Изменить доску</button>
-                  {board.createdByUserId === user?.id && (
-                    <button type="button" role="menuitem" className="board-more-danger" onClick={() => { setMoreOpen(false); handleDeleteBoard(); }}>Удалить доску</button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-        <div className="board-actions">
-          <button
-            type="button"
-            className="board-btn board-btn-archive"
-            onClick={handleArchiveCompleted}
-            disabled={archiving || completedQuestCount === 0}
-            title={completedQuestCount === 0 ? 'Нет выполненных квестов для архивации' : 'Переместить выполненные квесты в архив'}
-          >
-            {archiving ? 'Архивация...' : `Архивировать выполненные (${completedQuestCount})`}
-          </button>
-          <button type="button" className="board-btn board-btn-edit" onClick={() => setEditBoardOpen(true)} title="Изменить доску">✎</button>
-          {board.createdByUserId === user?.id && (
-            <button type="button" className="board-btn board-btn-delete" onClick={handleDeleteBoard} title="Удалить доску">✕</button>
-          )}
-        </div>
-        )}
-      </div>
+      {board.description && <p className="board-desc">{board.description}</p>}
       {editBoardOpen && (
         <form className="board-edit-form" onSubmit={handleUpdateBoard}>
           <label>Название <input value={editBoardName} onChange={(e) => setEditBoardName(e.target.value)} /></label>
@@ -408,6 +365,24 @@ export default function BoardPage() {
           ) : 'Фильтры'}
           {activeFilterCount > 0 && <span className="board-toolbar-filter-count">{activeFilterCount}</span>}
         </button>
+        <div className="board-more">
+          <button type="button" className="board-btn board-more-btn" aria-label={t('Действия с доской')} title={t('Действия с доской')} aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}>⋯</button>
+          {moreOpen && (
+            <>
+              <div className="board-more-backdrop" onClick={() => setMoreOpen(false)} />
+              <div className="board-more-menu" role="menu">
+                <button type="button" role="menuitem" disabled={archiving || completedQuestCount === 0} onClick={() => { setMoreOpen(false); handleArchiveCompleted(); }}>
+                  {archiving ? t('Архивация...') : `${t('Архивировать выполненные')} (${completedQuestCount})`}
+                </button>
+                <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setEditBoardOpen(true); }}>{t('Изменить название и описание')}</button>
+                <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); navigate(`/board/${boardId}/settings`); }}>{t('Настроить доску')}</button>
+                {board.createdByUserId === user?.id && (
+                  <button type="button" role="menuitem" className="board-more-danger" onClick={() => { setMoreOpen(false); handleDeleteBoard(); }}>{t('Удалить доску')}</button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
       {filtersOpen && (
         <div className="board-toolbar-filters">

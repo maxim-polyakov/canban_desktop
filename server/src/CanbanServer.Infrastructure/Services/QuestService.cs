@@ -3,6 +3,7 @@ using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 using CanbanServer.Domain.Entities;
 using CanbanServer.Infrastructure.Data;
+using System.Text.Json;
 
 namespace CanbanServer.Infrastructure.Services;
 
@@ -17,6 +18,8 @@ public class QuestService : IQuestService
     private readonly IQuestAttachmentService _attachmentService;
     private readonly IQuestCollaborationService _collaborationService;
     private readonly IQuestNotificationService _notificationService;
+    private readonly IJiraPlatformService _jira;
+    private readonly IProjectAccessService _access;
     private readonly CacheService _cache;
 
     public QuestService(
@@ -29,6 +32,8 @@ public class QuestService : IQuestService
         IQuestAttachmentService attachmentService,
         IQuestCollaborationService collaborationService,
         IQuestNotificationService notificationService,
+        IJiraPlatformService jira,
+        IProjectAccessService access,
         CacheService cache)
     {
         _db = db;
@@ -40,6 +45,8 @@ public class QuestService : IQuestService
         _attachmentService = attachmentService;
         _collaborationService = collaborationService;
         _notificationService = notificationService;
+        _jira = jira;
+        _access = access;
         _cache = cache;
     }
 
@@ -49,6 +56,8 @@ public class QuestService : IQuestService
             .Include(x => x.Assignee)
             .Include(x => x.Assignees).ThenInclude(x => x.User)
             .Include(x => x.Sprint)
+            .Include(x => x.QuestComponents)
+            .Include(x => x.QuestReleases)
             .Include(x => x.NotificationRecipients)
             .Include(x => x.ExternalNotificationRecipients)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -63,6 +72,8 @@ public class QuestService : IQuestService
             .Include(x => x.Sprint)
             .Include(x => x.NotificationRecipients)
             .Include(x => x.ExternalNotificationRecipients)
+            .Include(x => x.QuestComponents)
+            .Include(x => x.QuestReleases)
             .Where(x => x.ColumnId == columnId)
             .OrderBy(x => x.Order)
             .ToListAsync(ct);
@@ -87,6 +98,10 @@ public class QuestService : IQuestService
         if (string.IsNullOrWhiteSpace(col.Board.KeyPrefix))
             col.Board.KeyPrefix = string.IsNullOrWhiteSpace(col.Board.Team?.Key) ? "KAN" : col.Board.Team.Key;
         var issueKey = $"{col.Board.KeyPrefix}-{issueNumber}";
+        var parentQuestId = request.ParentQuestId ?? request.ParentEpicId;
+        await ValidateParentAsync(null, col.BoardId, issueType, parentQuestId, ct);
+        ValidateDocumentJson(request.DescriptionDocumentJson);
+        await ValidateCatalogIdsAsync(col.BoardId, request.ComponentIds, request.ReleaseIds, ct);
         var quest = new Quest
         {
             Id = Guid.NewGuid(),
@@ -102,6 +117,7 @@ public class QuestService : IQuestService
             XpReward = request.XpReward,
             IsEpic = isEpic,
             ParentEpicId = request.ParentEpicId,
+            ParentQuestId = parentQuestId,
             IssueKey = issueKey,
             IssueNumber = issueNumber,
             IssueType = issueType,
@@ -110,7 +126,10 @@ public class QuestService : IQuestService
             SprintId = request.SprintId,
             Component = NormalizeOptionalText(request.Component),
             FixVersion = NormalizeOptionalText(request.FixVersion),
-            StoryPoints = NormalizeStoryPoints(request.StoryPoints)
+            StoryPoints = NormalizeStoryPoints(request.StoryPoints),
+            OriginalEstimateMinutes = NormalizeEstimate(request.OriginalEstimateMinutes),
+            RemainingEstimateMinutes = NormalizeEstimate(request.RemainingEstimateMinutes),
+            DescriptionDocumentJson = request.DescriptionDocumentJson
         };
         quest.Assignees = assigneeIds.Select((id, index) => new QuestAssignee
         {
@@ -119,7 +138,11 @@ public class QuestService : IQuestService
             UserId = id,
             Order = index
         }).ToList();
+        quest.QuestComponents = (request.ComponentIds ?? new()).Distinct().Select(x => new QuestComponent { QuestId = quest.Id, ComponentId = x }).ToList();
+        quest.QuestReleases = (request.ReleaseIds ?? new()).Distinct().Select(x => new QuestRelease { QuestId = quest.Id, ReleaseId = x }).ToList();
         _db.Quests.Add(quest);
+        await _jira.AddChangeAsync(quest.Id, userId, "created", null, null, issueKey, ct);
+        await _jira.EnqueueAsync("IssueCreated", new { questId = quest.Id, boardId = quest.BoardId, userId }, ct);
         await _db.SaveChangesAsync(ct);
         var recipients = request.NotificationRecipientIds?.Distinct().ToList() ?? new List<Guid>();
         recipients.AddRange(assigneeIds.Where(id => !recipients.Contains(id)));
@@ -140,6 +163,8 @@ public class QuestService : IQuestService
     {
         var q = await _db.Quests
             .Include(x => x.Assignees)
+            .Include(x => x.QuestComponents)
+            .Include(x => x.QuestReleases)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return null;
         var requestedAssigneeIds = GetUpdatedAssigneeIds(request);
@@ -151,13 +176,14 @@ public class QuestService : IQuestService
         var currentAssigneeIds = q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList();
         var assigneesChanged = requestedAssigneeIds != null && !currentAssigneeIds.SequenceEqual(requestedAssigneeIds);
         var changes = new List<string>();
+        var auditChanges = new List<(string Field, string? OldValue, string? NewValue)>();
         if (request.Title != null && request.Title != q.Title) changes.Add("изменено название");
         if (request.Description != null && request.Description != q.Description) changes.Add("изменено описание");
         if (assigneesChanged) changes.Add("изменены исполнители");
         if (request.DueDate != null && request.DueDate != q.DueDate) changes.Add("изменён срок");
         if (request.XpReward != null && request.XpReward != q.XpReward) changes.Add("изменена награда XP");
-        if (request.Title != null) q.Title = request.Title;
-        if (request.Description != null) q.Description = request.Description;
+        if (request.Title != null) { auditChanges.Add(("title", q.Title, request.Title)); q.Title = request.Title; }
+        if (request.Description != null) { auditChanges.Add(("description", q.Description, request.Description)); q.Description = request.Description; }
         if (requestedAssigneeIds != null && assigneesChanged)
             q.AssigneeId = requestedAssigneeIds.Count == 0 ? null : requestedAssigneeIds[0];
         if (request.DueDate != null) q.DueDate = request.DueDate;
@@ -179,6 +205,35 @@ public class QuestService : IQuestService
         if (request.FixVersion != null) q.FixVersion = NormalizeOptionalText(request.FixVersion);
         if (request.StoryPointsSet) q.StoryPoints = NormalizeStoryPoints(request.StoryPoints);
         if (request.ParentEpicIdSet) q.ParentEpicId = request.ParentEpicId;
+        if (request.ParentQuestIdSet)
+        {
+            await ValidateParentAsync(q.Id, q.BoardId, request.IssueType ?? q.IssueType, request.ParentQuestId, ct);
+            auditChanges.Add(("parent", q.ParentQuestId?.ToString(), request.ParentQuestId?.ToString()));
+            q.ParentQuestId = request.ParentQuestId;
+            if ((request.IssueType ?? q.IssueType) != IssueType.Epic) q.ParentEpicId = request.ParentQuestId;
+        }
+        if (request.OriginalEstimateMinutesSet) q.OriginalEstimateMinutes = NormalizeEstimate(request.OriginalEstimateMinutes);
+        if (request.RemainingEstimateMinutesSet) q.RemainingEstimateMinutes = NormalizeEstimate(request.RemainingEstimateMinutes);
+        if (request.DescriptionDocumentJson != null)
+        {
+            ValidateDocumentJson(request.DescriptionDocumentJson);
+            auditChanges.Add(("descriptionDocument", q.DescriptionDocumentJson, request.DescriptionDocumentJson));
+            q.DescriptionDocumentJson = request.DescriptionDocumentJson;
+        }
+        if (request.ComponentIdsSet || request.ReleaseIdsSet)
+        {
+            await ValidateCatalogIdsAsync(q.BoardId, request.ComponentIdsSet ? request.ComponentIds : null, request.ReleaseIdsSet ? request.ReleaseIds : null, ct);
+            if (request.ComponentIdsSet)
+            {
+                _db.QuestComponents.RemoveRange(q.QuestComponents);
+                q.QuestComponents = (request.ComponentIds ?? new()).Distinct().Select(x => new QuestComponent { QuestId = q.Id, ComponentId = x }).ToList();
+            }
+            if (request.ReleaseIdsSet)
+            {
+                _db.QuestReleases.RemoveRange(q.QuestReleases);
+                q.QuestReleases = (request.ReleaseIds ?? new()).Distinct().Select(x => new QuestRelease { QuestId = q.Id, ReleaseId = x }).ToList();
+            }
+        }
         if (request.SprintIdSet)
         {
             if (request.SprintId.HasValue)
@@ -188,6 +243,10 @@ public class QuestService : IQuestService
             }
             q.SprintId = request.SprintId;
         }
+
+        foreach (var change in auditChanges.Where(x => x.OldValue != x.NewValue))
+            await _jira.AddChangeAsync(id, userId, "updated", change.Field, change.OldValue, change.NewValue, ct);
+        await _jira.EnqueueAsync("IssueUpdated", new { questId = id, boardId = q.BoardId, userId }, ct);
 
         if (assigneesChanged)
         {
@@ -256,9 +315,19 @@ public class QuestService : IQuestService
         if (targetColumn == null) return null;
         if (targetColumn.BoardId != quest.BoardId) return null;
 
+        var (_, permission) = await _access.GetBoardAccessAsync(quest.BoardId, userId, ct);
+        if (permission == null) return null;
+        await _jira.ValidateTransitionAsync(quest, request.TargetColumnId, permission.Value, ct);
+
         var oldColumnId = quest.ColumnId;
+        var oldColumnTitle = quest.Column.Title;
         quest.ColumnId = request.TargetColumnId;
         quest.Order = request.NewOrder;
+        if (oldColumnId != quest.ColumnId)
+        {
+            await _jira.AddChangeAsync(quest.Id, userId, "status", "status", oldColumnTitle, targetColumn.Title, ct);
+            await _jira.EnqueueAsync("IssueMoved", new { questId = quest.Id, boardId = quest.BoardId, from = oldColumnId, to = targetColumn.Id }, ct);
+        }
 
         var isMovedToDone = targetColumn.Kind == ColumnKind.Done;
         var justCompleted = false;
@@ -322,7 +391,9 @@ public class QuestService : IQuestService
             await _collaborationService.SetRecipientsAsync(quest.Id, userId, recipientIds, ct, notifyBoard: false);
         }
         if (oldColumnId != quest.ColumnId)
-            await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{quest.Column.Title}» в «{targetColumn.Title}».", ct);
+        {
+            await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{oldColumnTitle}» в «{targetColumn.Title}».", ct);
+        }
         await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(quest.BoardId, ct);
         if (justCompleted)
@@ -342,6 +413,8 @@ public class QuestService : IQuestService
             .Include(q => q.Sprint)
             .Include(q => q.NotificationRecipients)
             .Include(q => q.ExternalNotificationRecipients)
+            .Include(q => q.QuestComponents)
+            .Include(q => q.QuestReleases)
             .Where(q => q.BoardId == boardId && q.Column.Kind == ColumnKind.Archive)
             .OrderByDescending(q => q.CompletedAt ?? q.CreatedAt)
             .ThenBy(q => q.Order)
@@ -369,6 +442,8 @@ public class QuestService : IQuestService
             .Include(q => q.Sprint)
             .Include(q => q.NotificationRecipients)
             .Include(q => q.ExternalNotificationRecipients)
+            .Include(q => q.QuestComponents)
+            .Include(q => q.QuestReleases)
             .Where(q => q.BoardId == boardId);
 
         if (filter.BacklogOnly == true)
@@ -534,6 +609,59 @@ public class QuestService : IQuestService
         if (storyPoints is < 0 or > 100)
             throw new ArgumentException("Story points must be between 0 and 100");
         return storyPoints;
+    }
+
+    private static int? NormalizeEstimate(int? minutes)
+    {
+        if (!minutes.HasValue) return null;
+        if (minutes is < 0 or > 5256000) throw new ArgumentException("Estimate is out of range");
+        return minutes;
+    }
+
+    private static void ValidateDocumentJson(string? json)
+    {
+        if (!string.IsNullOrWhiteSpace(json)) _ = JsonDocument.Parse(json);
+    }
+
+    private async Task ValidateParentAsync(Guid? questId, Guid boardId, IssueType issueType, Guid? parentId, CancellationToken ct)
+    {
+        if (!parentId.HasValue)
+        {
+            if (issueType == IssueType.Subtask) throw new ArgumentException("A subtask requires a parent");
+            return;
+        }
+        if (parentId == questId) throw new ArgumentException("An issue cannot be its own parent");
+        if (issueType == IssueType.Epic) throw new ArgumentException("An epic cannot have a parent");
+        var parent = await _db.Quests.AsNoTracking().FirstOrDefaultAsync(q => q.Id == parentId, ct)
+            ?? throw new ArgumentException("Parent issue not found");
+        if (parent.BoardId != boardId) throw new ArgumentException("Parent issue must be on the same board");
+        if (issueType == IssueType.Subtask && parent.IssueType == IssueType.Subtask)
+            throw new ArgumentException("A subtask cannot parent another subtask");
+        if (issueType != IssueType.Subtask && parent.IssueType != IssueType.Epic)
+            throw new ArgumentException("Story, task, and bug parents must be epics");
+        var seen = new HashSet<Guid>();
+        var cursor = parent.ParentQuestId ?? parent.ParentEpicId;
+        while (cursor.HasValue)
+        {
+            if (cursor == questId || !seen.Add(cursor.Value)) throw new ArgumentException("Hierarchy cycle detected");
+            cursor = await _db.Quests.AsNoTracking().Where(q => q.Id == cursor).Select(q => q.ParentQuestId ?? q.ParentEpicId).FirstOrDefaultAsync(ct);
+        }
+    }
+
+    private async Task ValidateCatalogIdsAsync(Guid boardId, IReadOnlyCollection<Guid>? componentIds, IReadOnlyCollection<Guid>? releaseIds, CancellationToken ct)
+    {
+        if (componentIds is { Count: > 0 })
+        {
+            var distinct = componentIds.Distinct().ToList();
+            if (await _db.BoardComponents.CountAsync(x => x.BoardId == boardId && distinct.Contains(x.Id), ct) != distinct.Count)
+                throw new ArgumentException("Every component must belong to the board");
+        }
+        if (releaseIds is { Count: > 0 })
+        {
+            var distinct = releaseIds.Distinct().ToList();
+            if (await _db.BoardReleases.CountAsync(x => x.BoardId == boardId && distinct.Contains(x.Id), ct) != distinct.Count)
+                throw new ArgumentException("Every release must belong to the board");
+        }
     }
 
     private static List<Guid> NormalizeAssigneeIds(IEnumerable<Guid>? assigneeIds, Guid? legacyAssigneeId)

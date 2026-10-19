@@ -35,7 +35,13 @@ public record QuestDto(
     string? SprintName,
     string? Component,
     string? FixVersion,
-    int? StoryPoints
+    int? StoryPoints,
+    Guid? ParentQuestId = null,
+    int? OriginalEstimateMinutes = null,
+    int? RemainingEstimateMinutes = null,
+    string? DescriptionDocumentJson = null,
+    List<Guid>? ComponentIds = null,
+    List<Guid>? ReleaseIds = null
 );
 
 public record CreateQuestRequest(
@@ -57,7 +63,13 @@ public record CreateQuestRequest(
     Guid? SprintId = null,
     string? Component = null,
     string? FixVersion = null,
-    int? StoryPoints = null
+    int? StoryPoints = null,
+    Guid? ParentQuestId = null,
+    int? OriginalEstimateMinutes = null,
+    int? RemainingEstimateMinutes = null,
+    string? DescriptionDocumentJson = null,
+    List<Guid>? ComponentIds = null,
+    List<Guid>? ReleaseIds = null
 );
 
 /// <summary>AssigneeIds имеет приоритет над legacy AssigneeId. Set-флаги позволяют явно очистить список.</summary>
@@ -84,7 +96,18 @@ public record UpdateQuestRequest(
     string? Component = null,
     string? FixVersion = null,
     int? StoryPoints = null,
-    bool StoryPointsSet = false
+    bool StoryPointsSet = false,
+    Guid? ParentQuestId = null,
+    bool ParentQuestIdSet = false,
+    int? OriginalEstimateMinutes = null,
+    bool OriginalEstimateMinutesSet = false,
+    int? RemainingEstimateMinutes = null,
+    bool RemainingEstimateMinutesSet = false,
+    string? DescriptionDocumentJson = null,
+    List<Guid>? ComponentIds = null,
+    bool ComponentIdsSet = false,
+    List<Guid>? ReleaseIds = null,
+    bool ReleaseIdsSet = false
 );
 
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>
@@ -92,8 +115,8 @@ public record MoveQuestRequest(Guid QuestId, Guid TargetColumnId, int NewOrder);
 public record ReorderQuestsRequest(Guid ColumnId, List<Guid> QuestIdsInOrder);
 public record ArchiveCompletedQuestsResult(int ArchivedCount);
 public record UpdateQuestNotificationRecipientsRequest(List<Guid> UserIds, List<ExternalNotificationRecipientDto>? ExternalNotificationRecipients);
-public record CreateQuestCommentRequest(string Text);
-public record QuestCommentDto(Guid Id, Guid QuestId, Guid AuthorUserId, string AuthorName, string? AuthorAvatarUrl, string Text, DateTime CreatedAt);
+public record CreateQuestCommentRequest(string Text, string? DocumentJson = null);
+public record QuestCommentDto(Guid Id, Guid QuestId, Guid AuthorUserId, string AuthorName, string? AuthorAvatarUrl, string Text, DateTime CreatedAt, string? DocumentJson = null);
 
 public record QuestFilterRequest(
     Guid? SprintId = null,

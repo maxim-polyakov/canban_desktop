@@ -95,12 +95,28 @@ public class QuestCollaborationService : IQuestCollaborationService
         return (QuestAttachmentOperationStatus.Success, comments.Select(Map).ToList());
     }
 
-    public async Task<(QuestAttachmentOperationStatus Status, QuestCommentDto? Comment)> AddCommentAsync(Guid questId, Guid userId, string text, CancellationToken ct = default)
+    public async Task<(QuestAttachmentOperationStatus Status, QuestCommentDto? Comment)> AddCommentAsync(Guid questId, Guid userId, string text, string? documentJson = null, CancellationToken ct = default)
     {
         var access = await _access.CheckQuestAccessAsync(questId, userId, ct);
         if (access != QuestAttachmentOperationStatus.Success) return (access, null);
-        var comment = new QuestComment { Id = Guid.NewGuid(), QuestId = questId, AuthorUserId = userId, Text = text.Trim(), CreatedAt = DateTime.UtcNow };
+        if (!string.IsNullOrWhiteSpace(documentJson)) _ = System.Text.Json.JsonDocument.Parse(documentJson);
+        var comment = new QuestComment { Id = Guid.NewGuid(), QuestId = questId, AuthorUserId = userId, Text = text.Trim(), DocumentJson = documentJson, CreatedAt = DateTime.UtcNow };
         _db.QuestComments.Add(comment);
+        var mentions = System.Text.RegularExpressions.Regex.Matches(comment.Text, @"@([A-Za-z0-9._+\-@]+)")
+            .Select(m => m.Groups[1].Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (mentions.Count > 0)
+        {
+            var teamId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.Board.TeamId).FirstAsync(ct);
+            var candidates = await _db.Users.Where(u =>
+                u.TeamMemberships.Any(m => m.TeamId == teamId) || _db.Teams.Any(t => t.Id == teamId && t.OwnerId == u.Id)).ToListAsync(ct);
+            var mentionedIds = candidates.Where(u =>
+                mentions.Contains(u.Email) ||
+                mentions.Contains(u.Email.Split('@', StringSplitOptions.None)[0]) ||
+                mentions.Contains(u.DisplayName.Replace(" ", ""))).Select(u => u.Id).ToList();
+            var existing = await _db.QuestNotificationRecipients.Where(r => r.QuestId == questId && mentionedIds.Contains(r.UserId)).Select(r => r.UserId).ToListAsync(ct);
+            foreach (var mentionedId in mentionedIds.Except(existing))
+                _db.QuestNotificationRecipients.Add(new QuestNotificationRecipient { Id = Guid.NewGuid(), QuestId = questId, UserId = mentionedId });
+        }
         await _db.SaveChangesAsync(ct);
         comment.AuthorUser = await _db.Users.FirstAsync(u => u.Id == userId, ct);
         var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
@@ -127,7 +143,7 @@ public class QuestCollaborationService : IQuestCollaborationService
         return QuestAttachmentOperationStatus.Success;
     }
 
-    private static QuestCommentDto Map(QuestComment c) => new(c.Id, c.QuestId, c.AuthorUserId, c.AuthorUser.DisplayName, c.AuthorUser.AvatarUrl, c.Text, c.CreatedAt);
+    private static QuestCommentDto Map(QuestComment c) => new(c.Id, c.QuestId, c.AuthorUserId, c.AuthorUser.DisplayName, c.AuthorUser.AvatarUrl, c.Text, c.CreatedAt, c.DocumentJson);
 
     private static Dictionary<string, string?> NormalizeExternalRecipients(
         IReadOnlyCollection<ExternalNotificationRecipientDto>? externalRecipients)

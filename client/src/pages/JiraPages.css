@@ -1,0 +1,47 @@
+.jira-page { max-width: 1240px; margin: 0 auto; }
+.jira-header, .jira-toolbar, .jira-card-header, .jira-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.jira-header { justify-content: space-between; margin-bottom: 1rem; }
+.jira-header h1, .jira-card h2 { margin: 0; }
+.jira-toolbar { padding: .8rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1rem; }
+.jira-toolbar input, .jira-toolbar select, .jira-form input, .jira-form select, .jira-form textarea {
+  min-height: 40px; padding: .5rem .65rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.jira-toolbar input { flex: 1 1 280px; }
+.jira-button { min-height: 40px; padding: .5rem .85rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.jira-button-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.jira-button-danger { color: var(--danger); }
+.jira-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: .8rem; }
+.jira-card { min-width: 0; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.jira-card-header { justify-content: space-between; }
+.jira-card p { overflow-wrap: anywhere; color: var(--text-muted); }
+.jira-form { display: grid; gap: .7rem; }
+.jira-form label { display: grid; gap: .3rem; color: var(--text-muted); font-size: .82rem; font-weight: 600; }
+.jira-form textarea { min-height: 120px; resize: vertical; font-family: inherit; }
+.jira-state { padding: 2rem; text-align: center; color: var(--text-muted); }
+.jira-error { padding: .7rem; color: var(--danger); background: var(--danger-soft); border-radius: var(--radius); }
+.jira-table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.jira-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.jira-table th, .jira-table td { padding: .65rem; border-bottom: 1px solid var(--border); text-align: left; }
+.jira-table th button { border: 0; background: transparent; color: var(--text); font-weight: 700; }
+.jira-pagination { display: flex; justify-content: center; align-items: center; gap: .7rem; margin-top: 1rem; }
+.jira-timeline { display: grid; gap: .65rem; }
+.jira-timeline-row { display: grid; grid-template-columns: minmax(180px, 1fr) 3fr; gap: .7rem; align-items: center; }
+.jira-timeline-track { height: 28px; position: relative; background: var(--bg); border-radius: 999px; overflow: hidden; }
+.jira-timeline-bar { position: absolute; top: 3px; bottom: 3px; min-width: 12px; border-radius: 999px; background: var(--accent); }
+.jira-link-list { list-style: none; padding: 0; display: grid; gap: .45rem; }
+.jira-link-list li { padding: .55rem; border: 1px solid var(--border); border-radius: var(--radius); }
+@media (max-width: 768px) {
+  .jira-page { padding: .75rem; }
+  .jira-header { align-items: stretch; }
+  .jira-header h1 { width: 100%; }
+  .jira-toolbar { align-items: stretch; }
+  .jira-toolbar > * { width: 100%; }
+  .jira-grid { grid-template-columns: 1fr; }
+  .jira-table { min-width: 0; }
+  .jira-table thead { display: none; }
+  .jira-table, .jira-table tbody, .jira-table tr, .jira-table td { display: block; width: 100%; }
+  .jira-table tr { padding: .55rem; border-bottom: 1px solid var(--border); }
+  .jira-table td { display: flex; justify-content: space-between; gap: 1rem; border: 0; padding: .35rem; overflow-wrap: anywhere; }
+  .jira-table td::before { content: attr(data-label); color: var(--text-muted); font-weight: 600; }
+  .jira-timeline-row { grid-template-columns: 1fr; }
+}

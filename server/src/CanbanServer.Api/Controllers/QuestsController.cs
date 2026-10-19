@@ -17,20 +17,38 @@ public class QuestsController : ControllerBase
     private readonly IQuestService _questService;
     private readonly IQuestAttachmentService _attachmentService;
     private readonly IQuestCollaborationService _collaborationService;
+    private readonly IProjectAccessService _access;
 
     public QuestsController(
         IQuestService questService,
         IQuestAttachmentService attachmentService,
-        IQuestCollaborationService collaborationService)
+        IQuestCollaborationService collaborationService,
+        IProjectAccessService access)
     {
         _questService = questService;
         _attachmentService = attachmentService;
         _collaborationService = collaborationService;
+        _access = access;
+    }
+
+    private async Task<bool> CanQuest(Guid questId, BoardPermission permission, CancellationToken ct)
+    {
+        var userId = User.GetUserId(); if (!userId.HasValue) return false;
+        var access = await _access.GetQuestAccessAsync(questId, userId.Value, ct);
+        return access.Status == ProjectAccessStatus.Success && access.Permission >= permission;
+    }
+
+    private async Task<bool> CanBoard(Guid boardId, BoardPermission permission, CancellationToken ct)
+    {
+        var userId = User.GetUserId(); if (!userId.HasValue) return false;
+        var access = await _access.GetBoardAccessAsync(boardId, userId.Value, ct);
+        return access.Status == ProjectAccessStatus.Success && access.Permission >= permission;
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<QuestDto>> Get(Guid id, CancellationToken ct)
     {
+        if (!await CanQuest(id, BoardPermission.View, ct)) return Forbid();
         var quest = await _questService.GetByIdAsync(id, ct);
         return quest == null ? NotFound() : Ok(quest);
     }
@@ -38,6 +56,8 @@ public class QuestsController : ControllerBase
     [HttpGet("column/{columnId:guid}")]
     public async Task<ActionResult<List<QuestDto>>> GetByColumn(Guid columnId, CancellationToken ct)
     {
+        var probe = await _questService.GetByColumnIdAsync(columnId, ct);
+        if (probe.Count > 0 && !await CanBoard(probe[0].BoardId, BoardPermission.View, ct)) return Forbid();
         var list = await _questService.GetByColumnIdAsync(columnId, ct);
         return Ok(list);
     }
@@ -143,6 +163,7 @@ public class QuestsController : ControllerBase
     [HttpGet("board/{boardId:guid}/archive")]
     public async Task<ActionResult<List<QuestDto>>> GetArchive(Guid boardId, CancellationToken ct)
     {
+        if (!await CanBoard(boardId, BoardPermission.View, ct)) return Forbid();
         var list = await _questService.GetArchivedByBoardIdAsync(boardId, ct);
         return Ok(list);
     }
@@ -162,6 +183,7 @@ public class QuestsController : ControllerBase
         [FromQuery] string? jql,
         CancellationToken ct)
     {
+        if (!await CanBoard(boardId, BoardPermission.View, ct)) return Forbid();
         var filter = new QuestFilterRequest(
             SprintId: sprintId,
             UnassignedSprint: unassignedSprint,
@@ -195,6 +217,7 @@ public class QuestsController : ControllerBase
         [FromQuery] string? jql,
         CancellationToken ct)
     {
+        if (!await CanBoard(boardId, BoardPermission.View, ct)) return Forbid();
         var filter = new QuestFilterRequest(
             SprintId: sprintId,
             UnassignedSprint: unassignedSprint,
@@ -266,6 +289,8 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        var columnAccess = await _attachmentService.CheckColumnAccessAsync(request.ColumnId, userId.Value, ct);
+        if (columnAccess != QuestAttachmentOperationStatus.Success) return Forbid();
         try
         {
             var quest = await _questService.CreateAsync(request, userId.Value, ct);
@@ -282,6 +307,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanQuest(id, BoardPermission.Work, ct)) return Forbid();
         try
         {
             var quest = await _questService.UpdateAsync(id, request, userId.Value, ct);
@@ -298,6 +324,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanQuest(questId, BoardPermission.Work, ct)) return Forbid();
         var status = await _collaborationService.SetRecipientsAsync(
             questId,
             userId.Value,
@@ -312,6 +339,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanQuest(questId, BoardPermission.View, ct)) return Forbid();
         var result = await _collaborationService.GetCommentsAsync(questId, userId.Value, ct);
         return result.Status switch { QuestAttachmentOperationStatus.Success => Ok(result.Comments), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
@@ -321,8 +349,9 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanQuest(questId, BoardPermission.Work, ct)) return Forbid();
         if (string.IsNullOrWhiteSpace(request.Text) || request.Text.Trim().Length > 5000) return BadRequest("Комментарий должен содержать от 1 до 5000 символов.");
-        var result = await _collaborationService.AddCommentAsync(questId, userId.Value, request.Text, ct);
+        var result = await _collaborationService.AddCommentAsync(questId, userId.Value, request.Text, request.DocumentJson, ct);
         return result.Status switch { QuestAttachmentOperationStatus.Success => Ok(result.Comment), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
 
@@ -331,6 +360,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanQuest(questId, BoardPermission.Work, ct)) return Forbid();
         var status = await _collaborationService.DeleteCommentAsync(questId, commentId, userId.Value, ct);
         return status switch { QuestAttachmentOperationStatus.Success => NoContent(), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
@@ -341,6 +371,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanQuest(request.QuestId, BoardPermission.Work, ct)) return Forbid();
         var quest = await _questService.MoveAsync(request, userId.Value, ct);
         return quest == null ? NotFound() : Ok(quest);
     }
@@ -350,6 +381,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanBoard(boardId, BoardPermission.Manage, ct)) return Forbid();
         var result = await _questService.ArchiveCompletedAsync(boardId, userId.Value, ct);
         return result == null ? NotFound() : Ok(result);
     }
@@ -357,6 +389,9 @@ public class QuestsController : ControllerBase
     [HttpPut("reorder")]
     public async Task<ActionResult> Reorder([FromBody] ReorderQuestsRequest request, CancellationToken ct)
     {
+        var userId = User.GetUserId(); if (!userId.HasValue) return Unauthorized();
+        var columnAccess = await _attachmentService.CheckColumnAccessAsync(request.ColumnId, userId.Value, ct);
+        if (columnAccess != QuestAttachmentOperationStatus.Success) return Forbid();
         await _questService.ReorderAsync(request, ct);
         return NoContent();
     }
@@ -366,6 +401,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
+        if (!await CanQuest(id, BoardPermission.Manage, ct)) return Forbid();
         var access = await _attachmentService.CheckQuestAccessAsync(id, userId.Value, ct);
         if (access == QuestAttachmentOperationStatus.NotFound) return NotFound();
         if (access == QuestAttachmentOperationStatus.Forbidden) return Forbid();

@@ -6,14 +6,14 @@ import { teams as teamsApi, character as characterApi } from '../api.js';
 import LanguageSelector from './LanguageSelector.jsx';
 import './Layout.css';
 
-const BOARD_ROUTE_RE = /^\/board\/([^/]+)(?:\/(backlog|reports|archive|issue))?/;
+const BOARD_ROUTE_RE = /^\/board\/([^/]+)(?:\/([^/]+))?/;
 
 function useActiveBoard(pathname) {
   return useMemo(() => {
     const match = pathname.match(BOARD_ROUTE_RE);
     if (!match) return { boardId: null, tab: null };
     const tabSegment = match[2];
-    const tab = tabSegment === 'backlog' ? 'backlog' : tabSegment === 'reports' ? 'reports' : tabSegment === 'archive' ? 'archive' : 'board';
+    const tab = ['backlog', 'reports', 'roadmap', 'components', 'releases', 'workflow', 'permissions', 'automations', 'integrations', 'operations', 'archive'].includes(tabSegment) ? tabSegment : 'board';
     return { boardId: match[1], tab };
   }, [pathname]);
 }
@@ -166,6 +166,8 @@ export default function Layout() {
         <Link to="/" className="layout-logo">Канбан</Link>
         <nav className="layout-nav">
           <Link to="/">{t('Моя работа')}</Link>
+          <Link to="/issues">{t('Задачи')}</Link>
+          <Link to="/dashboards">{t('Дашборды')}</Link>
         </nav>
         <div className="layout-user">
           {levelChip}
@@ -203,7 +205,15 @@ export default function Layout() {
         <div className="layout-board-tabs">
           <Link to={`/board/${boardId}`} className={`layout-board-tab ${tab === 'board' ? 'is-active' : ''}`}>{t('Доска')}</Link>
           <Link to={`/board/${boardId}/backlog`} className={`layout-board-tab ${tab === 'backlog' ? 'is-active' : ''}`}>{t('Backlog')}</Link>
+          <Link to={`/board/${boardId}/roadmap`} className={`layout-board-tab ${tab === 'roadmap' ? 'is-active' : ''}`}>{t('Roadmap')}</Link>
           <Link to={`/board/${boardId}/reports`} className={`layout-board-tab ${tab === 'reports' ? 'is-active' : ''}`}>{t('Отчёты')}</Link>
+          <Link to={`/board/${boardId}/components`} className={`layout-board-tab ${tab === 'components' ? 'is-active' : ''}`}>{t('Компоненты')}</Link>
+          <Link to={`/board/${boardId}/releases`} className={`layout-board-tab ${tab === 'releases' ? 'is-active' : ''}`}>{t('Релизы')}</Link>
+          <Link to={`/board/${boardId}/workflow`} className={`layout-board-tab ${tab === 'workflow' ? 'is-active' : ''}`}>{t('Workflow')}</Link>
+          <Link to={`/board/${boardId}/permissions`} className={`layout-board-tab ${tab === 'permissions' ? 'is-active' : ''}`}>{t('Разрешения')}</Link>
+          <Link to={`/board/${boardId}/automations`} className={`layout-board-tab ${tab === 'automations' ? 'is-active' : ''}`}>{t('Автоматизация')}</Link>
+          <Link to={`/board/${boardId}/integrations`} className={`layout-board-tab ${tab === 'integrations' ? 'is-active' : ''}`}>{t('Интеграции')}</Link>
+          <Link to={`/board/${boardId}/operations`} className={`layout-board-tab ${tab === 'operations' ? 'is-active' : ''}`}>{t('Операции')}</Link>
           <Link to={`/board/${boardId}/archive`} className={`layout-board-tab ${tab === 'archive' ? 'is-active' : ''}`}>{t('Архив')}</Link>
         </div>
       )}

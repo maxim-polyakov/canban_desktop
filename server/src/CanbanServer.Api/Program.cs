@@ -150,6 +150,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<IQuestAttachmentStorageService, QuestAttachmentStorageService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IProjectAccessService, ProjectAccessService>();
+builder.Services.AddScoped<IJiraPlatformService, JiraPlatformService>();
+builder.Services.AddScoped<IJqlQueryService, JqlService>();
+builder.Services.AddHttpClient("outbox");
+builder.Services.AddHostedService<OutboxDispatcher>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration
 var redisConfig = builder.Configuration["Redis:Configuration"];
@@ -186,6 +191,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseForwardedHeaders();
 app.UseCors();
+app.Use(async (context, next) =>
+{
+    try { await next(); }
+    catch (KeyNotFoundException ex) { context.Response.StatusCode = StatusCodes.Status404NotFound; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }
+    catch (UnauthorizedAccessException ex) { context.Response.StatusCode = StatusCodes.Status403Forbidden; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }
+    catch (Exception ex) when (ex is ArgumentException or FormatException or InvalidOperationException or System.Text.Json.JsonException)
+    { context.Response.StatusCode = StatusCodes.Status400BadRequest; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

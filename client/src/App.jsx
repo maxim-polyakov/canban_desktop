@@ -18,6 +18,11 @@ import ProjectReportsPage from './pages/ProjectReportsPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
+import IssueNavigatorPage from './pages/IssueNavigatorPage.jsx';
+import RoadmapPage from './pages/RoadmapPage.jsx';
+import ProjectSettingsPage from './pages/ProjectSettingsPage.jsx';
+import OperationsPage from './pages/OperationsPage.jsx';
+import DashboardsPage from './pages/DashboardsPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -54,7 +59,17 @@ export default function App() {
           <Route path="board/:boardId/backlog" element={<BacklogPage />} />
           <Route path="board/:boardId/backlog/issue/:questId" element={<BacklogPage />} />
           <Route path="board/:boardId/reports" element={<ProjectReportsPage />} />
+          <Route path="board/:boardId/roadmap" element={<RoadmapPage />} />
+          <Route path="board/:boardId/components" element={<ProjectSettingsPage mode="components" />} />
+          <Route path="board/:boardId/releases" element={<ProjectSettingsPage mode="releases" />} />
+          <Route path="board/:boardId/workflow" element={<ProjectSettingsPage mode="workflow" />} />
+          <Route path="board/:boardId/permissions" element={<ProjectSettingsPage mode="permissions" />} />
+          <Route path="board/:boardId/automations" element={<ProjectSettingsPage mode="automations" />} />
+          <Route path="board/:boardId/integrations" element={<ProjectSettingsPage mode="integrations" />} />
+          <Route path="board/:boardId/operations" element={<OperationsPage />} />
           <Route path="board/:boardId/archive" element={<BoardArchivePage />} />
+          <Route path="issues" element={<IssueNavigatorPage />} />
+          <Route path="dashboards" element={<DashboardsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:userId" element={<ProfilePage />} />
           <Route path="users" element={<UsersPage />} />

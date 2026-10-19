@@ -161,9 +161,45 @@
 }
 
 .issue-drawer-notifications legend {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--text-muted);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+.issue-drawer-watch-toggle {
+  margin-bottom: 0.5rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.issue-drawer-watch-toggle:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.issue-drawer-watch-toggle.is-watching {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.issue-drawer-watch-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.issue-drawer-notifications-hint {
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
 }
 
 .issue-drawer-actions {
@@ -374,6 +410,45 @@
   cursor: not-allowed;
 }
 
+.issue-drawer-editor-toolbar,
+.issue-drawer-mentions,
+.issue-drawer-inline-form {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.issue-drawer-editor-toolbar button,
+.issue-drawer-mentions button,
+.issue-drawer-inline-form button {
+  min-height: 34px;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.issue-drawer-rich-preview {
+  min-height: 6em;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 400;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.issue-drawer-rich-preview p,
+.issue-drawer-rich-preview h4 { margin: 0 0 0.5rem; }
+.issue-drawer-inline-form { margin-bottom: 0.5rem; }
+.issue-drawer-inline-form input,
+.issue-drawer-inline-form select { flex: 1 1 120px; min-width: 0; }
+.issue-drawer-compact-list { margin: 0.5rem 0 0; padding-left: 1.25rem; color: var(--text-muted); font-size: 0.82rem; }
+.issue-drawer-compact-list li { margin-bottom: 0.35rem; overflow-wrap: anywhere; }
+
 /* Mobile: fullscreen sheet rather than a side drawer */
 @media (max-width: 768px) {
   .issue-drawer-overlay {
@@ -414,10 +489,28 @@
   .issue-drawer-row {
     grid-template-columns: 1fr;
   }
+
+  .issue-drawer-inline-form > * {
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 480px) {
   .issue-drawer-body {
     padding: 0.85rem 0.85rem 1.5rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .issue-drawer-watch-toggle {
+    width: 100%;
+  }
+
+  .issue-drawer-actions {
+    flex-direction: column;
+  }
+
+  .issue-drawer-actions button {
+    width: 100%;
   }
 }

@@ -38,6 +38,8 @@ public class BoardService : IBoardService
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.NotificationRecipients)
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.ExternalNotificationRecipients)
                     .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.Sprint)
+                    .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.QuestComponents)
+                    .Include(x => x.Columns).ThenInclude(c => c.Quests).ThenInclude(q => q.QuestReleases)
                     .FirstOrDefaultAsync(x => x.Id == id, ct);
                 if (b == null) return null;
                 var columns = b.Columns.OrderBy(c => c.Order).Select(c => new ColumnDto(
@@ -148,7 +150,13 @@ public class BoardService : IBoardService
         q.Sprint?.Name,
         q.Component,
         q.FixVersion,
-        q.StoryPoints);
+        q.StoryPoints,
+        q.ParentQuestId ?? q.ParentEpicId,
+        q.OriginalEstimateMinutes,
+        q.RemainingEstimateMinutes,
+        q.DescriptionDocumentJson,
+        q.QuestComponents.Select(x => x.ComponentId).ToList(),
+        q.QuestReleases.Select(x => x.ReleaseId).ToList());
 
     private static string NormalizeKey(string? key)
     {

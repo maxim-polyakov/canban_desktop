@@ -1,3 +1,20 @@
+.board-bulk-bar {
+  position: sticky;
+  top: calc(var(--topbar-height) + 44px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin: .5rem 0;
+  padding: .65rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.board-bulk-bar select, .board-bulk-bar button { min-height: 40px; }
+@media (max-width: 600px) { .board-bulk-bar > * { flex: 1 1 100%; } }
 .board-page {
   padding: 1rem;
   overflow-x: auto;

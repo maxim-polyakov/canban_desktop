@@ -1,38 +1,11 @@
-const API_BASE = process.env.REACT_APP_API_URL || '';
+import { API_BASE, api, apiJson, buildQuery, getToken } from './api/transport.js';
 
-function getToken() {
-  return localStorage.getItem('token');
-}
-
-export async function api(url, options = {}) {
-  const token = getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const fullUrl = API_BASE + url;
-  let res;
-  try {
-    res = await fetch(fullUrl, { ...options, headers });
-  } catch (err) {
-    console.error('API request failed:', fullUrl, err);
-    throw err;
-  }
-  if (res.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.dispatchEvent(new Event('auth-logout'));
-  }
-  return res;
-}
-
-export async function apiJson(url, options = {}) {
-  const res = await api(url, options);
-  const text = await res.text();
-  if (!res.ok) throw new Error(text || res.statusText);
-  return text ? JSON.parse(text) : null;
-}
+export { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
+export {
+  automations, bulk, clone, components, dashboards, history, importExport,
+  integrations, notifications, permissions, questHierarchy, questLinks,
+  releases, reports, savedFilters, search, workflows, worklogs,
+} from './api/jira.js';
 
 export const auth = {
   register: (data) => apiJson('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
@@ -111,16 +84,6 @@ export const columns = {
     apiJson(`/api/columns/board/${boardId}/reorder`, { method: 'PUT', body: JSON.stringify({ columnIdsInOrder }) }),
   delete: (id) => api(`/api/columns/${id}`, { method: 'DELETE' }).then((r) => r.ok),
 };
-
-function buildQuery(params) {
-  const usp = new URLSearchParams();
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
-    usp.set(key, value);
-  });
-  const qs = usp.toString();
-  return qs ? `?${qs}` : '';
-}
 
 export const quests = {
   get: (id) => apiJson(`/api/quests/${id}`),

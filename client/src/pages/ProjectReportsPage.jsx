@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from '../i18n/navigation.jsx';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { boards, character, leaderboard, activity } from '../api.js';
+import { boards, character, leaderboard, activity, reports } from '../api.js';
 import AssigneeAvatar from '../components/AssigneeAvatar.jsx';
 import './ProjectReportsPage.css';
 
@@ -19,6 +19,7 @@ export default function ProjectReportsPage() {
   const [userCharacter, setUserCharacter] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deliveryReports, setDeliveryReports] = useState({});
 
   const loadUserCharacter = useCallback((userId) => {
     if (!userId || userCharacter[userId] !== undefined) return;
@@ -52,6 +53,9 @@ export default function ProjectReportsPage() {
         quests: p.questsCompleted ?? 0,
       })));
       setFeed(Array.isArray(feedRes) ? feedRes : []);
+      const reportTypes = ['burndown', 'velocity', 'cumulativeFlow', 'releaseProgress', 'estimatesVsSpent', 'roadmapDependencies'];
+      const reportResults = await Promise.all(reportTypes.map((type) => reports.get(boardId, type, { from: from.toISOString(), to: to.toISOString() }).catch(() => null)));
+      setDeliveryReports(Object.fromEntries(reportTypes.map((type, index) => [type, reportResults[index]])));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -81,6 +85,19 @@ export default function ProjectReportsPage() {
           ))}
         </div>
       </div>
+
+      <section className="reports-section">
+        <h2>Поставка и планирование</h2>
+        <div className="reports-kpi-charts">
+          {[
+            ['burndown', 'Burndown'], ['velocity', 'Velocity'], ['cumulativeFlow', 'Cumulative flow'],
+            ['releaseProgress', 'Прогресс релизов'], ['estimatesVsSpent', 'Оценка и затраченное время'], ['roadmapDependencies', 'Зависимости roadmap'],
+          ].map(([key, title]) => <div className="reports-kpi-chart" key={key}>
+            <h3>{title}</h3>
+            {deliveryReports[key]?.length ? <ResponsiveContainer width="100%" height={200}><AreaChart data={deliveryReports[key]}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Area type="monotone" dataKey="value" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.2} /></AreaChart></ResponsiveContainer> : <p className="reports-empty">Нет данных за выбранный период.</p>}
+          </div>)}
+        </div>
+      </section>
 
       <section className="reports-section">
         <h2>KPI команды</h2>

@@ -1,0 +1,321 @@
+using CanbanServer.Api.Extensions;
+using CanbanServer.Application.Contracts;
+using CanbanServer.Application.DTOs;
+using CanbanServer.Domain.Entities;
+using CanbanServer.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace CanbanServer.Api.Controllers;
+
+[ApiController]
+[Route("api")]
+public class JiraPlatformController : ControllerBase
+{
+    private readonly IJiraPlatformService _jira;
+    private readonly IJqlQueryService _jql;
+    private readonly IProjectAccessService _access;
+    private readonly CanbanDbContext _db;
+
+    public JiraPlatformController(
+        IJiraPlatformService jira,
+        IJqlQueryService jql,
+        IProjectAccessService access,
+        CanbanDbContext db)
+    {
+        _jira = jira;
+        _jql = jql;
+        _access = access;
+        _db = db;
+    }
+
+    private Guid RequireUser() => User.GetUserId() ?? throw new UnauthorizedAccessException();
+
+    private async Task EnsureBoardAsync(Guid boardId, BoardPermission required, CancellationToken ct) =>
+        await _access.EnsureBoardPermissionAsync(boardId, RequireUser(), required, ct);
+
+    private async Task EnsureQuestAsync(Guid questId, BoardPermission required, CancellationToken ct) =>
+        await _access.EnsureQuestPermissionAsync(questId, RequireUser(), required, ct);
+
+    [HttpGet("workflows/board/{boardId:guid}")]
+    public async Task<ActionResult> GetWorkflows(Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        return Ok(await _jira.GetTransitionsAsync(boardId, ct));
+    }
+
+    [HttpPut("workflows/board/{boardId:guid}")]
+    public async Task<ActionResult> SaveWorkflow(Guid boardId, [FromBody] UpsertWorkflowTransitionRequest request, [FromQuery] Guid? id, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.SaveTransitionAsync(boardId, id, request, ct));
+    }
+
+    [HttpDelete("workflows/board/{boardId:guid}/{id:guid}")]
+    public async Task<ActionResult> DeleteWorkflow(Guid boardId, Guid id, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return await _jira.DeleteTransitionAsync(boardId, id, ct) ? NoContent() : NotFound();
+    }
+
+    [HttpGet("quests/{questId:guid}/links")]
+    public async Task<ActionResult> GetLinks(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        return Ok(await _jira.GetLinksAsync(questId, ct));
+    }
+
+    [HttpPost("quests/{questId:guid}/links")]
+    public async Task<ActionResult> AddLink(Guid questId, [FromBody] CreateQuestLinkRequest request, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return Ok(await _jira.AddLinkAsync(questId, RequireUser(), request, ct));
+    }
+
+    [HttpDelete("quests/{questId:guid}/links/{linkId:guid}")]
+    public async Task<ActionResult> DeleteLink(Guid questId, Guid linkId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return await _jira.DeleteLinkAsync(questId, linkId, ct) ? NoContent() : NotFound();
+    }
+
+    [HttpGet("quests/{questId:guid}/worklogs")]
+    public async Task<ActionResult> GetWorkLogs(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        return Ok(await _jira.GetWorkLogsAsync(questId, ct));
+    }
+
+    [HttpPost("quests/{questId:guid}/worklogs")]
+    public async Task<ActionResult> AddWorkLog(Guid questId, [FromBody] UpsertWorkLogRequest request, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return Ok(await _jira.SaveWorkLogAsync(questId, RequireUser(), null, request, ct));
+    }
+
+    [HttpPut("quests/{questId:guid}/worklogs/{id:guid}")]
+    public async Task<ActionResult> UpdateWorkLog(Guid questId, Guid id, [FromBody] UpsertWorkLogRequest request, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return Ok(await _jira.SaveWorkLogAsync(questId, RequireUser(), id, request, ct));
+    }
+
+    [HttpDelete("quests/{questId:guid}/worklogs/{id:guid}")]
+    public async Task<ActionResult> DeleteWorkLog(Guid questId, Guid id, CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var (_, permission) = await _access.GetQuestAccessAsync(questId, userId, ct);
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return await _jira.DeleteWorkLogAsync(questId, id, userId, permission >= BoardPermission.Manage, ct) ? NoContent() : NotFound();
+    }
+
+    [HttpGet("quests/{questId:guid}/history")]
+    public async Task<ActionResult> GetHistory(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        return Ok(await _jira.GetHistoryAsync(questId, ct));
+    }
+
+    [HttpGet("components/board/{boardId:guid}")]
+    public async Task<ActionResult> GetComponents(Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        return Ok(await _jira.GetComponentsAsync(boardId, ct));
+    }
+
+    [HttpPost("components/board/{boardId:guid}")]
+    public async Task<ActionResult> CreateComponent(Guid boardId, [FromBody] UpsertBoardComponentRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.SaveComponentAsync(boardId, null, request, ct));
+    }
+
+    [HttpPut("components/{id:guid}")]
+    public async Task<ActionResult> UpdateComponent(Guid id, [FromBody] UpsertBoardComponentRequest request, CancellationToken ct)
+    {
+        var boardId = await _db.BoardComponents.Where(x => x.Id == id).Select(x => (Guid?)x.BoardId).FirstOrDefaultAsync(ct)
+            ?? throw new KeyNotFoundException("Component not found");
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.SaveComponentAsync(boardId, id, request, ct));
+    }
+
+    [HttpGet("releases/board/{boardId:guid}")]
+    public async Task<ActionResult> GetReleases(Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        return Ok(await _jira.GetReleasesAsync(boardId, ct));
+    }
+
+    [HttpPost("releases/board/{boardId:guid}")]
+    public async Task<ActionResult> CreateRelease(Guid boardId, [FromBody] UpsertBoardReleaseRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.SaveReleaseAsync(boardId, null, request, ct));
+    }
+
+    [HttpPut("releases/{id:guid}")]
+    public async Task<ActionResult> UpdateRelease(Guid id, [FromBody] UpsertBoardReleaseRequest request, CancellationToken ct)
+    {
+        var boardId = await _db.BoardReleases.Where(x => x.Id == id).Select(x => (Guid?)x.BoardId).FirstOrDefaultAsync(ct)
+            ?? throw new KeyNotFoundException("Release not found");
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.SaveReleaseAsync(boardId, id, request, ct));
+    }
+
+    [HttpGet("search/issues")]
+    public async Task<ActionResult> Search([FromQuery] string? jql, [FromQuery] Guid? boardId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default)
+    {
+        if (boardId.HasValue) await EnsureBoardAsync(boardId.Value, BoardPermission.View, ct);
+        return Ok(await _jql.SearchAsync(jql ?? "", RequireUser(), page, pageSize, boardId, ct));
+    }
+
+    [HttpGet("savedFilters")]
+    public async Task<ActionResult> GetFilters(CancellationToken ct) => Ok(await _jira.GetFiltersAsync(RequireUser(), ct));
+
+    [HttpPost("savedFilters")]
+    public async Task<ActionResult> CreateFilter([FromBody] UpsertSavedFilterRequest request, CancellationToken ct) =>
+        Ok(await _jira.SaveFilterAsync(RequireUser(), null, request, ct));
+
+    [HttpPut("savedFilters/{id:guid}")]
+    public async Task<ActionResult> UpdateFilter(Guid id, [FromBody] UpsertSavedFilterRequest request, CancellationToken ct) =>
+        Ok(await _jira.SaveFilterAsync(RequireUser(), id, request, ct));
+
+    [HttpDelete("savedFilters/{id:guid}")]
+    public async Task<ActionResult> DeleteFilter(Guid id, CancellationToken ct) =>
+        await _jira.DeleteFilterAsync(RequireUser(), id, ct) ? NoContent() : NotFound();
+
+    [HttpGet("notifications")]
+    public async Task<ActionResult> GetNotifications([FromQuery] bool unreadOnly = false, CancellationToken ct = default) =>
+        Ok(await _jira.GetNotificationsAsync(RequireUser(), unreadOnly, ct));
+
+    [HttpPost("notifications/{id:guid}/read")]
+    public async Task<ActionResult> MarkRead(Guid id, CancellationToken ct) =>
+        await _jira.MarkNotificationReadAsync(id, RequireUser(), ct) ? NoContent() : NotFound();
+
+    [HttpGet("automations/board/{boardId:guid}")]
+    public async Task<ActionResult> GetAutomations(Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        return Ok(await _jira.GetAutomationRulesAsync(boardId, ct));
+    }
+
+    [HttpPost("automations/board/{boardId:guid}")]
+    public async Task<ActionResult> CreateAutomation(Guid boardId, [FromBody] UpsertAutomationRuleRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.SaveAutomationRuleAsync(boardId, null, request, ct));
+    }
+
+    [HttpPut("automations/board/{boardId:guid}/{id:guid}")]
+    public async Task<ActionResult> UpdateAutomation(Guid boardId, Guid id, [FromBody] UpsertAutomationRuleRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.SaveAutomationRuleAsync(boardId, id, request, ct));
+    }
+
+    [HttpGet("integrations/board/{boardId:guid}")]
+    public async Task<ActionResult> GetIntegrations(Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        return Ok(new
+        {
+            github = await _jira.GetGitHubIntegrationsAsync(boardId, ct),
+            webhooks = await _jira.GetWebhooksAsync(boardId, ct)
+        });
+    }
+
+    [HttpPut("integrations/board/{boardId:guid}/github")]
+    public async Task<ActionResult> SaveGithub(Guid boardId, [FromBody] UpsertGitHubIntegrationRequest request, [FromQuery] Guid? id, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Admin, ct);
+        return Ok(await _jira.SaveGitHubIntegrationAsync(boardId, id, request, ct));
+    }
+
+    [HttpPost("integrations/board/{boardId:guid}/webhooks")]
+    public async Task<ActionResult> CreateWebhook(Guid boardId, [FromBody] UpsertOutboundWebhookRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Admin, ct);
+        return Ok(await _jira.SaveWebhookAsync(boardId, null, request, ct));
+    }
+
+    [HttpPut("integrations/board/{boardId:guid}/webhooks/{id:guid}")]
+    public async Task<ActionResult> UpdateWebhook(Guid boardId, Guid id, [FromBody] UpsertOutboundWebhookRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Admin, ct);
+        return Ok(await _jira.SaveWebhookAsync(boardId, id, request, ct));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("integrations/github/webhook")]
+    public async Task<ActionResult> GitHubWebhook(CancellationToken ct)
+    {
+        using var reader = new StreamReader(Request.Body);
+        var payload = await reader.ReadToEndAsync(ct);
+        var signature = Request.Headers["X-Hub-Signature-256"].FirstOrDefault() ?? "";
+        var eventName = Request.Headers["X-GitHub-Event"].FirstOrDefault() ?? "unknown";
+        await _jira.ProcessGitHubWebhookAsync(eventName, payload, signature, ct);
+        return Accepted();
+    }
+
+    [HttpPut("bulk/quests")]
+    public async Task<ActionResult> BulkEdit([FromBody] BulkEditQuestsRequest request, [FromQuery] Guid boardId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Work, ct);
+        return Ok(await _jira.BulkEditAsync(boardId, RequireUser(), request, ct));
+    }
+
+    [HttpPost("clone/quests/{questId:guid}")]
+    public async Task<ActionResult> CloneQuest(Guid questId, [FromBody] CloneQuestRequest? request, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return Ok(await _jira.CloneQuestAsync(questId, RequireUser(), request ?? new CloneQuestRequest(), ct));
+    }
+
+    [HttpPost("clone/boards/{boardId:guid}")]
+    public async Task<ActionResult> CloneBoard(Guid boardId, [FromBody] CloneBoardRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        return Ok(await _jira.CloneBoardAsync(boardId, RequireUser(), request, ct));
+    }
+
+    [HttpPost("importExport/preview")]
+    public ActionResult PreviewImport([FromBody] ImportPreviewRequest request) => Ok(_jira.PreviewImport(request));
+
+    [HttpGet("importExport/boards/{boardId:guid}/export")]
+    public async Task<ActionResult> Export(Guid boardId, [FromQuery] string format = "json", CancellationToken ct = default)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        var content = await _jira.ExportAsync(boardId, format, ct);
+        return Content(content, format.Equals("csv", StringComparison.OrdinalIgnoreCase) ? "text/csv" : "application/json");
+    }
+
+    [HttpPost("importExport/boards/{boardId:guid}/import")]
+    public async Task<ActionResult> Import(Guid boardId, IFormFile file, [FromQuery] Guid columnId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        await using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
+        var content = await reader.ReadToEndAsync(ct);
+        var format = file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) ? "csv" : "json";
+        return Ok(await _jira.ExecuteImportAsync(RequireUser(), new ImportExecuteRequest(format, content, boardId, columnId), ct));
+    }
+
+    [HttpGet("reports/boards/{boardId:guid}/{type}")]
+    public async Task<ActionResult> Report(Guid boardId, string type, [FromQuery] Guid? releaseId, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
+        return Ok(await _jira.GetReportAsync(boardId, type, releaseId, ct));
+    }
+
+    [HttpGet("dashboards")]
+    public async Task<ActionResult> GetDashboards(CancellationToken ct) => Ok(await _jira.GetDashboardsAsync(RequireUser(), ct));
+
+    [HttpPost("dashboards")]
+    public async Task<ActionResult> CreateDashboard([FromBody] UpsertDashboardRequest request, CancellationToken ct) =>
+        Ok(await _jira.SaveDashboardAsync(RequireUser(), null, request, ct));
+
+    [HttpPut("dashboards/{id:guid}")]
+    public async Task<ActionResult> UpdateDashboard(Guid id, [FromBody] UpsertDashboardRequest request, CancellationToken ct) =>
+        Ok(await _jira.SaveDashboardAsync(RequireUser(), id, request, ct));
+}

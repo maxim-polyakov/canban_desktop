@@ -41,6 +41,14 @@ public class QuestNotificationService : IQuestNotificationService
         var sentEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var recipient in recipients)
         {
+            if (recipient.Id != actorUserId)
+            {
+                _db.AppNotifications.Add(new CanbanServer.Domain.Entities.AppNotification
+                {
+                    Id = Guid.NewGuid(), UserId = recipient.Id, QuestId = questId, Type = "Quest",
+                    Title = eventTitle, Body = details, CreatedAt = DateTime.UtcNow
+                });
+            }
             if (!sentEmails.Add(recipient.Email)) continue;
             var body = $"""
                 <!DOCTYPE html>
@@ -77,5 +85,6 @@ public class QuestNotificationService : IQuestNotificationService
                 """;
             await _emailSender.SendAsync(recipient.Email, displayName, $"{eventTitle}: {context.Title}", body, ct);
         }
+        await _db.SaveChangesAsync(ct);
     }
 }

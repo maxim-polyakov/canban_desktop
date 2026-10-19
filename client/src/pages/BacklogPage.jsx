@@ -1,20 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { useParams, useNavigate } from '../i18n/navigation.jsx';
-import { boards, quests, sprints as sprintsApi, teams } from '../api.js';
+import { boards, bulk, quests, sprints as sprintsApi, teams } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { IssueTypeIcon, PriorityIcon } from '../components/IssueIcons.jsx';
-import { WatcherBadge } from '../components/IssueIcons.jsx';
+import { IssueTypeIcon, PriorityIcon, WatcherBadge } from '../components/IssueIcons.jsx';
 import AssigneeAvatar from '../components/AssigneeAvatar.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import './BacklogPage.css';
 
 const BACKLOG_COLUMN_KIND = 0;
+const ARCHIVE_COLUMN_KIND = 5;
 const BACKLOG_DRAG_PREFIX = 'backlog-quest-';
 const SPRINT_DROP_PREFIX = 'sprint-drop-';
 const BACKLOG_DROP_ID = 'backlog-drop';
 
-function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklog, dragDisabled }) {
+function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklog, dragDisabled, selected, onSelect }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: BACKLOG_DRAG_PREFIX + quest.id,
     data: { type: 'backlog-quest', questId: quest.id },
@@ -27,7 +27,9 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
       {...attributes}
       {...listeners}
     >
+      <input className="backlog-issue-checkbox" type="checkbox" checked={selected} aria-label={`Select ${quest.issueKey}`} onPointerDown={(e) => e.stopPropagation()} onChange={(e) => onSelect?.(quest.id, e.target.checked)} />
       <IssueTypeIcon issueType={quest.issueType} size={16} />
+      {quest.parentId && <span title="Subtask">↳</span>}
       <button type="button" className="backlog-issue-key" onClick={() => onOpen(quest.id)}>{quest.issueKey}</button>
       <button type="button" className="backlog-issue-title" onClick={() => onOpen(quest.id)} title={quest.title}>
         {quest.title}
@@ -38,6 +40,7 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
       ))}
       {quest.xpReward > 0 && <span className="backlog-issue-xp">+{quest.xpReward} XP</span>}
       <WatcherBadge count={(quest.notificationRecipientIds ?? []).length} />
+      {(quest.linkCount > 0 || quest.hasBlockingLinks) && <span title="Linked or blocked">⛓{quest.hasBlockingLinks ? '⛔' : ''}</span>}
       <PriorityIcon priority={quest.priority} size={14} />
       <span className="backlog-issue-assignees">
         {(quest.assignees ?? []).slice(0, 3).map((a) => (
@@ -114,6 +117,7 @@ export default function BacklogPage() {
   const [newIssueTitle, setNewIssueTitle] = useState('');
   const [creatingIssue, setCreatingIssue] = useState(false);
   const [activeDragId, setActiveDragId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -272,6 +276,15 @@ export default function BacklogPage() {
     }
   };
 
+  const toggleSelected = (id, checked) => setSelectedIds((current) => checked ? [...new Set([...current, id])] : current.filter((value) => value !== id));
+  const applyBulk = async (fields) => {
+    try {
+      await bulk.update({ questIds: selectedIds, fields });
+      setSelectedIds([]);
+      await loadAll();
+    } catch (e) { window.alert(t(e.message || 'Не удалось выполнить массовое изменение.')); }
+  };
+
   if (loading) return <div className="page">Загрузка бэклога...</div>;
   if (error) return <div className="page">Ошибка: {error}</div>;
 
@@ -309,6 +322,15 @@ export default function BacklogPage() {
       <p className="backlog-dnd-hint">
         Перетащите задачу между бэклогом и спринтом (поддерживается касание), либо используйте кнопку/список «В спринт…» / «В бэклог».
       </p>
+      {selectedIds.length > 0 && <div className="backlog-bulk-bar" role="toolbar">
+        <strong>{t('Выбрано')}: {selectedIds.length}</strong>
+        <button type="button" onClick={() => applyBulk({ sprintId: null })}>{t('В бэклог')}</button>
+        <select defaultValue="" onChange={(e) => { if (e.target.value) applyBulk({ sprintId: e.target.value }); }}>
+          <option value="" disabled>{t('В спринт…')}</option>
+          {futureAndActiveSprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
+        </select>
+        <button type="button" onClick={() => setSelectedIds([])}>{t('Снять выбор')}</button>
+      </div>}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {futureAndActiveSprints.map((sprint) => (
@@ -329,7 +351,7 @@ export default function BacklogPage() {
             </header>
             <SprintDropList sprintId={sprint.id}>
               {(sprintQuests[sprint.id] ?? []).map((q) => (
-                <IssueRow key={q.id} quest={q} onOpen={openIssue} onMoveToBacklog={moveQuestToBacklog} />
+                <IssueRow key={q.id} quest={q} onOpen={openIssue} onMoveToBacklog={moveQuestToBacklog} selected={selectedIds.includes(q.id)} onSelect={toggleSelected} />
               ))}
               {(sprintQuests[sprint.id] ?? []).length === 0 && <li className="backlog-empty">Нет задач в этом спринте. Перетащите сюда задачу из бэклога.</li>}
             </SprintDropList>
@@ -349,6 +371,8 @@ export default function BacklogPage() {
                 onOpen={openIssue}
                 sprintOptions={futureAndActiveSprints}
                 onMoveToSprint={moveQuestToSprint}
+                selected={selectedIds.includes(q.id)}
+                onSelect={toggleSelected}
               />
             ))}
             {backlogQuests.length === 0 && <li className="backlog-empty">Бэклог пуст.</li>}
@@ -379,7 +403,7 @@ export default function BacklogPage() {
         <IssueDetailDrawer
           questId={questId}
           members={members}
-          columns={board?.columns}
+          columns={(board?.columns ?? []).filter((c) => c.kind !== ARCHIVE_COLUMN_KIND)}
           onClose={closeIssue}
           onChanged={loadAll}
         />

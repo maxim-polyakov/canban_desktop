@@ -17,6 +17,9 @@ public class TeamMember
 public enum TeamRole
 {
     Member = 0,
+    Developer = Member,
     Lead = 1,
-    Admin = 2
+    ProjectLead = Lead,
+    Admin = 2,
+    Viewer = 3
 }

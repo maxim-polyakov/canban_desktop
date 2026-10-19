@@ -10,7 +10,7 @@ function labelList(labels) {
   return String(labels).split(',').map((label) => label.trim()).filter(Boolean);
 }
 
-export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hidden = false }) {
+export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hidden = false, selected = false, onSelect }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: quest.id,
     data: { type: 'quest', columnId: quest.columnId },
@@ -39,7 +39,9 @@ export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hi
       onClick={openDetail}
     >
       <div className="quest-card-top">
+        {onSelect && <input type="checkbox" checked={selected} aria-label={`Select ${quest.issueKey}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} onChange={(e) => onSelect(quest.id, e.target.checked)} />}
         <IssueTypeIcon issueType={quest.issueType} size={16} />
+        {quest.parentId && <span title="Subtask">↳</span>}
         <span className="quest-card-title" title={quest.title}>{quest.title}</span>
         {onDeleteQuest && (
           <button
@@ -67,6 +69,7 @@ export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hi
         <span className="quest-card-bottom-spacer" />
         {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}
         <WatcherBadge count={(quest.notificationRecipientIds ?? []).length} />
+        {(quest.linkCount > 0 || quest.hasBlockingLinks) && <span title="Linked or blocked">⛓{quest.hasBlockingLinks ? '⛔' : ''}</span>}
         <PriorityIcon priority={quest.priority} size={14} />
         <span
           className="quest-card-assignees"

@@ -29,6 +29,23 @@ public class CanbanDbContext : DbContext
     public DbSet<Skill> Skills => Set<Skill>();
     public DbSet<SkillUnlock> SkillUnlocks => Set<SkillUnlock>();
     public DbSet<Activity> Activities => Set<Activity>();
+    public DbSet<WorkflowTransition> WorkflowTransitions => Set<WorkflowTransition>();
+    public DbSet<QuestLink> QuestLinks => Set<QuestLink>();
+    public DbSet<BoardComponent> BoardComponents => Set<BoardComponent>();
+    public DbSet<BoardRelease> BoardReleases => Set<BoardRelease>();
+    public DbSet<QuestComponent> QuestComponents => Set<QuestComponent>();
+    public DbSet<QuestRelease> QuestReleases => Set<QuestRelease>();
+    public DbSet<WorkLog> WorkLogs => Set<WorkLog>();
+    public DbSet<QuestChange> QuestChanges => Set<QuestChange>();
+    public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
+    public DbSet<SavedFilter> SavedFilters => Set<SavedFilter>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<AutomationRule> AutomationRules => Set<AutomationRule>();
+    public DbSet<OutboundWebhook> OutboundWebhooks => Set<OutboundWebhook>();
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
+    public DbSet<GitHubIntegration> GitHubIntegrations => Set<GitHubIntegration>();
+    public DbSet<DevelopmentLink> DevelopmentLinks => Set<DevelopmentLink>();
+    public DbSet<Dashboard> Dashboards => Set<Dashboard>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

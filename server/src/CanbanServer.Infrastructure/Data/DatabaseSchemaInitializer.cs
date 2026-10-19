@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CanbanServer.Infrastructure.Data;
 
-public static class DatabaseSchemaInitializer
+public static partial class DatabaseSchemaInitializer
 {
     public static async Task EnsureQuestAttachmentsSchemaAsync(
         CanbanDbContext db,
@@ -11,6 +11,7 @@ public static class DatabaseSchemaInitializer
         // Add model columns before any EF query. EF selects every mapped Quest column,
         // so querying existing rows first would crash during a rolling schema upgrade.
         await EnsureJiraLikeSchemaAsync(db, ct);
+        await EnsureJiraPlatformSchemaAsync(db, ct);
 
         await db.Database.ExecuteSqlRawAsync(
             """
@@ -210,6 +211,10 @@ public static class DatabaseSchemaInitializer
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "FixVersion" character varying(200) NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "StoryPoints" integer NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "SprintId" uuid NULL;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "ParentQuestId" uuid NULL;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "OriginalEstimateMinutes" integer NULL;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "RemainingEstimateMinutes" integer NULL;
+            ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "DescriptionDocumentJson" text NULL;
 
             DO $$
             BEGIN
@@ -261,5 +266,6 @@ public static class DatabaseSchemaInitializer
             WHERE "IsEpic" = TRUE AND ("IssueType" IS NULL OR "IssueType" = 2);
             """,
             ct);
+
     }
 }

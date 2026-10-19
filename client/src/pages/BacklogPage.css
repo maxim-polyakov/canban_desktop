@@ -1,3 +1,26 @@
+.backlog-bulk-bar {
+  position: sticky;
+  top: calc(var(--topbar-height) + 44px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+  padding: .65rem;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.backlog-bulk-bar button,
+.backlog-bulk-bar select { min-height: 40px; }
+.backlog-issue-checkbox { width: 18px; height: 18px; flex: 0 0 auto; }
+
+@media (max-width: 600px) {
+  .backlog-bulk-bar > * { flex: 1 1 auto; }
+}
 .backlog-page {
   padding: 1rem;
 }

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from '../i18n/navigation.jsx';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { boards, columns, quests, sprints as sprintsApi, teams } from '../api.js';
+import { boards, bulk, columns, quests, sprints as sprintsApi, teams, workflows } from '../api.js';
 import KanbanBoard from '../components/KanbanBoard.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import { buildQuestFilter } from '../utils/jqlFilter.js';
@@ -50,6 +50,7 @@ export default function BoardPage() {
   const [filterAssigneeId, setFilterAssigneeId] = useState('');
   const [filterIssueType, setFilterIssueType] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [selectedQuestIds, setSelectedQuestIds] = useState([]);
 
   const loadBoard = useCallback(async () => {
     if (!boardId) return;
@@ -138,6 +139,15 @@ export default function BoardPage() {
           await quests.reorder({ columnId: targetColumnId, questIdsInOrder: reordered });
         }
       } else {
+        try {
+          const allowed = await workflows.getTransitions(questIdMoved);
+          if (Array.isArray(allowed) && allowed.length > 0 && !allowed.some((transition) => transition.toColumnId === targetColumnId || transition.targetColumnId === targetColumnId)) {
+            window.alert(t('Этот переход запрещён workflow.'));
+            return;
+          }
+        } catch {
+          // Older servers do not expose workflow constraints; keep legacy movement operational.
+        }
         await quests.move({ questId: questIdMoved, targetColumnId, newOrder });
       }
       await loadBoard();
@@ -267,6 +277,14 @@ export default function BoardPage() {
 
   const openIssue = (id) => navigate(`/board/${boardId}/issue/${id}`);
   const closeIssue = () => navigate(`/board/${boardId}`);
+  const toggleQuestSelection = (id, checked) => setSelectedQuestIds((current) => checked ? [...new Set([...current, id])] : current.filter((value) => value !== id));
+  const applyBulkUpdate = async (fields) => {
+    try {
+      await bulk.update({ questIds: selectedQuestIds, fields });
+      setSelectedQuestIds([]);
+      await loadBoard();
+    } catch (e) { window.alert(t(e.message || 'Не удалось выполнить массовое изменение.')); }
+  };
 
   if (loading) return <div className="page">Загрузка доски...</div>;
   if (error) return <div className="page">Ошибка: {error}</div>;
@@ -390,6 +408,18 @@ export default function BoardPage() {
           )}
         </div>
       )}
+      {selectedQuestIds.length > 0 && <div className="board-bulk-bar" role="toolbar">
+        <strong>{t('Выбрано')}: {selectedQuestIds.length}</strong>
+        <select defaultValue="" onChange={(e) => { if (e.target.value) applyBulkUpdate({ columnId: e.target.value }); }}>
+          <option value="" disabled>{t('Изменить статус…')}</option>
+          {boardColumns.map((column) => <option key={column.id} value={column.id}>{column.title}</option>)}
+        </select>
+        <select defaultValue="" onChange={(e) => { if (e.target.value !== '') applyBulkUpdate({ priority: Number(e.target.value) }); }}>
+          <option value="" disabled>{t('Изменить приоритет…')}</option>
+          {PRIORITY_FILTER_OPTIONS.filter((item) => item.value !== '').map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </select>
+        <button type="button" onClick={() => setSelectedQuestIds([])}>{t('Снять выбор')}</button>
+      </div>}
 
       <KanbanBoard
         boardId={boardId}
@@ -407,6 +437,8 @@ export default function BoardPage() {
         onDeleteQuest={handleDeleteQuest}
         onQuestClick={openIssue}
         questFilter={activeFilterCount > 0 ? questMatchesFilter : undefined}
+        selectedQuestIds={selectedQuestIds}
+        onSelectQuest={toggleQuestSelection}
       />
 
       {questId && (

@@ -75,7 +75,7 @@ public static partial class DatabaseSchemaInitializer
             CREATE TABLE IF NOT EXISTS "DevelopmentLinks" (
               "Id" uuid PRIMARY KEY, "QuestId" uuid NOT NULL, "GitHubIntegrationId" uuid NOT NULL, "Kind" varchar(64) NOT NULL,
               "ExternalId" varchar(200) NOT NULL, "Url" varchar(1000) NOT NULL, "Title" varchar(500) NOT NULL,
-              "Status" varchar(100) NULL, "PayloadJson" text NOT NULL DEFAULT '{}', "UpdatedAt" timestamptz NOT NULL);
+              "Status" varchar(100) NULL, "PayloadJson" text NOT NULL DEFAULT '{{}}', "UpdatedAt" timestamptz NOT NULL);
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_DevelopmentLinks_QuestId_Kind_ExternalId" ON "DevelopmentLinks"("QuestId","Kind","ExternalId");
             CREATE TABLE IF NOT EXISTS "Dashboards" (
               "Id" uuid PRIMARY KEY, "OwnerUserId" uuid NOT NULL, "Name" varchar(200) NOT NULL,

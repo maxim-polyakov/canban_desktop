@@ -39,7 +39,7 @@ function SortableColumn({ column, onColumnReorder, children }) {
   );
 }
 
-export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick, questFilter, selectedQuestIds = [], onSelectQuest }) {
+export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick, questFilter, selectedQuestIds = [], onSelectQuest, sprintId }) {
   const { t } = useLocalization();
   const [activeId, setActiveId] = useState(null);
   const [newQuestColumnId, setNewQuestColumnId] = useState(null);
@@ -114,6 +114,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
         xpReward: xp,
         isEpic: false,
         notificationRecipientIds: [...new Set([...newQuestRecipientIds, ...newQuestAssigneeIds])],
+        ...(sprintId ? { sprintId } : {}),
       });
       const failedFiles = [];
       for (const file of newQuestFiles) {
@@ -207,7 +208,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                     newQuestFileError={newQuestFileError}
                     formatFileSize={formatFileSize}
                     creatingQuest={creatingQuest}
-                    onSubmitNewQuest={() => handleAddQuest(col.id)}
+                    onSubmitNewQuest={() => handleAddQuest(col.createColumnId ?? col.id)}
                     onCancelAdd={handleCancelAddQuest}
                     onUpdateColumn={onUpdateColumn}
                     onUpdateColumnKind={onUpdateColumnKind}

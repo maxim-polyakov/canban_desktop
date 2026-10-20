@@ -63,6 +63,8 @@ public class BoardIssueLayout
     public Guid? PermissionSchemeId { get; set; }
     /// <summary>Shared notification scheme; null uses the built-in default.</summary>
     public Guid? NotificationSchemeId { get; set; }
+    /// <summary>Board columns grouping statuses as JSON; null shows one column per status.</summary>
+    public string? ColumnLayout { get; set; }
 }
 
 public class UserGroup

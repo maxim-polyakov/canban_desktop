@@ -1,0 +1,305 @@
+.ccd-modal {
+  width: min(1100px, 100%);
+}
+
+.ccd-banner {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  background: var(--accent-soft);
+}
+
+.ccd-banner p {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.ccd-lanes {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.ccd-lane {
+  display: flex;
+  flex: 0 0 200px;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 220px;
+  padding: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: var(--surface-sunken, rgba(9, 30, 66, 0.04));
+}
+
+.ccd-lane.ccd-hidden {
+  border-color: var(--border);
+  background: var(--surface, transparent);
+}
+
+.ccd-lane.is-invalid {
+  border-color: var(--danger);
+}
+
+.ccd-lane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  min-height: 1.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+
+.ccd-lane-title {
+  flex: 1;
+  overflow: hidden;
+  padding: 0.2rem 0.25rem;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.ccd-lane-title:hover {
+  background: var(--hover, rgba(9, 30, 66, 0.08));
+}
+
+.ccd-warn {
+  margin-right: 0.35rem;
+  color: var(--danger);
+}
+
+.ccd-lane-hint,
+.ccd-lane-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+}
+
+.ccd-lane-error {
+  color: var(--text);
+}
+
+.ccd-rename {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  font: inherit;
+}
+
+.ccd-status {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 3px;
+  background: var(--surface-overlay, #fff);
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
+  cursor: grab;
+}
+
+.ccd-status.is-dragging {
+  opacity: 0.5;
+}
+
+.ccd-lozenge {
+  overflow: hidden;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccd-lozenge.is-todo { background: #dfe1e6; color: #42526e; }
+.ccd-lozenge.is-progress { background: #deebff; color: #0747a6; }
+.ccd-lozenge.is-done { background: #e3fcef; color: #006644; }
+
+.ccd-new-badge {
+  font-size: 0.7rem;
+  color: var(--text-subtle);
+}
+
+.ccd-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.ccd-menu-btn {
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+}
+
+.ccd-menu-btn:hover {
+  background: var(--hover, rgba(9, 30, 66, 0.08));
+}
+
+.ccd-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+}
+
+.ccd-menu-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 96;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 0.25rem 0;
+  border-radius: 4px;
+  background: var(--surface-overlay, #fff);
+  box-shadow: 0 4px 12px rgba(9, 30, 66, 0.25);
+}
+
+.ccd-menu-list button {
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ccd-menu-list button:hover:not(:disabled) {
+  background: var(--hover, rgba(9, 30, 66, 0.08));
+}
+
+.ccd-menu-list button:disabled {
+  color: var(--text-subtle);
+  cursor: default;
+}
+
+.ccd-menu-list button.is-danger {
+  color: var(--danger);
+}
+
+.ccd-add-status-btn {
+  padding: 0.35rem 0.25rem;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--text-subtle);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ccd-add-status-btn:hover {
+  background: var(--hover, rgba(9, 30, 66, 0.08));
+}
+
+.ccd-add-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 3px;
+  background: var(--surface-overlay, #fff);
+}
+
+.ccd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ccd-field input,
+.ccd-field select {
+  padding: 0.3rem 0.4rem;
+  font: inherit;
+  font-weight: 400;
+}
+
+.ccd-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.ccd-new-column {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.ccd-new-column .ccd-lane {
+  min-height: 0;
+  height: fit-content;
+}
+
+.ccd-plus {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 3px;
+  background: var(--surface-sunken, rgba(9, 30, 66, 0.04));
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.ccd-plus:hover {
+  background: var(--hover, rgba(9, 30, 66, 0.08));
+}
+
+.ccd-reset {
+  margin-right: auto;
+}
+
+.board-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 6rem auto;
+  max-width: 320px;
+  text-align: center;
+}
+
+.board-empty-state h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.board-empty-state p {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.85rem;
+}
+
+.board-empty-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.quest-card-status {
+  overflow: hidden;
+  max-width: 7rem;
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -106,6 +106,7 @@ export default function KanbanColumn({
           <KanbanQuestItem
             key={quest.id}
             quest={quest}
+            columnId={column.id}
             onDeleteQuest={onDeleteQuest}
             onQuestClick={onQuestClick}
             hidden={questFilter ? !questFilter(quest) : false}

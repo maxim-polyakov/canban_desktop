@@ -3,17 +3,19 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import AssigneeAvatar from './AssigneeAvatar.jsx';
 import { IssueTypeIcon, PriorityIcon, WatcherBadge } from './IssueIcons.jsx';
+import { statusTone } from '../utils/boardColumnLayout.js';
 import './QuestCard.css';
+import './ColumnConfigDialog.css';
 
 function labelList(labels) {
   if (!labels) return [];
   return String(labels).split(',').map((label) => label.trim()).filter(Boolean);
 }
 
-export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hidden = false, selected = false, onSelect }) {
+export default function KanbanQuestItem({ quest, columnId, onDeleteQuest, onQuestClick, hidden = false, selected = false, onSelect }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: quest.id,
-    data: { type: 'quest', columnId: quest.columnId },
+    data: { type: 'quest', columnId: columnId ?? quest.columnId },
   });
 
   const style = {
@@ -66,6 +68,7 @@ export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hi
 
       <div className="quest-card-bottom">
         <span className="quest-card-key">{quest.issueKey || '—'}</span>
+        {quest.statusLabel && <span className={`quest-card-status ccd-lozenge is-${statusTone(quest.statusKind)}`} title={quest.statusLabel}>{quest.statusLabel}</span>}
         <span className="quest-card-bottom-spacer" />
         {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}
         <WatcherBadge count={(quest.notificationRecipientIds ?? []).length} />

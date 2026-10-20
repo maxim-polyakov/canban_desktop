@@ -12,6 +12,8 @@ import useMediaQuery from '../utils/useMediaQuery.js';
 import { useBoardIssueConfig } from '../utils/issueConfig.js';
 import { issueWorkflow, needsTransitionDialog, transitionsTo } from '../utils/workflow.js';
 import TransitionScreenDialog from '../components/TransitionScreenDialog.jsx';
+import ColumnConfigDialog from '../components/ColumnConfigDialog.jsx';
+import { activeSprintIds, buildBoardColumns, isScrumBoard, resolveLayoutDrop } from '../utils/boardColumnLayout.js';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -59,19 +61,24 @@ export default function BoardPage() {
   const [filterPriority, setFilterPriority] = useState('');
   const [selectedQuestIds, setSelectedQuestIds] = useState([]);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [columnLayout, setColumnLayout] = useState(null);
+  const [columnConfigOpen, setColumnConfigOpen] = useState(false);
+  const [sprintsLoaded, setSprintsLoaded] = useState(false);
   const isMobile = useMediaQuery();
 
   const loadSeqRef = useRef(0);
+  const loadSprintsRef = useRef(null);
   const pendingMovesRef = useRef(0);
 
   const loadBoard = useCallback(async () => {
     if (!boardId) return;
     const seq = ++loadSeqRef.current;
     try {
-      const data = await boards.getById(boardId);
+      const [data, layout] = await Promise.all([boards.getById(boardId), boards.getColumnLayout(boardId).catch(() => null)]);
       // A stale response would snap an optimistically moved card back to its old column.
       if (seq !== loadSeqRef.current || pendingMovesRef.current > 0) return;
       setBoard(data);
+      setColumnLayout(layout);
       setEditBoardName(data?.name ?? '');
       setEditBoardDesc(data?.description ?? '');
     } catch (e) {
@@ -115,6 +122,7 @@ export default function BoardPage() {
       .build();
     connection.on('BoardUpdated', () => {
       loadBoardRef.current?.();
+      loadSprintsRef.current?.();
       loadMembersRef.current?.(teamIdRef.current);
     });
     connection.start()
@@ -132,12 +140,19 @@ export default function BoardPage() {
     loadMembers(board.teamId);
   }, [board?.teamId, loadMembers]);
 
-  useEffect(() => {
+  const loadSprints = useCallback(() => {
     if (!boardId) { setBoardSprints([]); return; }
     sprintsApi.getByBoard(boardId)
       .then((list) => setBoardSprints(Array.isArray(list) ? list : []))
-      .catch(() => setBoardSprints([]));
+      .catch(() => setBoardSprints([]))
+      .finally(() => setSprintsLoaded(true));
   }, [boardId]);
+  loadSprintsRef.current = loadSprints;
+
+  useEffect(() => {
+    setSprintsLoaded(false);
+    loadSprints();
+  }, [loadSprints]);
 
   const handleMoveQuest = async (questIdMoved, targetColumnId, newOrder) => {
     const col = board?.columns?.find((c) => c.id === targetColumnId);
@@ -185,6 +200,15 @@ export default function BoardPage() {
       pendingMovesRef.current -= 1;
       if (pendingMovesRef.current === 0) loadBoard();
     }
+  };
+
+  const canEnterStatus = (questIdMoved, statusId) => {
+    if (!issueConfig.workflow) return true;
+    const fromCol = board?.columns?.find((c) => (c.quests ?? []).some((q) => q.id === questIdMoved));
+    if (!fromCol) return true;
+    const issue = { ...fromCol.quests.find((q) => q.id === questIdMoved), columnId: fromCol.id };
+    const options = transitionsTo(issueConfig.workflow, issue, statusId);
+    return !options || options.length > 0;
   };
 
   const handleAddColumn = async (title, isDoneColumn) => {
@@ -322,6 +346,20 @@ export default function BoardPage() {
   if (!board) return <div className="page">Доска не найдена.</div>;
 
   const boardColumns = (board.columns ?? []).filter((column) => column.kind !== ARCHIVE_COLUMN_KIND);
+  const scrum = isScrumBoard(board);
+  const sprintIds = activeSprintIds(boardSprints);
+  const noActiveSprint = scrum && sprintsLoaded && sprintIds.size === 0;
+  const visibleStatuses = scrum
+    ? boardColumns.map((column) => ({ ...column, quests: (column.quests ?? column.Quests ?? []).filter((q) => sprintIds.has(q.sprintId)) }))
+    : boardColumns;
+  const layoutMode = !!columnLayout?.configured;
+  const viewColumns = buildBoardColumns(visibleStatuses, columnLayout);
+  const moveOnBoard = layoutMode
+    ? (id, target, order) => {
+      const drop = resolveLayoutDrop(viewColumns, visibleStatuses, id, target, order, (statusId) => canEnterStatus(id, statusId));
+      return handleMoveQuest(id, drop.statusId, drop.order);
+    }
+    : handleMoveQuest;
   const completedQuestCount = boardColumns
     .filter((column) => column.kind === DONE_COLUMN_KIND)
     .reduce((total, column) => total + ((column.quests ?? column.Quests ?? []).length), 0);
@@ -399,6 +437,7 @@ export default function BoardPage() {
                   {archiving ? t('Архивация...') : `${t('Архивировать выполненные')} (${completedQuestCount})`}
                 </button>
                 <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setEditBoardOpen(true); }}>{t('Изменить название и описание')}</button>
+                <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setColumnConfigOpen(true); }}>{t('Настроить столбцы')}</button>
                 <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); navigate(`/board/${boardId}/settings`); }}>{t('Настроить доску')}</button>
                 {board.createdByUserId === user?.id && (
                   <button type="button" role="menuitem" className="board-more-danger" onClick={() => { setMoreOpen(false); handleDeleteBoard(); }}>{t('Удалить доску')}</button>
@@ -453,25 +492,45 @@ export default function BoardPage() {
         <button type="button" onClick={() => setSelectedQuestIds([])}>{t('Снять выбор')}</button>
       </div>}
 
-      <KanbanBoard
-        boardId={boardId}
-        columns={boardColumns}
-        members={members}
-        onMoveQuest={handleMoveQuest}
-        onAddColumn={handleAddColumn}
-        onColumnReorder={handleColumnReorder}
-        onRefresh={loadBoard}
-        onUpdateColumn={handleUpdateColumn}
-        onUpdateColumnKind={handleUpdateColumnKind}
-        onRefreshColumn={handleRefreshColumn}
-        onRefreshColumnQuests={handleRefreshColumnQuests}
-        onDeleteColumn={handleDeleteColumn}
-        onDeleteQuest={handleDeleteQuest}
-        onQuestClick={openIssue}
-        questFilter={activeFilterCount > 0 ? questMatchesFilter : undefined}
-        selectedQuestIds={selectedQuestIds}
-        onSelectQuest={toggleQuestSelection}
-      />
+      {noActiveSprint ? (
+        <div className="board-empty-state" role="status">
+          <h2>{t('Начните работу в бэклоге')}</h2>
+          <p>{t('Запланируйте и начните спринт, чтобы увидеть здесь задачи.')}</p>
+          <div className="board-empty-actions">
+            <button type="button" className="app-btn app-btn-primary" onClick={() => navigate(`/board/${boardId}/backlog`)}>{t('Перейти в бэклог')}</button>
+            <button type="button" className="app-btn app-btn-subtle" onClick={() => setColumnConfigOpen(true)}>{t('Настроить столбцы')}</button>
+          </div>
+        </div>
+      ) : (
+        <KanbanBoard
+          boardId={boardId}
+          columns={viewColumns}
+          members={members}
+          onMoveQuest={moveOnBoard}
+          onAddColumn={layoutMode ? undefined : handleAddColumn}
+          onColumnReorder={layoutMode ? undefined : handleColumnReorder}
+          onRefresh={loadBoard}
+          onUpdateColumn={layoutMode ? undefined : handleUpdateColumn}
+          onUpdateColumnKind={layoutMode ? undefined : handleUpdateColumnKind}
+          onRefreshColumn={layoutMode ? undefined : handleRefreshColumn}
+          onRefreshColumnQuests={layoutMode || scrum ? undefined : handleRefreshColumnQuests}
+          onDeleteColumn={layoutMode ? undefined : handleDeleteColumn}
+          onDeleteQuest={handleDeleteQuest}
+          onQuestClick={openIssue}
+          questFilter={activeFilterCount > 0 ? questMatchesFilter : undefined}
+          selectedQuestIds={selectedQuestIds}
+          onSelectQuest={toggleQuestSelection}
+          sprintId={scrum ? [...sprintIds][0] : undefined}
+        />
+      )}
+      {columnConfigOpen && (
+        <ColumnConfigDialog
+          boardId={boardId}
+          layout={columnLayout}
+          onClose={() => setColumnConfigOpen(false)}
+          onPublished={(saved) => { setColumnLayout(saved); setColumnConfigOpen(false); loadBoard(); }}
+        />
+      )}
 
       {questId && (
         <IssueDetailDrawer

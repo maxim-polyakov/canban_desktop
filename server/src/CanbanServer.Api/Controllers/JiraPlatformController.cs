@@ -20,14 +20,17 @@ public class JiraPlatformController : ControllerBase
     private readonly IProjectAccessService _access;
     private readonly CanbanDbContext _db;
     private readonly IQuestService _quests;
+    private readonly PermissionSchemeService _permissions;
 
     public JiraPlatformController(
         IJiraPlatformService jira,
         IJqlQueryService jql,
         IProjectAccessService access,
         CanbanDbContext db,
-        IQuestService quests)
+        IQuestService quests,
+        PermissionSchemeService permissions)
     {
+        _permissions = permissions;
         _jira = jira;
         _jql = jql;
         _access = access;
@@ -42,6 +45,9 @@ public class JiraPlatformController : ControllerBase
 
     private async Task EnsureQuestAsync(Guid questId, BoardPermission required, CancellationToken ct) =>
         await _access.EnsureQuestPermissionAsync(questId, RequireUser(), required, ct);
+
+    private async Task EnsureQuestAsync(Guid questId, string permission, CancellationToken ct) =>
+        await _permissions.EnsureQuestAsync(questId, RequireUser(), permission, ct);
 
     [HttpGet("workflows/board/{boardId:guid}")]
     public async Task<ActionResult> GetWorkflows(Guid boardId, CancellationToken ct)
@@ -89,7 +95,7 @@ public class JiraPlatformController : ControllerBase
     [HttpPost("workflows/quests/{questId:guid}/transitions")]
     public async Task<ActionResult> ExecuteQuestTransition(Guid questId, [FromBody] ExecuteTransitionRequest request, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        await EnsureQuestAsync(questId, JiraPermissions.Transition, ct);
         var quest = await _db.Quests.AsNoTracking().FirstAsync(q => q.Id == questId, ct);
         var transition = (await _jira.GetTransitionsAsync(quest.BoardId, ct))
             .FirstOrDefault(t => t.Id == request.TransitionId && t.Enabled && t.TargetColumnId != quest.ColumnId && (t.FromAnyStatus || t.SourceColumnId == quest.ColumnId))
@@ -125,14 +131,14 @@ public class JiraPlatformController : ControllerBase
     [HttpPost("quests/{questId:guid}/links")]
     public async Task<ActionResult> AddLink(Guid questId, [FromBody] CreateQuestLinkRequest request, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        await EnsureQuestAsync(questId, JiraPermissions.Link, ct);
         return Ok(await _jira.AddLinkAsync(questId, RequireUser(), request, ct));
     }
 
     [HttpDelete("quests/{questId:guid}/links/{linkId:guid}")]
     public async Task<ActionResult> DeleteLink(Guid questId, Guid linkId, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        await EnsureQuestAsync(questId, JiraPermissions.Link, ct);
         return await _jira.DeleteLinkAsync(questId, linkId, ct) ? NoContent() : NotFound();
     }
 
@@ -160,14 +166,14 @@ public class JiraPlatformController : ControllerBase
     [HttpPost("quests/{questId:guid}/worklogs")]
     public async Task<ActionResult> AddWorkLog(Guid questId, [FromBody] UpsertWorkLogRequest request, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        await EnsureQuestAsync(questId, JiraPermissions.WorkOnIssues, ct);
         return Ok(await _jira.SaveWorkLogAsync(questId, RequireUser(), null, request, ct));
     }
 
     [HttpPut("quests/{questId:guid}/worklogs/{id:guid}")]
     public async Task<ActionResult> UpdateWorkLog(Guid questId, Guid id, [FromBody] UpsertWorkLogRequest request, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        await EnsureQuestAsync(questId, JiraPermissions.WorkOnIssues, ct);
         return Ok(await _jira.SaveWorkLogAsync(questId, RequireUser(), id, request, ct));
     }
 
@@ -175,9 +181,10 @@ public class JiraPlatformController : ControllerBase
     public async Task<ActionResult> DeleteWorkLog(Guid questId, Guid id, CancellationToken ct)
     {
         var userId = RequireUser();
-        var (_, permission) = await _access.GetQuestAccessAsync(questId, userId, ct);
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
-        return await _jira.DeleteWorkLogAsync(questId, id, userId, permission >= BoardPermission.Manage, ct) ? NoContent() : NotFound();
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        var canDeleteAll = await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.DeleteAllWorklogs, ct);
+        if (!canDeleteAll && !await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.DeleteOwnWorklogs, ct)) return Forbid();
+        return await _jira.DeleteWorkLogAsync(questId, id, userId, canDeleteAll, ct) ? NoContent() : NotFound();
     }
 
     [HttpGet("quests/{questId:guid}/history")]
@@ -657,14 +664,14 @@ public class JiraPlatformController : ControllerBase
     [HttpPost("integrations/github/quests/{questId:guid}/branches")]
     public async Task<ActionResult> CreateBranch(Guid questId, [FromBody] CreateGitHubBranchRequest request, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        await EnsureQuestAsync(questId, JiraPermissions.Edit, ct);
         return Ok(await _jira.CreateBranchAsync(questId, request, ct));
     }
 
     [HttpPost("integrations/github/quests/{questId:guid}/sync")]
     public async Task<ActionResult> SyncDevelopment(Guid questId, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        await EnsureQuestAsync(questId, JiraPermissions.Edit, ct);
         return Ok(await _jira.SyncDevelopmentAsync(questId, ct));
     }
 
@@ -717,10 +724,11 @@ public class JiraPlatformController : ControllerBase
     [HttpPost("bulk/quests/delete")]
     public async Task<ActionResult> BulkDelete([FromBody] BulkDeleteQuestsRequest request, [FromQuery] Guid boardId, CancellationToken ct)
     {
-        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        await EnsureBoardAsync(boardId, BoardPermission.View, ct);
         var ids = await _db.Quests.AsNoTracking()
             .Where(q => q.BoardId == boardId && request.QuestIds.Contains(q.Id))
             .Select(q => q.Id).ToListAsync(ct);
+        foreach (var id in ids) await EnsureQuestAsync(id, JiraPermissions.Delete, ct);
         var deleted = 0;
         foreach (var id in ids)
             if (await _quests.DeleteAsync(id, ct)) deleted++;
@@ -730,7 +738,8 @@ public class JiraPlatformController : ControllerBase
     [HttpPost("clone/quests/{questId:guid}")]
     public async Task<ActionResult> CloneQuest(Guid questId, [FromBody] CloneQuestRequest? request, CancellationToken ct)
     {
-        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        var source = await _permissions.FindQuestAsync(questId, ct) ?? throw new KeyNotFoundException("Quest not found");
+        await _permissions.EnsureAsync(source.BoardId, RequireUser(), JiraPermissions.Create, ct);
         return Ok(await _jira.CloneQuestAsync(questId, RequireUser(), request ?? new CloneQuestRequest(), ct));
     }
 

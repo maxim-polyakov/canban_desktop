@@ -21,22 +21,24 @@ public class IssueVoteService
 
     private readonly CanbanDbContext _db;
     private readonly IProjectAccessService _access;
+    private readonly PermissionSchemeService _permissions;
 
-    public IssueVoteService(CanbanDbContext db, IProjectAccessService access)
+    public IssueVoteService(CanbanDbContext db, IProjectAccessService access, PermissionSchemeService permissions)
     {
         _db = db;
         _access = access;
+        _permissions = permissions;
     }
 
     public async Task<IssueVotesDto> GetAsync(Guid questId, Guid userId, CancellationToken ct)
     {
-        var (quest, permission) = await LoadAsync(questId, userId, ct);
-        return await BuildAsync(quest, userId, permission, ct);
+        var (quest, canSeeVoters) = await LoadAsync(questId, userId, ct);
+        return await BuildAsync(quest, userId, canSeeVoters, ct);
     }
 
     public async Task<IssueVotesDto> SetAsync(Guid questId, Guid userId, bool vote, CancellationToken ct)
     {
-        var (quest, permission) = await LoadAsync(questId, userId, ct);
+        var (quest, canSeeVoters) = await LoadAsync(questId, userId, ct);
         var blocked = BlockedReason(quest, userId);
         if (blocked != null) throw new InvalidOperationException(blocked);
         var existing = await _db.QuestVotes.FirstOrDefaultAsync(v => v.QuestId == questId && v.UserId == userId, ct);
@@ -55,7 +57,7 @@ public class IssueVoteService
             _db.QuestVotes.Remove(existing);
             await _db.SaveChangesAsync(ct);
         }
-        return await BuildAsync(quest, userId, permission, ct);
+        return await BuildAsync(quest, userId, canSeeVoters, ct);
     }
 
     public static string? BlockedReason(Quest quest, Guid userId)
@@ -65,16 +67,16 @@ public class IssueVoteService
         return null;
     }
 
-    private async Task<(Quest Quest, BoardPermission Permission)> LoadAsync(Guid questId, Guid userId, CancellationToken ct)
+    private async Task<(Quest Quest, bool CanSeeVoters)> LoadAsync(Guid questId, Guid userId, CancellationToken ct)
     {
         await _access.EnsureQuestPermissionAsync(questId, userId, BoardPermission.View, ct);
-        var (_, permission) = await _access.GetQuestAccessAsync(questId, userId, ct);
+        var canSeeVoters = await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.ViewVoters, ct);
         var quest = await _db.Quests.AsNoTracking().Include(q => q.Column).FirstOrDefaultAsync(q => q.Id == questId, ct)
             ?? throw new KeyNotFoundException("Quest not found");
-        return (quest, permission ?? BoardPermission.View);
+        return (quest, canSeeVoters);
     }
 
-    private async Task<IssueVotesDto> BuildAsync(Quest quest, Guid userId, BoardPermission permission, CancellationToken ct)
+    private async Task<IssueVotesDto> BuildAsync(Quest quest, Guid userId, bool canSeeVoters, CancellationToken ct)
     {
         var voters = await _db.QuestVotes.AsNoTracking().Where(v => v.QuestId == quest.Id)
             .OrderBy(v => v.CreatedAt)
@@ -82,6 +84,6 @@ public class IssueVoteService
             .ToListAsync(ct);
         var blocked = BlockedReason(quest, userId);
         return new IssueVotesDto(voters.Count, voters.Any(v => v.UserId == userId), blocked == null, blocked,
-            permission >= BoardPermission.Work ? voters : null);
+            canSeeVoters ? voters : null);
     }
 }

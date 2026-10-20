@@ -170,6 +170,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<IQuestAttachmentStorageService, QuestAttachmentStorageService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<PermissionSchemeService>();
 builder.Services.AddScoped<IProjectAccessService, ProjectAccessService>();
 builder.Services.AddScoped<IJiraPlatformService, JiraPlatformService>();
 builder.Services.AddScoped<ISmartCommitService, SmartCommitService>();

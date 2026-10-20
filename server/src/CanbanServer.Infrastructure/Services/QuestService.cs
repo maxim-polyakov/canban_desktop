@@ -23,6 +23,7 @@ public class QuestService : IQuestService
     private readonly CacheService _cache;
     private readonly IssueFieldService _fields;
     private readonly WorkflowSchemeService _workflows;
+    private readonly PermissionSchemeService _permissions;
 
     public QuestService(
         CanbanDbContext db,
@@ -38,9 +39,11 @@ public class QuestService : IQuestService
         IProjectAccessService access,
         CacheService cache,
         IssueFieldService fields,
-        WorkflowSchemeService workflows)
+        WorkflowSchemeService workflows,
+        PermissionSchemeService permissions)
     {
         _db = db;
+        _permissions = permissions;
         _activityFeed = activityFeed;
         _activityHub = activityHub;
         _boardHub = boardHub;
@@ -92,6 +95,8 @@ public class QuestService : IQuestService
             ?? throw new ArgumentException("Column not found");
         var assigneeIds = NormalizeAssigneeIds(request.AssigneeIds, request.AssigneeId);
         await ValidateAssigneesAsync(col.Board.TeamId, assigneeIds, ct);
+        if (assigneeIds.Count > 0) await _permissions.EnsureAsync(col.BoardId, userId, JiraPermissions.Assign, ct);
+        await EnsureAssignableAsync(col.BoardId, assigneeIds, ct);
         if (request.SprintId.HasValue)
         {
             var sprintOk = await _db.Sprints.AnyAsync(s => s.Id == request.SprintId && s.BoardId == col.BoardId, ct);
@@ -211,6 +216,11 @@ public class QuestService : IQuestService
                 ct);
         var currentAssigneeIds = q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId).ToList();
         var assigneesChanged = requestedAssigneeIds != null && !currentAssigneeIds.SequenceEqual(requestedAssigneeIds);
+        if (assigneesChanged)
+        {
+            await _permissions.EnsureAsync(q.BoardId, userId, JiraPermissions.Assign, ct, q);
+            await EnsureAssignableAsync(q.BoardId, requestedAssigneeIds!.Where(a => !currentAssigneeIds.Contains(a)).ToList(), ct);
+        }
         var changes = new List<string>();
         var auditChanges = new List<(string Field, string? OldValue, string? NewValue)>();
         if (request.Title != null && request.Title != q.Title) changes.Add("изменено название");
@@ -904,6 +914,16 @@ public class QuestService : IQuestService
         if (request.AssigneeIdSet)
             return NormalizeAssigneeIds(null, request.AssigneeId);
         return null;
+    }
+
+    private async Task EnsureAssignableAsync(Guid boardId, IReadOnlyCollection<Guid> assigneeIds, CancellationToken ct)
+    {
+        if (assigneeIds.Count == 0) return;
+        var allowed = await _permissions.HoldersAsync(boardId, assigneeIds, JiraPermissions.Assignable, ct);
+        var denied = assigneeIds.Where(id => !allowed.Contains(id)).ToList();
+        if (denied.Count == 0) return;
+        var name = await _db.Users.Where(u => u.Id == denied[0]).Select(u => u.DisplayName).FirstOrDefaultAsync(ct);
+        throw new ArgumentException($"«{name}» не может быть исполнителем в этом пространстве");
     }
 
     private async Task ValidateAssigneesAsync(Guid teamId, IReadOnlyCollection<Guid> assigneeIds, CancellationToken ct)

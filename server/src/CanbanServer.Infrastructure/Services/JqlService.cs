@@ -11,7 +11,13 @@ namespace CanbanServer.Infrastructure.Services;
 public sealed class JqlService : IJqlQueryService
 {
     private readonly CanbanDbContext _db;
-    public JqlService(CanbanDbContext db) => _db = db;
+    private readonly PermissionSchemeService _permissions;
+
+    public JqlService(CanbanDbContext db, PermissionSchemeService permissions)
+    {
+        _db = db;
+        _permissions = permissions;
+    }
     public JqlQuery Parse(string text) => new JqlParser(text).Parse();
 
     public async Task<JqlSearchResult> SearchAsync(string text, Guid userId, int page, int pageSize, Guid? boardId, CancellationToken ct)
@@ -27,6 +33,10 @@ public sealed class JqlService : IJqlQueryService
             .Where(q => q.Board.Team.OwnerId == userId || q.Board.Team.Members.Any(m => m.UserId == userId) || q.Board.Access != "private");
         if (boardId.HasValue) query = query.Where(q => q.BoardId == boardId);
         var values = await query.ToListAsync(ct);
+        var browsable = new HashSet<Guid>();
+        foreach (var id in values.Select(q => q.BoardId).Distinct())
+            if (await _permissions.HasAsync(id, userId, JiraPermissions.Browse, ct)) browsable.Add(id);
+        values = values.Where(q => browsable.Contains(q.BoardId)).ToList();
         var ids = values.Select(q => q.Id).ToList();
         var lastChanges = ids.Count == 0 ? new Dictionary<Guid, DateTime>() : await _db.QuestChanges.AsNoTracking()
             .Where(c => ids.Contains(c.QuestId))

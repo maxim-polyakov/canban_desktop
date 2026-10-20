@@ -312,6 +312,15 @@ export const sharedWorkflows = {
   assign: (boardId, data) => apiJson(`/api/boards/${boardId}/workflow-scheme`, json('PUT', data)),
 };
 
+export const permissionSchemes = {
+  catalog: (teamId) => apiJson(`/api/permission-schemes${buildQuery({ teamId })}`),
+  create: (data) => apiJson('/api/permission-schemes', json('POST', data)),
+  update: (id, data) => apiJson(`/api/permission-schemes/${id}`, json('PUT', data)),
+  remove: (id) => remove(`/api/permission-schemes/${id}`),
+  board: (boardId) => apiJson(`/api/boards/${boardId}/permission-scheme`),
+  assign: (boardId, permissionSchemeId) => apiJson(`/api/boards/${boardId}/permission-scheme`, json('PUT', { permissionSchemeId })),
+};
+
 export const userGroups = {
   list: (teamId) => apiJson(`/api/groups${buildQuery({ teamId })}`),
   create: (data) => apiJson('/api/groups', json('POST', data)),

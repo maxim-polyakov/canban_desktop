@@ -15,14 +15,17 @@ public class QuestAttachmentService : IQuestAttachmentService
     private readonly IQuestAttachmentStorageService _storage;
     private readonly IQuestNotificationService _notifications;
     private readonly ILogger<QuestAttachmentService> _logger;
+    private readonly PermissionSchemeService _permissions;
 
     public QuestAttachmentService(
         CanbanDbContext db,
         IQuestAttachmentStorageService storage,
         IQuestNotificationService notifications,
-        ILogger<QuestAttachmentService> logger)
+        ILogger<QuestAttachmentService> logger,
+        PermissionSchemeService permissions)
     {
         _db = db;
+        _permissions = permissions;
         _storage = storage;
         _notifications = notifications;
         _logger = logger;
@@ -165,6 +168,9 @@ public class QuestAttachmentService : IQuestAttachmentService
             .FirstOrDefaultAsync(a => a.Id == attachmentId && a.QuestId == questId, ct);
         if (attachment == null)
             return QuestAttachmentOperationStatus.NotFound;
+        var key = attachment.UploadedByUserId == userId ? JiraPermissions.DeleteOwnAttachments : JiraPermissions.DeleteAllAttachments;
+        if (!await _permissions.HasOnQuestAsync(questId, userId, key, ct))
+            return QuestAttachmentOperationStatus.Forbidden;
 
         if (!await _storage.DeleteAsync(attachment.StorageKey, ct))
             return QuestAttachmentOperationStatus.StorageError;

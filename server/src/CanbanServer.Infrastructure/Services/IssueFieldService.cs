@@ -32,10 +32,13 @@ public partial class IssueFieldService
     private readonly IssueLayoutService _layouts;
     private readonly WorkflowSchemeService _workflows;
 
+    private readonly PermissionSchemeService _permissions;
+
     public IssueFieldService(
         CanbanDbContext db, IProjectAccessService access, IJiraPlatformService jira, IBoardHub boardHub, CacheService cache, IssueLayoutService layouts,
-        WorkflowSchemeService workflows)
+        WorkflowSchemeService workflows, PermissionSchemeService permissions)
     {
+        _permissions = permissions;
         _layouts = layouts;
         _workflows = workflows;
         _db = db;
@@ -189,7 +192,7 @@ public partial class IssueFieldService
 
     public async Task<Dictionary<string, JsonElement>> SetValueAsync(Guid questId, Guid fieldId, JsonElement? value, Guid userId, CancellationToken ct)
     {
-        await _access.EnsureQuestPermissionAsync(questId, userId, BoardPermission.Work, ct);
+        await _permissions.EnsureQuestAsync(questId, userId, JiraPermissions.Edit, ct);
         var quest = await _db.Quests.Include(q => q.Board).FirstAsync(q => q.Id == questId, ct);
         var field = await _db.CustomFieldDefinitions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == fieldId && x.TeamId == quest.Board.TeamId, ct)
             ?? throw new KeyNotFoundException("Field not found");

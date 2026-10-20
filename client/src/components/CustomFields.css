@@ -34,3 +34,19 @@
   .custom-field-row { grid-template-columns: 1fr; gap: 4px; }
   .custom-field-row > label { padding-top: 0; }
 }
+
+.perm-meta { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 12px; margin-bottom: 12px; }
+.perm-picker { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.perm-picker select { min-width: 240px; height: 32px; }
+.perm-table td { vertical-align: top; }
+.perm-category th { background: var(--color-bg-subtle, #f7f8f9); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-subtle, #626f86); text-align: left; }
+.perm-grants { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.perm-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 8px; border-radius: 12px; background: var(--color-bg-neutral, #e9ebee); font-size: 12px; }
+.perm-chip .app-icon-btn { width: 20px; height: 20px; }
+.perm-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.perm-add select { height: 28px; max-width: 220px; }
+.settings-link-btn { background: none; border: 0; padding: 0; color: var(--color-link, #0c66e4); cursor: pointer; text-align: left; font: inherit; font-weight: 500; }
+.settings-link-btn:hover { text-decoration: underline; }
+.sv-permission-scheme { margin-top: 24px; }
+.sv-permission-scheme h2 { font-size: 16px; margin: 0 0 4px; }
+@media (max-width: 720px) { .perm-meta { grid-template-columns: 1fr; } }

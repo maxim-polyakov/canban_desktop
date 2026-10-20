@@ -13,10 +13,12 @@ public class QuestCollaborationService : IQuestCollaborationService
     private readonly IQuestAttachmentService _access;
     private readonly IQuestNotificationService _notifications;
     private readonly IBoardHub _boardHub;
+    private readonly PermissionSchemeService _permissions;
 
-    public QuestCollaborationService(CanbanDbContext db, IQuestAttachmentService access, IQuestNotificationService notifications, IBoardHub boardHub)
+    public QuestCollaborationService(CanbanDbContext db, IQuestAttachmentService access, IQuestNotificationService notifications, IBoardHub boardHub, PermissionSchemeService permissions)
     {
         _db = db;
+        _permissions = permissions;
         _access = access;
         _notifications = notifications;
         _boardHub = boardHub;
@@ -28,7 +30,8 @@ public class QuestCollaborationService : IQuestCollaborationService
         IReadOnlyCollection<Guid> userIds,
         CancellationToken ct = default,
         bool notifyBoard = true,
-        IReadOnlyCollection<ExternalNotificationRecipientDto>? externalRecipients = null)
+        IReadOnlyCollection<ExternalNotificationRecipientDto>? externalRecipients = null,
+        bool checkWatcherPermission = false)
     {
         var access = await _access.CheckQuestAccessAsync(questId, actorUserId, ct);
         if (access != QuestAttachmentOperationStatus.Success) return access;
@@ -45,8 +48,20 @@ public class QuestCollaborationService : IQuestCollaborationService
         if (requested.Any(id => !allowed.Contains(id))) return QuestAttachmentOperationStatus.Forbidden;
 
         var existing = await _db.QuestNotificationRecipients.Where(r => r.QuestId == questId).ToListAsync(ct);
-        _db.QuestNotificationRecipients.RemoveRange(existing.Where(r => !requested.Contains(r.UserId)));
         var existingIds = existing.Select(r => r.UserId).ToHashSet();
+        if (checkWatcherPermission && !await _permissions.HasOnQuestAsync(questId, actorUserId, JiraPermissions.ManageWatchers, ct))
+        {
+            var changed = requested.Where(id => !existingIds.Contains(id) && !assigneeIds.Contains(id))
+                .Concat(existingIds.Where(id => !requested.Contains(id)));
+            var externalChanged = false;
+            if (externalRecipients != null)
+            {
+                var current = await _db.QuestExternalNotificationRecipients.Where(r => r.QuestId == questId).Select(r => r.Email).ToListAsync(ct);
+                externalChanged = !NormalizeExternalRecipients(externalRecipients).Keys.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(current);
+            }
+            if (externalChanged || changed.Any(id => id != actorUserId)) return QuestAttachmentOperationStatus.Forbidden;
+        }
+        _db.QuestNotificationRecipients.RemoveRange(existing.Where(r => !requested.Contains(r.UserId)));
         _db.QuestNotificationRecipients.AddRange(requested.Where(id => !existingIds.Contains(id)).Select(id =>
             new QuestNotificationRecipient { Id = Guid.NewGuid(), QuestId = questId, UserId = id }));
 
@@ -131,9 +146,8 @@ public class QuestCollaborationService : IQuestCollaborationService
         if (access != QuestAttachmentOperationStatus.Success) return access;
         var comment = await _db.QuestComments.FirstOrDefaultAsync(c => c.Id == commentId && c.QuestId == questId, ct);
         if (comment == null) return QuestAttachmentOperationStatus.NotFound;
-        var teamId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.Board.TeamId).FirstAsync(ct);
-        var isOwner = await _db.Teams.AnyAsync(t => t.Id == teamId && t.OwnerId == userId, ct);
-        if (comment.AuthorUserId != userId && !isOwner) return QuestAttachmentOperationStatus.Forbidden;
+        var key = comment.AuthorUserId == userId ? JiraPermissions.DeleteOwnComments : JiraPermissions.DeleteAllComments;
+        if (!await _permissions.HasOnQuestAsync(questId, userId, key, ct)) return QuestAttachmentOperationStatus.Forbidden;
         var preview = comment.Text;
         _db.QuestComments.Remove(comment);
         await _db.SaveChangesAsync(ct);

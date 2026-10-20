@@ -20,13 +20,16 @@ public class QuestsController : ControllerBase
     private readonly IQuestAttachmentService _attachmentService;
     private readonly IQuestCollaborationService _collaborationService;
     private readonly IProjectAccessService _access;
+    private readonly PermissionSchemeService _permissions;
 
     public QuestsController(
         IQuestService questService,
         IQuestAttachmentService attachmentService,
         IQuestCollaborationService collaborationService,
-        IProjectAccessService access)
+        IProjectAccessService access,
+        PermissionSchemeService permissions)
     {
+        _permissions = permissions;
         _questService = questService;
         _attachmentService = attachmentService;
         _collaborationService = collaborationService;
@@ -38,6 +41,12 @@ public class QuestsController : ControllerBase
         var userId = User.GetUserId(); if (!userId.HasValue) return false;
         var access = await _access.GetQuestAccessAsync(questId, userId.Value, ct);
         return access.Status == ProjectAccessStatus.Success && access.Permission >= permission;
+    }
+
+    private async Task<bool> Can(Guid questId, string permission, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        return userId.HasValue && await _permissions.HasOnQuestAsync(questId, userId.Value, permission, ct);
     }
 
     private async Task<bool> CanBoard(Guid boardId, BoardPermission permission, CancellationToken ct)
@@ -96,6 +105,8 @@ public class QuestsController : ControllerBase
             return BadRequest("Выберите непустой файл.");
         if (file.Length > MaxAttachmentSize)
             return BadRequest("Размер файла не должен превышать 1 ГБ.");
+        if (await _permissions.FindQuestAsync(questId, ct) == null) return NotFound();
+        if (!await Can(questId, JiraPermissions.CreateAttachments, ct)) return Forbid();
 
         await using var stream = file.OpenReadStream();
         var result = await _attachmentService.UploadAsync(
@@ -291,8 +302,9 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        var columnAccess = await _attachmentService.CheckColumnAccessAsync(request.ColumnId, userId.Value, ct);
-        if (columnAccess != QuestAttachmentOperationStatus.Success) return Forbid();
+        var boardId = await _permissions.BoardOfColumnAsync(request.ColumnId, ct);
+        if (boardId == null) return NotFound();
+        if (!await _permissions.HasAsync(boardId.Value, userId.Value, JiraPermissions.Create, ct)) return Forbid();
         try
         {
             var quest = await _questService.CreateAsync(request, userId.Value, ct);
@@ -309,7 +321,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        if (!await CanQuest(id, BoardPermission.Work, ct)) return Forbid();
+        if (!await Can(id, JiraPermissions.Edit, ct)) return Forbid();
         try
         {
             var quest = await _questService.UpdateAsync(id, request, userId.Value, ct);
@@ -326,13 +338,14 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        if (!await CanQuest(questId, BoardPermission.Work, ct)) return Forbid();
+        if (!await CanQuest(questId, BoardPermission.View, ct)) return Forbid();
         var status = await _collaborationService.SetRecipientsAsync(
             questId,
             userId.Value,
             request.UserIds,
             ct,
-            externalRecipients: request.ExternalNotificationRecipients);
+            externalRecipients: request.ExternalNotificationRecipients,
+            checkWatcherPermission: true);
         return status switch { QuestAttachmentOperationStatus.Success => NoContent(), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
 
@@ -351,7 +364,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        if (!await CanQuest(questId, BoardPermission.Work, ct)) return Forbid();
+        if (!await Can(questId, JiraPermissions.AddComments, ct)) return Forbid();
         if (string.IsNullOrWhiteSpace(request.Text) || request.Text.Trim().Length > 5000) return BadRequest("Комментарий должен содержать от 1 до 5000 символов.");
         var result = await _collaborationService.AddCommentAsync(questId, userId.Value, request.Text, request.DocumentJson, ct);
         return result.Status switch { QuestAttachmentOperationStatus.Success => Ok(result.Comment), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
@@ -362,7 +375,7 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        if (!await CanQuest(questId, BoardPermission.Work, ct)) return Forbid();
+        if (!await CanQuest(questId, BoardPermission.View, ct)) return Forbid();
         var status = await _collaborationService.DeleteCommentAsync(questId, commentId, userId.Value, ct);
         return status switch { QuestAttachmentOperationStatus.Success => NoContent(), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
@@ -373,7 +386,10 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        if (!await CanQuest(request.QuestId, BoardPermission.Work, ct)) return Forbid();
+        var current = await _permissions.FindQuestAsync(request.QuestId, ct);
+        if (current == null) return NotFound();
+        var permission = current.ColumnId == request.TargetColumnId ? JiraPermissions.Edit : JiraPermissions.Transition;
+        if (!await Can(request.QuestId, permission, ct)) return Forbid();
         var quest = await _questService.MoveAsync(request, userId.Value, ct);
         return quest == null ? NotFound() : Ok(quest);
     }
@@ -392,8 +408,9 @@ public class QuestsController : ControllerBase
     public async Task<ActionResult> Reorder([FromBody] ReorderQuestsRequest request, CancellationToken ct)
     {
         var userId = User.GetUserId(); if (!userId.HasValue) return Unauthorized();
-        var columnAccess = await _attachmentService.CheckColumnAccessAsync(request.ColumnId, userId.Value, ct);
-        if (columnAccess != QuestAttachmentOperationStatus.Success) return Forbid();
+        var boardId = await _permissions.BoardOfColumnAsync(request.ColumnId, ct);
+        if (boardId == null) return NotFound();
+        if (!await _permissions.HasAsync(boardId.Value, userId.Value, JiraPermissions.Edit, ct)) return Forbid();
         await _questService.ReorderAsync(request, ct);
         return NoContent();
     }
@@ -404,10 +421,8 @@ public class QuestsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (!userId.HasValue) return Unauthorized();
-        if (!await CanQuest(id, BoardPermission.Manage, ct)) return Forbid();
-        var access = await _attachmentService.CheckQuestAccessAsync(id, userId.Value, ct);
-        if (access == QuestAttachmentOperationStatus.NotFound) return NotFound();
-        if (access == QuestAttachmentOperationStatus.Forbidden) return Forbid();
+        if (await _permissions.FindQuestAsync(id, ct) == null) return NotFound();
+        if (!await Can(id, JiraPermissions.Delete, ct)) return Forbid();
 
         var deleted = await _questService.DeleteAsync(id, ct);
         return deleted ? NoContent() : NotFound();

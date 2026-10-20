@@ -44,6 +44,7 @@ public static partial class DatabaseSchemaInitializer
             CREATE TABLE IF NOT EXISTS "BoardIssueLayouts" (
               "BoardId" uuid PRIMARY KEY, "FieldConfigurationSchemeId" uuid NULL, "IssueTypeScreenSchemeId" uuid NULL);
             ALTER TABLE "BoardIssueLayouts" ADD COLUMN IF NOT EXISTS "WorkflowSchemeId" uuid NULL;
+            ALTER TABLE "BoardIssueLayouts" ADD COLUMN IF NOT EXISTS "PermissionSchemeId" uuid NULL;
 
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueTypeId" uuid NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "CustomFieldsJson" text NOT NULL DEFAULT '{{}}';

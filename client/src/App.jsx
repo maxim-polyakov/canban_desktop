@@ -47,6 +47,7 @@ import GroupsPage from './pages/settings/GroupsPage.jsx';
 import SpaceSettingsPage, { SpaceFieldsPage } from './pages/settings/SpaceSettingsPage.jsx';
 import { FieldConfigurationsPage, ScreensPage } from './pages/settings/IssueLayoutPages.jsx';
 import { WorkflowDesignerPage, WorkflowsPage } from './pages/settings/WorkflowPages.jsx';
+import { PermissionSchemesPage } from './pages/settings/PermissionSchemePages.jsx';
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
 import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
 import { useApplyTheme, usePrefs } from './utils/preferences.js';
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="settings/issues/field-configurations" element={<FieldConfigurationsPage />} />
           <Route path="settings/issues/workflows" element={<WorkflowsPage />} />
           <Route path="settings/issues/workflows/:id" element={<WorkflowDesignerPage />} />
+          <Route path="settings/issues/permission-schemes" element={<PermissionSchemesPage />} />
           <Route path="notifications-settings" element={<Navigate to="/settings/personal/notifications" replace />} />
           <Route path="admin" element={<AdminOverviewPage />} />
           <Route path="admin/system" element={<AdminSystemPage />} />

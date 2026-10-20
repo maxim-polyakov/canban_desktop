@@ -8,8 +8,13 @@ namespace CanbanServer.Infrastructure.Services;
 public class ProjectAccessService : IProjectAccessService
 {
     private readonly CanbanDbContext _db;
+    private readonly PermissionSchemeService _schemes;
 
-    public ProjectAccessService(CanbanDbContext db) => _db = db;
+    public ProjectAccessService(CanbanDbContext db, PermissionSchemeService? schemes = null)
+    {
+        _db = db;
+        _schemes = schemes ?? new PermissionSchemeService(db);
+    }
 
     public BoardPermission MapRole(TeamRole? role, bool isOwner)
     {
@@ -42,15 +47,10 @@ public class ProjectAccessService : IProjectAccessService
     public async Task<(ProjectAccessStatus Status, BoardPermission? Permission)> GetBoardAccessAsync(
         Guid boardId, Guid userId, CancellationToken ct = default)
     {
-        var board = await _db.Boards.AsNoTracking()
-            .Where(b => b.Id == boardId)
-            .Select(b => new { b.TeamId, b.Access })
-            .FirstOrDefaultAsync(ct);
-        if (board == null) return (ProjectAccessStatus.NotFound, null);
-        var teamAccess = await GetTeamAccessAsync(board.TeamId, userId, ct);
-        if (teamAccess.Status != ProjectAccessStatus.Forbidden) return teamAccess;
-        var outsider = OutsiderPermission(board.Access);
-        return outsider.HasValue ? (ProjectAccessStatus.Success, outsider) : teamAccess;
+        var scope = await _schemes.ScopeAsync(boardId, userId, ct);
+        if (scope == null) return (ProjectAccessStatus.NotFound, null);
+        var level = scope.Level;
+        return level.HasValue ? (ProjectAccessStatus.Success, level) : (ProjectAccessStatus.Forbidden, null);
     }
 
     /// <summary>What people outside the owning team may do in a space, by its access level.</summary>

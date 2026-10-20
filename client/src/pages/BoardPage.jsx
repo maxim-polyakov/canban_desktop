@@ -346,7 +346,7 @@ export default function BoardPage() {
   if (!board) return <div className="page">Доска не найдена.</div>;
 
   const boardColumns = (board.columns ?? []).filter((column) => column.kind !== ARCHIVE_COLUMN_KIND);
-  const scrum = isScrumBoard(board);
+  const scrum = isScrumBoard(board, boardSprints);
   const sprintIds = activeSprintIds(boardSprints);
   const noActiveSprint = scrum && sprintsLoaded && sprintIds.size === 0;
   const visibleStatuses = scrum
@@ -494,6 +494,12 @@ export default function BoardPage() {
 
       {noActiveSprint ? (
         <div className="board-empty-state" role="status">
+          <span className="board-empty-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2.5" y="2.5" width="9" height="9" rx="1.5" />
+              <path d="M5 8l1.5 1.5L9 7M11.5 6.5h2v7h-7v-2" />
+            </svg>
+          </span>
           <h2>{t('Начните работу в бэклоге')}</h2>
           <p>{t('Запланируйте и начните спринт, чтобы увидеть здесь задачи.')}</p>
           <div className="board-empty-actions">

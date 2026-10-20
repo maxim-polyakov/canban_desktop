@@ -279,6 +279,16 @@
   text-align: center;
 }
 
+.board-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--surface-subtle, rgba(9, 30, 66, 0.06));
+  color: var(--text-subtle);
+}
+
 .board-empty-state h2 {
   margin: 0;
   font-size: 1rem;

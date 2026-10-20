@@ -27,7 +27,8 @@ export function statusTone(kind) {
   return 'progress';
 }
 
-export const isScrumBoard = (board) => board?.template === 'scrum' && spaceFeatures(board).includes('backlog');
+export const isScrumBoard = (board, sprints = []) => spaceFeatures(board).includes('backlog')
+  && (board?.template === 'scrum' || (sprints || []).length > 0);
 
 export const activeSprintIds = (sprints) => new Set((sprints || []).filter((s) => s.status === 1).map((s) => s.id));
 

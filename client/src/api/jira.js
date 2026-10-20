@@ -206,6 +206,15 @@ export const savedFilters = {
   delete: (id) => remove(`/api/savedFilters/${id}`),
 };
 
+export const filterSubscriptions = {
+  list: (filterId) => apiJson(`/api/filterSubscriptions${buildQuery({ filterId })}`),
+  groups: () => apiJson('/api/filterSubscriptions/groups'),
+  create: (filterId, data) => apiJson(`/api/savedFilters/${filterId}/subscriptions`, json('POST', data)),
+  update: (id, data) => apiJson(`/api/filterSubscriptions/${id}`, json('PUT', data)),
+  delete: (id) => remove(`/api/filterSubscriptions/${id}`),
+  run: (id) => apiJson(`/api/filterSubscriptions/${id}/run`, json('POST', {})),
+};
+
 export const automations = {
   getByBoard: (boardId) => apiJson(`/api/automations/board/${boardId}`),
   create: (boardId, data) => apiJson(`/api/automations/board/${boardId}`, json('POST', data)),

@@ -172,6 +172,7 @@ builder.Services.AddScoped<IQuestAttachmentStorageService, QuestAttachmentStorag
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<PermissionSchemeService>();
 builder.Services.AddScoped<MentionService>();
+builder.Services.AddScoped<FilterSubscriptionService>();
 builder.Services.AddScoped<NotificationSchemeService>();
 builder.Services.AddScoped<IProjectAccessService, ProjectAccessService>();
 builder.Services.AddScoped<IJiraPlatformService, JiraPlatformService>();
@@ -195,6 +196,7 @@ builder.Services.AddHttpClient(GitHubAppClient.HttpClientName, client => client.
 builder.Services.AddSingleton<IGitHubAppClient, GitHubAppClient>();
 builder.Services.AddHostedService<OutboxDispatcher>();
 builder.Services.AddHostedService<AuditRetentionService>();
+builder.Services.AddHostedService<FilterSubscriptionDispatcher>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration
 var redisConfig = builder.Configuration["Redis:Configuration"];

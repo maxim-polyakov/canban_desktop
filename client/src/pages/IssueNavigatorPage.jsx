@@ -3,6 +3,8 @@ import { search, savedFilters, spaces as spacesApi, people as peopleApi } from '
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import NavIcon from '../components/NavIcons.jsx';
+import FilterSubscriptionsDialog from '../components/FilterSubscriptionsDialog.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { IssueTypeIcon, PriorityIcon, getIssueTypeMeta, getPriorityMeta } from '../components/IssueIcons.jsx';
 import { isFilterStarred, toggleStarredFilter, useNavHistory } from '../utils/navHistory.js';
 import {
@@ -98,6 +100,8 @@ export default function IssueNavigatorPage() {
   useEffect(() => { loadIssueCatalog().then((c) => setCustomTypes(c?.types || [])).catch(() => {}); }, []);
   const wantsSaved = !defaultFilter && Boolean(filterParam);
   const savedFilter = wantsSaved ? (saved || []).find((f) => f.id === filterParam) : null;
+  const { user } = useAuth();
+  const [subscribing, setSubscribing] = useState(false);
   const missingFilter = wantsSaved && saved !== null && !savedFilter;
 
   let sourceJql = jqlParam ?? '';
@@ -286,9 +290,13 @@ export default function IssueNavigatorPage() {
           <button type="button" className="inav-btn" onClick={() => saveAsNew(savedFilter || defaultFilter ? `${title} (${t('копия')})` : '')}>
             {savedFilter || defaultFilter ? t('Сохранить как') : t('Сохранить фильтр')}
           </button>
+          {savedFilter && <button type="button" className="inav-btn" onClick={() => setSubscribing(true)}>{t('Подписки')}</button>}
           <Link className="inav-btn" to="/filters">{t('Все фильтры')}</Link>
         </div>
       </div>
+      {subscribing && savedFilter && (
+        <FilterSubscriptionsDialog filter={savedFilter} currentUserId={user?.id} onClose={() => setSubscribing(false)} />
+      )}
 
       <div className="inav-toolbar">
         <div className="inav-segment" role="tablist" aria-label={t('Режим поиска')}>

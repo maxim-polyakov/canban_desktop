@@ -1,0 +1,136 @@
+.fsd-modal {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.fsd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.fsd-table th {
+  padding: 0 12px 8px 0;
+  color: var(--text-subtle);
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid var(--border);
+}
+
+.fsd-table td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.fsd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.fsd-empty,
+.fsd-hint {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.85rem;
+}
+
+.fsd-status {
+  margin: 12px 0 0;
+  color: var(--success, #216e4e);
+}
+
+.fsd-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fsd-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fsd-fieldset legend {
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+
+.fsd-segment {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  align-self: flex-start;
+}
+
+.fsd-segment label {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  border-right: 1px solid var(--border);
+}
+
+.fsd-segment label:last-child {
+  border-right: 0;
+}
+
+.fsd-segment label.is-active {
+  background: var(--background-selected, #e9f2ff);
+  color: var(--text-selected, #0c66e4);
+  font-weight: 600;
+}
+
+.fsd-segment input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fsd-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fsd-days button {
+  min-width: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.fsd-days button.is-active {
+  border-color: var(--accent, #0c66e4);
+  background: var(--background-selected, #e9f2ff);
+  color: var(--text-selected, #0c66e4);
+  font-weight: 600;
+}
+
+.fsd-inline {
+  max-width: 220px;
+}
+
+.fsd-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.fsd-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

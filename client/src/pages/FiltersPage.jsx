@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { savedFilters } from '../api.js';
+import React, { useCallback, useEffect, useState } from 'react';
+import { filterSubscriptions, savedFilters } from '../api.js';
+import FilterSubscriptionsDialog from '../components/FilterSubscriptionsDialog.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Link } from '../i18n/navigation.jsx';
@@ -14,11 +15,19 @@ export default function FiltersPage() {
   const [filters, setFilters] = useState(null);
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subscribing, setSubscribing] = useState(null);
   const starredIds = new Set(starredFilters.map((f) => f.id));
 
   useEffect(() => {
     savedFilters.getAll().then((v) => setFilters(Array.isArray(v) ? v : v?.items || [])).catch((e) => { setFilters([]); setError(e.message); });
+    filterSubscriptions.list().then((v) => setSubscriptions(Array.isArray(v) ? v : [])).catch(() => setSubscriptions([]));
   }, []);
+
+  const subscriptionsChanged = useCallback((filterId, list) => {
+    setSubscriptions((all) => [...all.filter((s) => s.filterId !== filterId), ...list]);
+  }, []);
+  const subscriptionCount = (f) => subscriptions.filter((s) => s.filterId === f.id).length;
 
   const mine = (f) => f.ownerUserId === user?.id;
   const rename = async (f) => {
@@ -79,6 +88,7 @@ export default function FiltersPage() {
                     <th>{t('Название')}</th>
                     <th>{t('Владелец')}</th>
                     <th>{t('Доступ')}</th>
+                    <th>{t('Подписки')}</th>
                     <th style={{ width: 200 }}>{t('Действия')}</th>
                   </tr>
                 </thead>
@@ -96,6 +106,11 @@ export default function FiltersPage() {
                       <td>{mine(f) ? t('Вы') : t('Другой пользователь')}</td>
                       <td>{f.shared ? t('Моя организация') : <span className="inav-person"><NavIcon name="lock" size={12} />{t('Закрытый')}</span>}</td>
                       <td>
+                        <button type="button" className="inav-link" onClick={() => setSubscribing(f)}>
+                          {subscriptionCount(f) ? t('Подписок: ${n}', { n: subscriptionCount(f) }) : t('Подписаться')}
+                        </button>
+                      </td>
+                      <td>
                         {mine(f) && (
                           <span className="inav-actions">
                             <button type="button" className="inav-link" onClick={() => rename(f)}>{t('Переименовать')}</button>
@@ -112,6 +127,9 @@ export default function FiltersPage() {
             </div>
           </div>
         </>
+      )}
+      {subscribing && (
+        <FilterSubscriptionsDialog filter={subscribing} currentUserId={user?.id} onChanged={subscriptionsChanged} onClose={() => setSubscribing(null)} />
       )}
     </div>
   );

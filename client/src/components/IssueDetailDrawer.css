@@ -206,6 +206,41 @@
   font-size: 0.72rem;
 }
 
+.issue-votes-count {
+  min-width: 1.2rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--surface-2, var(--border));
+  color: var(--text);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.issue-votes-link {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.issue-votes-voters {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+}
+
+.issue-votes-voters li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .issue-drawer-actions {
   display: flex;
   gap: 0.5rem;

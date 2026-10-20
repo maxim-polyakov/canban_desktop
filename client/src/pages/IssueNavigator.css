@@ -61,6 +61,7 @@
 .inav-table tbody tr:hover { background: var(--surface-hover); }
 .inav-table .is-wide { width: 36%; max-width: 0; }
 .inav-table .is-date { color: var(--text-subtle); font-size: 13px; }
+.inav-table .is-number { text-align: right; font-variant-numeric: tabular-nums; }
 .inav-issue { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .inav-key { flex-shrink: 0; font-weight: 500; }
 .inav-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

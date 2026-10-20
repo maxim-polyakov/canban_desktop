@@ -41,7 +41,7 @@ export function defaultFilterJql(filter, viewedIssues) {
 
 export const emptyCriteria = () => ({
   text: '', spaces: [], assignees: [], types: [], statuses: [],
-  resolution: '', reporter: '', created: '', resolved: '', updated: '', keys: null, order: '',
+  resolution: '', reporter: '', voter: '', watcher: '', created: '', resolved: '', updated: '', keys: null, order: '',
 });
 
 const quote = (value) => `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
@@ -72,6 +72,8 @@ export function buildJql(criteria) {
   }
   if (c.resolution === 'unresolved') clauses.push('resolution = Unresolved');
   if (c.reporter === 'currentUser') clauses.push('reporter = currentUser()');
+  if (c.voter === 'currentUser') clauses.push('voter = currentUser()');
+  if (c.watcher === 'currentUser') clauses.push('watcher = currentUser()');
   ['created', 'resolved', 'updated'].forEach((field) => { if (c[field]) clauses.push(`${field} >= ${c[field]}`); });
   if (Array.isArray(c.keys)) clauses.push(`key in (${(c.keys.length ? c.keys : [NO_MATCH_KEY]).map(quoteIfNeeded).join(', ')})`);
   const where = clauses.join(' AND ');
@@ -172,6 +174,7 @@ export function parseBasicJql(jql) {
     }
     if (/^resolution\s*=\s*Unresolved$/i.test(clause)) { criteria.resolution = 'unresolved'; continue; }
     if (/^reporter\s*=\s*currentUser\(\)$/i.test(clause)) { criteria.reporter = 'currentUser'; continue; }
+    if ((m = /^(voter|watcher)\s*=\s*currentUser\(\)$/i.exec(clause))) { criteria[m[1].toLowerCase()] = 'currentUser'; continue; }
     if ((m = /^(created|resolved|updated)\s*>=\s*(-\d+[mhdwMy])$/.exec(clause))) { criteria[m[1]] = m[2]; continue; }
     if (/^key\b/i.test(clause)) {
       const v = parseValues(clause, 'key');

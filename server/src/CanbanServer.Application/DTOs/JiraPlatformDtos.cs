@@ -32,7 +32,7 @@ public record UpsertSavedFilterRequest(string Name, string Jql, Guid? BoardId = 
 
 public record JqlSearchResult(List<QuestDto> Items, int Total, int Page, int PageSize, List<JqlIssueDetails>? Details = null);
 public record JqlIssueDetails(Guid Id, string StatusName, string StatusCategory, Guid? ReporterId, string? ReporterName, string? ReporterAvatarUrl,
-    string BoardName, string BoardKey, DateTime UpdatedAt);
+    string BoardName, string BoardKey, DateTime UpdatedAt, int Votes = 0);
 
 public record AutomationRuleDto(Guid Id, Guid BoardId, string Name, AutomationTrigger Trigger, string? ConditionsJson, string ActionsJson, bool Enabled);
 public record UpsertAutomationRuleRequest(string Name, AutomationTrigger Trigger, string? ConditionsJson, string ActionsJson, bool Enabled = true);

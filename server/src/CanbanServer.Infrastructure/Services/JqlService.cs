@@ -23,7 +23,7 @@ public sealed class JqlService : IJqlQueryService
         var query = _db.Quests.AsNoTracking()
             .Include(q => q.Column).Include(q => q.Sprint).Include(q => q.Assignee).Include(q => q.Board)
             .Include(q => q.Assignees).ThenInclude(a => a.User)
-            .Include(q => q.NotificationRecipients).Include(q => q.ExternalNotificationRecipients)
+            .Include(q => q.NotificationRecipients).Include(q => q.ExternalNotificationRecipients).Include(q => q.Votes)
             .Where(q => q.Board.Team.OwnerId == userId || q.Board.Team.Members.Any(m => m.UserId == userId) || q.Board.Access != "private");
         if (boardId.HasValue) query = query.Where(q => q.BoardId == boardId);
         var values = await query.ToListAsync(ct);
@@ -71,7 +71,7 @@ public sealed class JqlService : IJqlQueryService
         {
             var reporter = q.ReporterId.HasValue && reporters.TryGetValue(q.ReporterId.Value, out var r) ? r : default;
             return new JqlIssueDetails(q.Id, q.Column?.Title ?? "", StatusCategory(q.Column?.Kind), q.ReporterId, reporter.Name, reporter.Avatar,
-                q.Board?.Name ?? "", q.Board?.KeyPrefix ?? "", context.UpdatedAt(q));
+                q.Board?.Name ?? "", q.Board?.KeyPrefix ?? "", context.UpdatedAt(q), q.Votes.Count);
         }).ToList();
         return new JqlSearchResult(pageItems.Select(BoardService.MapQuest).ToList(), result.Count, page, pageSize, details);
     }
@@ -157,6 +157,10 @@ public sealed class JqlService : IJqlQueryService
         "priority" => q.Priority.ToString(),
         "assignee" => q.Assignees.Count > 0 ? string.Join(",", q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId)) : q.AssigneeId,
         "reporter" => q.ReporterId,
+        "votes" => q.Votes.Count,
+        "voter" => string.Join(",", q.Votes.Select(v => v.UserId)),
+        "watchers" => q.NotificationRecipients.Count,
+        "watcher" => string.Join(",", q.NotificationRecipients.Select(r => r.UserId)),
         "sprint" => q.SprintId,
         "labels" or "label" => q.Labels,
         "component" => q.Component,

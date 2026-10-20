@@ -27,6 +27,13 @@ describe('issueFilters', () => {
     expect(parseBasicJql(jql)).toEqual(criteria);
   });
 
+  it('round-trips voter and watcher filters', () => {
+    const criteria = { ...emptyCriteria(), voter: 'currentUser', watcher: 'currentUser', order: 'votes DESC' };
+    const jql = buildJql(criteria);
+    expect(jql).toBe('voter = currentUser() AND watcher = currentUser() ORDER BY votes DESC');
+    expect(parseBasicJql(jql)).toEqual(criteria);
+  });
+
   it('returns null for queries the basic editor cannot show', () => {
     expect(parseBasicJql('priority = High OR type = Bug')).toBeNull();
     expect(parseBasicJql('labels ~ api')).toBeNull();

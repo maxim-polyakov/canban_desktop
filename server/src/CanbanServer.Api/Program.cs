@@ -183,6 +183,7 @@ builder.Services.AddScoped<ApiTokenService>();
 builder.Services.AddScoped<UserGroupService>();
 builder.Services.AddScoped<IssueLayoutService>();
 builder.Services.AddScoped<WorkflowSchemeService>();
+builder.Services.AddScoped<IssueVoteService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHttpClient("outbox");

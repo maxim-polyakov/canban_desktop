@@ -21,6 +21,7 @@ public static partial class DatabaseSchemaInitializer
         await EnsureIssueFieldsSchemaAsync(db, ct);
         await EnsureAuditSchemaAsync(db, ct);
         await EnsureApiTokensSchemaAsync(db, ct);
+        await EnsureVotesSchemaAsync(db, ct);
 
         await db.Database.ExecuteSqlRawAsync(
             """

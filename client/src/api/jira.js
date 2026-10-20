@@ -50,6 +50,12 @@ export const worklogs = {
   delete: (questId, worklogId) => remove(`/api/quests/${questId}/worklogs/${worklogId}`),
 };
 
+export const votes = {
+  get: (questId) => apiJson(`/api/quests/${questId}/votes`),
+  vote: (questId) => apiJson(`/api/quests/${questId}/votes`, { method: 'POST' }),
+  unvote: (questId) => apiJson(`/api/quests/${questId}/votes`, { method: 'DELETE' }),
+};
+
 export const history = {
   get: (questId, params) => apiJson(`/api/quests/${questId}/history${buildQuery(params)}`),
 };

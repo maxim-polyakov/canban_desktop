@@ -261,6 +261,8 @@ export default function IssueNavigatorPage() {
   const extraFields = [
     { id: 'resolution', label: t('Решение'), on: criteria.resolution === 'unresolved', enable: () => updateCriteria({ resolution: 'unresolved' }) },
     { id: 'reporter', label: t('Автор'), on: criteria.reporter === 'currentUser', enable: () => updateCriteria({ reporter: 'currentUser' }) },
+    { id: 'voter', label: t('Голосовал я'), on: criteria.voter === 'currentUser', enable: () => updateCriteria({ voter: 'currentUser' }) },
+    { id: 'watcher', label: t('Наблюдаю'), on: criteria.watcher === 'currentUser', enable: () => updateCriteria({ watcher: 'currentUser' }) },
     { id: 'created', label: t('Создано'), on: Boolean(criteria.created), enable: () => updateCriteria({ created: '-1w' }) },
     { id: 'resolved', label: t('Решено'), on: Boolean(criteria.resolved), enable: () => updateCriteria({ resolved: '-1w' }) },
     { id: 'updated', label: t('Обновлено'), on: Boolean(criteria.updated), enable: () => updateCriteria({ updated: '-1w' }) },
@@ -322,6 +324,11 @@ export default function IssueNavigatorPage() {
               <span className="inav-chip-wrap"><span className="inav-chip is-active"><b>{t('Автор')}</b><span className="inav-chip-op">=</span><span>{t('Текущий пользователь')}</span></span>
                 <button type="button" className="inav-chip-clear" aria-label={t('Автор')} onClick={() => updateCriteria({ reporter: '' })}><NavIcon name="close" size={10} /></button></span>
             )}
+            {['voter', 'watcher'].filter((field) => criteria[field] === 'currentUser').map((field) => {
+              const label = field === 'voter' ? t('Голосовал') : t('Наблюдатель');
+              return (<span key={field} className="inav-chip-wrap"><span className="inav-chip is-active"><b>{label}</b><span className="inav-chip-op">=</span><span>{t('Текущий пользователь')}</span></span>
+                <button type="button" className="inav-chip-clear" aria-label={label} onClick={() => updateCriteria({ [field]: '' })}><NavIcon name="close" size={10} /></button></span>);
+            })}
             {criteria.created && periodChip('created', t('Создано'))}
             {criteria.resolved && periodChip('resolved', t('Решено'))}
             {criteria.updated && periodChip('updated', t('Обновлено'))}
@@ -368,6 +375,7 @@ export default function IssueNavigatorPage() {
                 <th>{t('Решение')}</th>
                 <th><button type="button" onClick={() => sortBy('created')}>{t('Создано')}{sortIcon('created')}</button></th>
                 <th><button type="button" onClick={() => sortBy('updated')}>{t('Обновлено')}{sortIcon('updated')}</button></th>
+                <th className="is-number"><button type="button" onClick={() => sortBy('votes')}>{t('Голоса')}{sortIcon('votes')}</button></th>
               </tr>
             </thead>
             {!loading && result.items.length > 0 && (
@@ -393,6 +401,7 @@ export default function IssueNavigatorPage() {
                       <td>{issue.completedAt ? t('Готово') : t('Не решено')}</td>
                       <td className="is-date">{fmtDate(issue.createdAt)}</td>
                       <td className="is-date">{fmtDate(d.updatedAt || issue.createdAt)}</td>
+                      <td className="is-number">{d.votes ?? 0}</td>
                     </tr>
                   );
                 })}

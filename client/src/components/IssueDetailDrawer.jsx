@@ -10,6 +10,7 @@ import { IssueTypeIcon, PriorityIcon, WatcherBadge } from './IssueIcons.jsx';
 import AssigneeAvatar from './AssigneeAvatar.jsx';
 import AssigneeSelect from './AssigneeSelect.jsx';
 import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
+import IssueVotes from './IssueVotes.jsx';
 import IssueAssetsField from './IssueAssetsField.jsx';
 import CreateBranchPanel from './CreateBranchPanel.jsx';
 import CustomFieldsPanel from './CustomFields.jsx';
@@ -666,6 +667,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                 disabled={watcherSaving}
               />
             </fieldset>
+
+            <IssueVotes questId={questId} statusKey={`${quest.columnId}:${quest.completedAt ?? ''}`} />
 
             <section className="issue-drawer-section">
               <h4>{t('Иерархия')}</h4>

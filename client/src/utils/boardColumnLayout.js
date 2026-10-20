@@ -27,8 +27,9 @@ export function statusTone(kind) {
   return 'progress';
 }
 
+/** Spaces with the backlog switched on work in sprints; legacy spaces without a feature list only once they have a sprint. */
 export const isScrumBoard = (board, sprints = []) => spaceFeatures(board).includes('backlog')
-  && (board?.template === 'scrum' || (sprints || []).length > 0);
+  && (board?.template === 'scrum' || String(board?.features ?? board?.Features ?? '').trim() !== '' || (sprints || []).length > 0);
 
 export const activeSprintIds = (sprints) => new Set((sprints || []).filter((s) => s.status === 1).map((s) => s.id));
 

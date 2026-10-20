@@ -77,4 +77,5 @@ test('scrum boards need the backlog feature', () => {
   expect(isScrumBoard({ template: 'kanban', features: '' })).toBe(false);
   expect(isScrumBoard({ template: 'kanban', features: '' }, [{ id: 's1', status: 0 }])).toBe(true);
   expect(isScrumBoard({ template: 'kanban', features: 'board' }, [{ id: 's1', status: 0 }])).toBe(false);
+  expect(isScrumBoard({ template: 'project-management', features: 'summary,board,backlog' })).toBe(true);
 });

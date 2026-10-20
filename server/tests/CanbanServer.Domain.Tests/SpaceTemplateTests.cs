@@ -23,7 +23,7 @@ public class SpaceTemplateTests
     [Fact]
     public void NormalizeFeaturesKeepsCanonicalOrderAndBoard()
     {
-        Assert.Equal("summary,list,board,calendar", SpaceTemplates.NormalizeFeatures(new[] { "calendar", "LIST", "bogus", "summary" }));
+        Assert.Equal("summary,board,list,calendar", SpaceTemplates.NormalizeFeatures(new[] { "calendar", "LIST", "bogus", "summary" }));
     }
 
     [Fact]

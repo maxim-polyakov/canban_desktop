@@ -67,7 +67,7 @@ function SourcePicker({ value, onChange }) {
       {shownSpaces.map((space) => (
         <label key={space.id} className={`plan-source ${has('board', space.id) ? 'is-selected' : ''}`}>
           <input type="checkbox" checked={has('board', space.id)} onChange={() => toggle('board', space.id)} />
-          <SpaceAvatar id={space.id} name={space.name} size={20} />
+          <SpaceAvatar id={space.id} name={space.name} avatarUrl={space.avatarUrl} size={20} />
           <span>{space.name}</span><span className="sv-muted">{space.key}</span>
         </label>
       ))}

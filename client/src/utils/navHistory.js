@@ -46,8 +46,6 @@ export const getStarredFilters = () => read('starredFilters');
 export const getRecentDashboards = () => read('recentDashboards');
 
 export const rememberBoard = (board) => pushFront('recentBoards', board);
-/** Teams share the recent spaces list (Jira mixes them too); entries are tagged with kind: 'team'. */
-export const rememberTeam = (team) => pushFront('recentBoards', { id: team.id, name: team.name, kind: 'team' });
 export const rememberIssue = (issue) => pushFront('viewedIssues', issue);
 export const rememberDashboard = (dashboard) => pushFront('recentDashboards', dashboard);
 export const forgetDashboard = (id) => write('recentDashboards', read('recentDashboards').filter((x) => x.id !== id));

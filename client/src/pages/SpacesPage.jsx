@@ -187,7 +187,7 @@ export default function SpacesPage() {
                     </td>
                     <td>
                       <Link to={`/board/${space.id}`} className="settings-table-name">
-                        <SpaceAvatar id={space.id} name={space.name} size={24} />
+                        <SpaceAvatar id={space.id} name={space.name} avatarUrl={space.avatarUrl} size={24} />
                         <span>{space.name}</span>
                       </Link>
                     </td>

@@ -177,7 +177,7 @@ export function AdminAppsPage() {
           {list.map((row) => (
             <tr key={row.id}>
               <td style={{ wordBreak: 'break-all' }}>{row.title}</td>
-              <td><Link to={`/board/${row.space.id}`} className="settings-table-name"><SpaceAvatar id={row.space.id} name={row.space.name} size={20} />{row.space.name}</Link></td>
+              <td><Link to={`/board/${row.space.id}`} className="settings-table-name"><SpaceAvatar id={row.space.id} name={row.space.name} avatarUrl={row.space.avatarUrl} size={20} />{row.space.name}</Link></td>
               <td className="hide-mobile">{row.detail}</td>
               <td className="is-narrow"><span className={`settings-lozenge ${row.enabled ? 'is-success' : ''}`}>{t(row.enabled ? 'Включено' : 'Выключено')}</span></td>
               <td className="is-narrow">

@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from '../../i18n/navigation.jsx';
 import { useLocalization } from '../../i18n/LocalizationContext.jsx';
-import { boards as boardsApi } from '../../api.js';
+import { boards as boardsApi, spaceContent } from '../../api.js';
+import AssigneeAvatar from '../../components/AssigneeAvatar';
+import { timeAgo } from '../../utils/timeAgo.js';
 import NavIcon from '../../components/NavIcons.jsx';
 import { getIssueTypeMeta, getPriorityMeta, IssueTypeIcon, PriorityIcon } from '../../components/IssueIcons.jsx';
 import { OnboardingChecklist, useOnboarding } from '../../components/SpaceOnboarding.jsx';
@@ -110,12 +112,96 @@ function Donut({ parts, total }) {
   );
 }
 
+const ACTIVITY_VERBS = {
+  created: 'создал(а) задачу',
+  status: 'изменил(а) статус задачи',
+  updated: 'обновил(а) задачу',
+  link: 'связал(а) задачу',
+  worklog: 'списал(а) время по задаче',
+  bulk: 'обновил(а) задачу',
+};
+
+function dayLabel(date, t, locale) {
+  const day = new Date(date);
+  const today = new Date();
+  const start = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((start(today) - start(day)) / DAY);
+  if (diff === 0) return t('Сегодня');
+  if (diff === 1) return t('Вчера');
+  return day.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
+}
+
+function Activity({ boardId, items, t, locale, language }) {
+  if (!items) return <p className="sv-muted">{t('Загрузка...')}</p>;
+  if (!items.length) return <p className="sv-muted">{t('В разделе пока нет активности.')}</p>;
+  const groups = [];
+  items.forEach((item) => {
+    const label = dayLabel(item.createdAt, t, locale);
+    if (groups[groups.length - 1]?.label !== label) groups.push({ label, items: [] });
+    groups[groups.length - 1].items.push(item);
+  });
+  return (
+    <div className="sv-feed">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <div className="sv-feed-day">{group.label}</div>
+          <ul>
+            {group.items.map((item) => (
+              <li key={item.id}>
+                <AssigneeAvatar userId={item.user?.id} displayName={item.user?.displayName || t('Система')} avatarUrl={item.user?.avatarUrl} size={24} />
+                <span className="sv-feed-text">
+                  <span>
+                    <strong>{item.user?.displayName || t('Система')}</strong> {t(ACTIVITY_VERBS[item.changeType] || 'обновил(а) задачу')}{' '}
+                    <Link to={`/board/${boardId}/issue/${item.issue.id}`} className="sv-feed-issue">
+                      <IssueTypeIcon issueType={item.issue.issueType} size={14} />{item.issue.issueKey}: {item.issue.title}
+                    </Link>{' '}
+                    <span className={`tpl-status tpl-status-${item.issue.statusKind === 3 ? 'done' : item.issue.statusKind === 0 ? 'todo' : 'progress'}`}>{t(item.issue.statusTitle)}</span>
+                  </span>
+                  <span className="sv-muted">
+                    {item.changeType === 'status' && item.oldValue && item.newValue ? `${t(item.oldValue)} → ${t(item.newValue)} · ` : ''}
+                    {timeAgo(item.createdAt, language)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ColumnChart({ rows }) {
+  const { t } = useLocalization();
+  const max = Math.max(1, ...rows.map((r) => r.count));
+  return (
+    <div className="sv-columns" role="img" aria-label={t('Распределение приоритетов')}>
+      {rows.map((row) => (
+        <div key={row.key} className="sv-column">
+          <span className="sv-column-value">{row.count}</span>
+          <span className="sv-column-bar" style={{ height: `${(row.count / max) * 100}%`, background: row.color }} />
+          <span className="sv-column-label">{row.icon}{t(row.label)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function SpaceSummaryPage() {
-  const { t, locale } = useLocalization();
+  const { t, locale, language } = useLocalization();
   const { boardId } = useParams();
   const { board, issues, error, loading } = useBoardIssues(boardId);
   const onboarding = useOnboarding(boardId);
+  const [activity, setActivity] = useState(null);
+  const [updated, setUpdated] = useState(0);
   const now = Date.now();
+
+  useEffect(() => {
+    setActivity(null);
+    spaceContent.activity(boardId, 30)
+      .then((data) => { setActivity(data?.items || []); setUpdated(data?.updatedLast7Days || 0); })
+      .catch(() => setActivity([]));
+  }, [boardId]);
 
   const stats = useMemo(() => {
     const within = (date, from, to) => date && new Date(date).getTime() >= from && new Date(date).getTime() <= to;
@@ -123,42 +209,41 @@ export function SpaceSummaryPage() {
       done: issues.filter((q) => within(q.completedAt, now - 7 * DAY, now)).length,
       created: issues.filter((q) => within(q.createdAt, now - 7 * DAY, now)).length,
       due: issues.filter((q) => q.statusKind !== 3 && within(q.dueDate, now, now + 7 * DAY)).length,
-      overdue: issues.filter((q) => q.statusKind !== 3 && q.dueDate && new Date(q.dueDate).getTime() < now).length,
     };
   }, [issues, now]);
 
   const statusParts = (board?.columns || []).filter((c) => c.kind !== 5).map((c) => ({
     key: c.id, label: c.title, color: STATUS_COLORS[c.kind] || STATUS_COLORS[4], count: (c.quests || []).length,
   }));
-  const countBy = (field, values, meta, Icon) => values.map((value) => ({
+  const countBy = (field, values, meta, Icon, keepEmpty = false) => values.map((value) => ({
     key: value, label: meta(value).label, color: meta(value).color, count: issues.filter((q) => q[field] === value).length,
     icon: <Icon {...{ [field]: value }} size={14} />,
-  })).filter((row) => row.count > 0);
+  })).filter((row) => keepEmpty || row.count > 0);
   const workload = Object.values(issues.reduce((acc, q) => {
     const name = q.assigneeName || q.assignees?.[0]?.displayName || t('Не назначен');
     acc[name] = acc[name] || { key: name, label: name, count: 0, color: 'var(--accent)' };
     acc[name].count += 1;
     return acc;
   }, {})).sort((a, b) => b.count - a.count).slice(0, 8);
-  const recent = [...issues].sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt)).slice(0, 8);
+  const allIssuesLink = `/issues?jql=${encodeURIComponent(`project = ${board?.keyPrefix || boardId}`)}`;
 
-  if (loading && !board) return <Shell title={t('Сводка')}><p className="settings-empty">{t('Загрузка...')}</p></Shell>;
-  if (error) return <Shell title={t('Сводка')}><p className="settings-save-status is-error">{error}</p></Shell>;
+  if (loading && !board) return <div className="sv-summary"><p className="settings-empty">{t('Загрузка...')}</p></div>;
+  if (error) return <div className="sv-summary"><p className="settings-save-status is-error">{error}</p></div>;
 
   const tiles = [
-    ['check', stats.done, 'выполнено', 'за последние 7 дней'],
-    ['edit', stats.created, 'создано', 'за последние 7 дней'],
-    ['calendar', stats.due, 'со сроком', 'в ближайшие 7 дней'],
-    ['recent', stats.overdue, 'просрочено', 'срок уже прошёл'],
+    ['check', 'Выполнено', stats.done, 'за последние 7 дней'],
+    ['edit', 'Обновлено', updated, 'за последние 7 дней'],
+    ['plus', 'Создано', stats.created, 'за последние 7 дней'],
+    ['calendar', 'К скорому выполнению', stats.due, 'в ближайшие 7 дней'],
   ];
 
   return (
-    <Shell title={t('Сводка')}>
+    <div className="sv-summary">
       <div className="sv-tiles">
-        {tiles.map(([icon, value, label, sub]) => (
+        {tiles.map(([icon, label, value, sub]) => (
           <div key={label} className="sv-tile">
             <span className="sv-tile-icon"><NavIcon name={icon} size={18} /></span>
-            <span><strong>{value} {t(label)}</strong><span className="sv-muted">{t(sub)}</span></span>
+            <span><strong>{t(label)}: {value}</strong><span className="sv-muted">{t(sub)}</span></span>
           </div>
         ))}
       </div>
@@ -167,38 +252,32 @@ export function SpaceSummaryPage() {
           <div className="sv-card"><OnboardingChecklist board={board} boardId={boardId} /></div>
         )}
         <div className="sv-card">
-          <h2>{t('Обзор статусов')}</h2>
-          <p className="sv-muted">{t('Сколько задач в каждом статусе')}</p>
+          <h2>{t('Сводка статусов')}</h2>
+          <p className="sv-muted">{t('Получите представление о текущем статусе задач.')} <Link to={allIssuesLink}>{t('Просмотреть все задачи')}</Link></p>
           <Donut parts={statusParts} total={issues.length} />
         </div>
         <div className="sv-card">
           <h2>{t('Недавняя активность')}</h2>
-          {recent.length === 0 && <p className="sv-muted">{t('В разделе пока нет задач.')}</p>}
-          <ul className="sv-activity">
-            {recent.map((q) => (
-              <li key={q.id}>
-                <IssueTypeIcon issueType={q.issueType} size={16} />
-                <Link to={`/board/${boardId}/issue/${q.id}`}>{q.issueKey} {q.title}</Link>
-                <StatusLozenge issue={q} />
-                <span className="sv-muted">{new Date(q.completedAt || q.createdAt).toLocaleDateString(locale)}</span>
-              </li>
-            ))}
-          </ul>
+          <p className="sv-muted">{t('Будьте в курсе всего, что происходит в разделе.')}</p>
+          <Activity boardId={boardId} items={activity} t={t} locale={locale} language={language} />
         </div>
         <div className="sv-card">
-          <h2>{t('Разбивка по приоритетам')}</h2>
-          <Bars rows={countBy('priority', [4, 3, 2, 1, 0], getPriorityMeta, PriorityIcon)} total={issues.length} />
+          <h2>{t('Распределение приоритетов')}</h2>
+          <p className="sv-muted">{t('Получите целостное представление о приоритетах задач.')}</p>
+          <ColumnChart rows={countBy('priority', [4, 3, 2, 1, 0], getPriorityMeta, PriorityIcon, true)} />
         </div>
         <div className="sv-card">
           <h2>{t('Типы работ')}</h2>
+          <p className="sv-muted">{t('Узнайте, как задачи распределены по типам.')} <Link to={allIssuesLink}>{t('Просмотреть все задачи')}</Link></p>
           <Bars rows={countBy('issueType', [0, 1, 2, 3, 4], getIssueTypeMeta, IssueTypeIcon)} total={issues.length} />
         </div>
         <div className="sv-card">
           <h2>{t('Загрузка команды')}</h2>
+          <p className="sv-muted">{t('Следите за распределением задач между участниками.')}</p>
           <Bars rows={workload} total={issues.length} />
         </div>
       </div>
-    </Shell>
+    </div>
   );
 }
 

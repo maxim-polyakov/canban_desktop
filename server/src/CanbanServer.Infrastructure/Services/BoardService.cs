@@ -46,7 +46,7 @@ public class BoardService : IBoardService
                     c.Id, c.BoardId, c.Title, c.Order, c.Kind, c.CreatedAt,
                     c.Quests.OrderBy(q => q.Order).Select(q => MapQuest(q)).ToList())).ToList();
                 return new BoardDetailDto(b.Id, b.TeamId, b.Name, b.Description, b.Order, b.CreatedAt, columns, b.CreatedByUserId, b.KeyPrefix,
-                    b.Template, b.ManagementType, b.Access, b.Features);
+                    b.Template, b.ManagementType, b.Access, b.Features, b.AvatarUrl);
             },
             ct);
     }
@@ -128,6 +128,19 @@ public class BoardService : IBoardService
         await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(id, ct);
         return BoardDto.From(b);
+    }
+
+    public async Task<(BoardDto Board, string? Previous)?> SetAvatarAsync(Guid id, string? avatarUrl, CancellationToken ct = default)
+    {
+        var b = await _db.Boards.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (b == null) return null;
+        var previous = b.AvatarUrl;
+        b.AvatarUrl = avatarUrl;
+        await _db.SaveChangesAsync(ct);
+        await _cache.InvalidateAsync("board:detail:" + id, ct);
+        await _cache.InvalidateAsync("board:team:" + b.TeamId, ct);
+        await _boardHub.NotifyBoardUpdatedAsync(id, ct);
+        return (BoardDto.From(b), previous);
     }
 
     public async Task<bool?> DeleteAsync(Guid id, Guid? currentUserId, CancellationToken ct = default)

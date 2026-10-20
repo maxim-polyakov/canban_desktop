@@ -4,10 +4,8 @@ import { useLocalization } from '../../i18n/LocalizationContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { kudos as kudosApi, people as peopleApi, teams as teamsApi, users as usersApi } from '../../api.js';
 import NavIcon from '../../components/NavIcons.jsx';
-import TeamAvatar from '../../components/TeamAvatar.jsx';
 import SpaceAvatar from '../../components/SpaceAvatar.jsx';
 import { timeAgo } from '../../utils/timeAgo.js';
-import { rememberTeam } from '../../utils/navHistory.js';
 import { CreateTeamDialog, InvitePeopleDialog, kudosKindMeta, SendKudosDialog } from './TeamsDialogs.jsx';
 import '../settings/Settings.css';
 import '../ForYouPage.css';
@@ -76,7 +74,7 @@ function TeamCard({ team, members }) {
     <Link to={`/teams/${team.id}`} className="teams-team-card">
       <span className="teams-team-banner" style={{ background: `hsl(${[...team.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 360} 70% 88%)` }} />
       <span className="teams-team-body">
-        <span className="teams-team-name"><TeamAvatar id={team.id} avatarUrl={team.avatarUrl} name={team.name} size={24} />{team.name}</span>
+        <span className="teams-team-name">{team.name}</span>
         <span className="teams-team-avatars">
           {(members || []).slice(0, 5).map((m) => <Avatar key={m.userId} url={m.avatarUrl} name={m.displayName} size={24} />)}
           <span className="teams-person-sub">{members ? `${members.length} ${t('участн.')}` : '…'}</span>
@@ -282,7 +280,7 @@ export function TeamPage() {
   const [error, setError] = useState('');
 
   const load = useCallback(() => {
-    teamsApi.get(teamId).then((data) => { setTeam(data); rememberTeam(data); setForm({ name: data.name, description: data.description || '' }); }).catch((e) => setError(e.message || t('Команда не найдена')));
+    teamsApi.get(teamId).then((data) => { setTeam(data); setForm({ name: data.name, description: data.description || '' }); }).catch((e) => setError(e.message || t('Команда не найдена')));
     teamsApi.getMembers(teamId).then(setMembers).catch(() => setMembers([]));
     teamsApi.getMyTeamsWithBoards().then((list) => {
       const entry = (list || []).find((x) => (x.team ?? x.Team)?.id === teamId);
@@ -383,7 +381,7 @@ export function TeamPage() {
         <div className="teams-section-header"><h2>{t('Разделы команды')}</h2></div>
         <div className="teams-space-list">
           {boards.map((b) => (
-            <Link key={b.id} to={`/board/${b.id}`} className="teams-space-item"><SpaceAvatar id={b.id} name={b.name} size={24} />{b.name}</Link>
+            <Link key={b.id} to={`/board/${b.id}`} className="teams-space-item"><SpaceAvatar id={b.id} name={b.name} avatarUrl={b.avatarUrl} size={24} />{b.name}</Link>
           ))}
           {boards.length === 0 && <p className="settings-row-desc">{t('У команды пока нет разделов.')}</p>}
         </div>

@@ -316,6 +316,7 @@ public class JiraPlatformController : ControllerBase
                 managementType = b.ManagementType,
                 access = b.Access,
                 features = b.Features,
+                avatarUrl = b.AvatarUrl,
                 leadId = b.Team.OwnerId,
                 leadName = _db.Users.Where(u => u.Id == b.Team.OwnerId).Select(u => u.DisplayName).FirstOrDefault(),
                 leadAvatarUrl = _db.Users.Where(u => u.Id == b.Team.OwnerId).Select(u => u.AvatarUrl).FirstOrDefault(),
@@ -388,7 +389,7 @@ public class JiraPlatformController : ControllerBase
         var teams = await _db.Teams.AsNoTracking()
             .Where(t => personTeamIds.Contains(t.Id) && (t.OwnerId == me || t.Members.Any(m => m.UserId == me)))
             .OrderBy(t => t.Name)
-            .Select(t => new { id = t.Id, name = t.Name, avatarUrl = t.AvatarUrl, memberCount = t.Members.Count })
+            .Select(t => new { id = t.Id, name = t.Name, memberCount = t.Members.Count })
             .ToListAsync(ct);
 
         var since = DateTime.UtcNow.AddDays(-90);
@@ -420,10 +421,10 @@ public class JiraPlatformController : ControllerBase
             .ToListAsync(ct);
         var spaceIds = spaceCounts.Select(x => x.BoardId).ToList();
         var spaceInfo = await _db.Boards.AsNoTracking().Where(b => spaceIds.Contains(b.Id))
-            .Select(b => new { b.Id, b.Name, b.KeyPrefix, b.Template })
+            .Select(b => new { b.Id, b.Name, b.KeyPrefix, b.Template, b.AvatarUrl })
             .ToDictionaryAsync(b => b.Id, ct);
         var frequentSpaces = spaceCounts.Where(x => spaceInfo.ContainsKey(x.BoardId))
-            .Select(x => new { id = x.BoardId, name = spaceInfo[x.BoardId].Name, keyPrefix = spaceInfo[x.BoardId].KeyPrefix, template = spaceInfo[x.BoardId].Template, changes = x.Count })
+            .Select(x => new { id = x.BoardId, name = spaceInfo[x.BoardId].Name, keyPrefix = spaceInfo[x.BoardId].KeyPrefix, template = spaceInfo[x.BoardId].Template, avatarUrl = spaceInfo[x.BoardId].AvatarUrl, changes = x.Count })
             .ToList();
 
         var showEmail = userId == me || teams.Count > 0;

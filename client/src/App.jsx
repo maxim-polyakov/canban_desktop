@@ -29,8 +29,10 @@ import SpacesPage from './pages/SpacesPage.jsx';
 import SpaceTemplatesPage from './pages/spaces/SpaceTemplatesPage.jsx';
 import { CreatePlanPage, PlanPage, PlansListPage } from './pages/plans/PlansPages.jsx';
 import { SpaceCalendarPage, SpaceFeaturesPage, SpaceListPage, SpaceSummaryPage } from './pages/spaces/SpaceViews.jsx';
+import SpaceDocsPage from './pages/spaces/SpaceDocsPage.jsx';
+import SpaceDevelopmentPage from './pages/spaces/SpaceDevelopmentPage.jsx';
+import { SpaceFormEditPage, SpaceFormSubmitPage, SpaceFormsListPage } from './pages/spaces/SpaceFormsPage.jsx';
 import { KudosPage, PeoplePage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
-import TeamSpacePage from './pages/teams/TeamSpacePage.jsx';
 import { HomeDirectoryPage, HomeItemPage, HomeUpdatesPage } from './pages/home/HomePages.jsx';
 import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
@@ -91,7 +93,6 @@ export default function App() {
           <Route path="teams/list" element={<TeamsListPage />} />
           <Route path="teams/manage" element={<HomePage />} />
           <Route path="teams/:teamId" element={<TeamPage />} />
-          <Route path="team/:teamId/*" element={<TeamSpacePage />} />
           <Route path="people" element={<PeoplePage />} />
           <Route path="people/:userId" element={<ProfilePage />} />
           <Route path="kudos" element={<KudosPage />} />
@@ -136,6 +137,12 @@ export default function App() {
           <Route path="board/:boardId/operations" element={<OperationsPage />} />
           <Route path="board/:boardId/archive" element={<BoardArchivePage />} />
           <Route path="board/:boardId/summary" element={<SpaceSummaryPage />} />
+          <Route path="board/:boardId/docs" element={<SpaceDocsPage />} />
+          <Route path="board/:boardId/docs/:docId" element={<SpaceDocsPage />} />
+          <Route path="board/:boardId/forms" element={<SpaceFormsListPage />} />
+          <Route path="board/:boardId/forms/:formId" element={<SpaceFormEditPage />} />
+          <Route path="board/:boardId/forms/:formId/submit" element={<SpaceFormSubmitPage />} />
+          <Route path="board/:boardId/development" element={<SpaceDevelopmentPage />} />
           <Route path="board/:boardId/list" element={<SpaceListPage />} />
           <Route path="board/:boardId/calendar" element={<SpaceCalendarPage />} />
           <Route path="board/:boardId/features" element={<SpaceFeaturesPage mode="features" />} />

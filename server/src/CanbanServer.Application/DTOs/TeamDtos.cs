@@ -2,8 +2,7 @@ using CanbanServer.Domain.Entities;
 
 namespace CanbanServer.Application.DTOs;
 
-public record TeamDto(Guid Id, string Name, string? Description, DateTime CreatedAt, Guid? OwnerId, string Key = "KAN", string? AvatarUrl = null);
-public record SetTeamAvatarRequest(string? AvatarUrl);
+public record TeamDto(Guid Id, string Name, string? Description, DateTime CreatedAt, Guid? OwnerId, string Key = "KAN");
 public record TeamMemberDto(Guid UserId, string DisplayName, string Email, string? AvatarUrl, string Role, DateTime JoinedAt);
 /// <summary>Команда пользователя с списком её досок.</summary>
 public record TeamWithBoardsDto(TeamDto Team, List<BoardDto> Boards);

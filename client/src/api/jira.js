@@ -14,6 +14,23 @@ export const workflows = {
   transition: (questId, transitionId) => apiJson(`/api/workflows/quests/${questId}/transitions`, json('POST', { transitionId })),
 };
 
+const spaceUrl = (boardId, path) => `/api/spaces/${boardId}/${path}`;
+export const spaceContent = {
+  listDocs: (boardId) => apiJson(spaceUrl(boardId, 'docs')),
+  getDoc: (boardId, id) => apiJson(spaceUrl(boardId, `docs/${id}`)),
+  createDoc: (boardId, data) => apiJson(spaceUrl(boardId, 'docs'), json('POST', data)),
+  updateDoc: (boardId, id, data) => apiJson(spaceUrl(boardId, `docs/${id}`), json('PUT', data)),
+  deleteDoc: (boardId, id) => remove(spaceUrl(boardId, `docs/${id}`)),
+  listForms: (boardId) => apiJson(spaceUrl(boardId, 'forms')),
+  getForm: (boardId, id) => apiJson(spaceUrl(boardId, `forms/${id}`)),
+  createForm: (boardId, data) => apiJson(spaceUrl(boardId, 'forms'), json('POST', data)),
+  updateForm: (boardId, id, data) => apiJson(spaceUrl(boardId, `forms/${id}`), json('PUT', data)),
+  deleteForm: (boardId, id) => remove(spaceUrl(boardId, `forms/${id}`)),
+  submitForm: (boardId, id, answers) => apiJson(spaceUrl(boardId, `forms/${id}/submit`), json('POST', { answers })),
+  activity: (boardId, limit = 20) => apiJson(spaceUrl(boardId, `activity?limit=${limit}`)),
+  development: (boardId) => apiJson(spaceUrl(boardId, 'development')),
+};
+
 export const questHierarchy = {
   get: (questId) => apiJson(`/api/quests/${questId}/hierarchy`),
 };

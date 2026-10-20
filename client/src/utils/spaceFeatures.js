@@ -4,11 +4,14 @@ import { boards as boardsApi } from '../api.js';
 // [feature, tab key, route suffix, icon, label]
 export const FEATURE_TABS = [
   ['summary', 'summary', '/summary', 'summary', 'Сводка'],
-  ['list', 'list', '/list', 'list', 'Список'],
+  ['backlog', 'backlog', '/backlog', 'backlog', 'Бэклог'],
   ['board', 'board', '', 'board', 'Доска'],
-  ['backlog', 'backlog', '/backlog', 'backlog', 'Backlog'],
-  ['timeline', 'roadmap', '/roadmap', 'timeline', 'Таймлайн'],
+  ['list', 'list', '/list', 'list', 'Список'],
+  ['timeline', 'roadmap', '/roadmap', 'timeline', 'Хронология'],
   ['calendar', 'calendar', '/calendar', 'calendar', 'Календарь'],
+  ['docs', 'docs', '/docs', 'docs', 'Документы'],
+  ['forms', 'forms', '/forms', 'forms', 'Формы'],
+  ['development', 'development', '/development', 'code', 'Среда разработки'],
   ['reports', 'reports', '/reports', 'reports', 'Отчёты'],
   ['releases', 'releases', '/releases', 'releases', 'Релизы'],
   ['archive', 'archive', '/archive', 'archive', 'Архив'],
@@ -21,6 +24,9 @@ export const FEATURE_DESCRIPTIONS = {
   backlog: 'Бэклог и планирование спринтов',
   timeline: 'Эпики и задачи на временной шкале',
   calendar: 'Задачи по срокам на календаре месяца',
+  docs: 'Страницы с заметками, требованиями и инструкциями раздела',
+  forms: 'Формы для заявок: каждый ответ становится задачей',
+  development: 'Метрики разработки, репозитории, ветки и pull request',
   reports: 'Диаграммы и отчёты по работе команды',
   releases: 'Версии и релизы',
   archive: 'Выполненные задачи, убранные с доски',
@@ -29,7 +35,7 @@ export const FEATURE_DESCRIPTIONS = {
 export const BOARD_CHANGED_EVENT = 'canban:board-changed';
 export const notifyBoardChanged = (board) => window.dispatchEvent(new CustomEvent(BOARD_CHANGED_EVENT, { detail: { board } }));
 
-const LEGACY = ['board', 'backlog', 'timeline', 'releases', 'reports', 'archive'];
+const LEGACY = ['board', 'backlog', 'timeline', 'docs', 'forms', 'development', 'releases', 'reports', 'archive'];
 
 export function spaceFeatures(board) {
   const raw = board?.features ?? board?.Features ?? '';

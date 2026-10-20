@@ -21,6 +21,8 @@ public class Board
     public string Access { get; set; } = "private";
     /// <summary>Comma-separated enabled views; empty means the legacy default set.</summary>
     public string Features { get; set; } = "";
+    /// <summary>Uploaded image URL or a built-in avatar as "preset:&lt;name&gt;"; null shows the default tile.</summary>
+    public string? AvatarUrl { get; set; }
 
     public Team Team { get; set; } = null!;
     public ICollection<Column> Columns { get; set; } = new List<Column>();

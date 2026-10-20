@@ -112,7 +112,7 @@ export default function ForYouPage() {
         <div className="foryou-spaces">
           {recommendedSpaces.map((space) => (
             <Link key={space.id} to={`/board/${space.id}`} className="foryou-space-card">
-              <SpaceAvatar id={space.id} name={space.name} size={32} />
+              <SpaceAvatar id={space.id} name={space.name} avatarUrl={space.avatarUrl} size={32} />
               <span className="foryou-space-name">{space.name}</span>
               <span className="foryou-space-sub">{space.description || space.teamName}</span>
             </Link>
@@ -148,7 +148,7 @@ export default function ForYouPage() {
             <div className="foryou-list">
               {starredBoards.map((b) => (
                 <div key={b.id} className="foryou-row">
-                  <SpaceAvatar id={b.id} name={b.name} size={20} />
+                  <SpaceAvatar id={b.id} name={b.name} avatarUrl={b.avatarUrl} size={20} />
                   <Link to={`/board/${b.id}`} className="foryou-row-main">
                     <span className="foryou-row-title">{b.name}</span>
                     <span className="foryou-row-meta">{[t('Раздел'), b.teamName].filter(Boolean).join(' • ')}</span>

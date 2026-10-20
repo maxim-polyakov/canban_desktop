@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from '../../i18n/navigation.jsx';
 import { useLocalization } from '../../i18n/LocalizationContext.jsx';
 import { boards as boardsApi, spaces as spacesApi } from '../../api.js';
-import SpaceAvatar from '../../components/SpaceAvatar.jsx';
+import SpaceAvatar, { SpaceAvatarPicker } from '../../components/SpaceAvatar.jsx';
 import { SPACES_CHANGED_EVENT } from '../../components/AppSidebar.jsx';
 import { DeleteSpaceDialog } from '../SpacesPage.jsx';
 import { isValidSpaceKey } from '../../utils/spaceKey.js';
@@ -37,6 +37,8 @@ export default function SpaceSettingsPage() {
   const [meta, setMeta] = useState(null);
   const [form, setForm] = useState({ name: '', keyPrefix: '', description: '' });
   const [status, setStatus] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const closePicker = useCallback(() => setPickerOpen(false), []);
   const [deleting, setDeleting] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -89,7 +91,16 @@ export default function SpaceSettingsPage() {
     >
       <form onSubmit={save}>
         <SettingsSection>
-          <div style={{ marginBottom: 16 }}><SpaceAvatar id={boardId} name={form.name || '?'} size={96} /></div>
+          <div className="space-settings-avatar">
+            <SpaceAvatar id={boardId} name={form.name || '?'} avatarUrl={board?.avatarUrl} size={96} />
+            <span className="app-space-avatar">
+              <button type="button" className="app-btn" disabled={!board} onClick={() => setPickerOpen((v) => !v)}>{t('Изменить аватар')}</button>
+              {pickerOpen && (
+                <SpaceAvatarPicker boardId={boardId} value={board?.avatarUrl} onClose={closePicker}
+                  onChange={(avatarUrl) => { setBoard((b) => ({ ...b, avatarUrl })); setPickerOpen(false); window.dispatchEvent(new CustomEvent(SPACES_CHANGED_EVENT)); }} />
+              )}
+            </span>
+          </div>
           <label className="settings-field">
             <span>{t('Имя')} *</span>
             <input value={form.name} maxLength={200} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required disabled={!board} />

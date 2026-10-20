@@ -20,8 +20,10 @@ public sealed record SpaceTemplate(
 /// <summary>Jira-like space template gallery: each template defines its workflow (columns), work types and enabled views.</summary>
 public static class SpaceTemplates
 {
-    public static readonly string[] AllFeatures = { "summary", "list", "board", "backlog", "timeline", "calendar", "reports", "releases", "archive" };
-    public static readonly string[] LegacyFeatures = { "board", "backlog", "timeline", "releases", "reports", "archive" };
+    public static readonly string[] AllFeatures = { "summary", "backlog", "board", "list", "timeline", "calendar", "docs", "forms", "development", "reports", "releases", "archive" };
+    public static readonly string[] LegacyFeatures = { "board", "backlog", "timeline", "docs", "forms", "development", "releases", "reports", "archive" };
+    /// <summary>Jira spaces always offer documents and forms; software spaces also get the development view.</summary>
+    private static readonly string[] ContentFeatures = { "docs", "forms" };
     public static readonly string[] ManagementTypes = { "team", "company" };
     public static readonly string[] AccessLevels = { "open", "limited", "private" };
 
@@ -47,7 +49,15 @@ public static class SpaceTemplates
     private static readonly IssueType[] Software = { IssueType.Epic, IssueType.Story, IssueType.Task, IssueType.Bug, IssueType.Subtask };
     private static readonly IssueType[] Business = { IssueType.Epic, IssueType.Task, IssueType.Subtask };
 
-    public static readonly IReadOnlyList<SpaceTemplate> All = new[]
+    public static readonly IReadOnlyList<SpaceTemplate> All = Templates()
+        .Select(t => t with
+        {
+            Features = t.Features.Concat(ContentFeatures).Concat(t.Category == "software" ? new[] { "development" } : Array.Empty<string>())
+                .Distinct().ToList(),
+        })
+        .ToList();
+
+    private static SpaceTemplate[] Templates() => new[]
     {
         new SpaceTemplate("kanban", "software", "board", "Канбан",
             "Визуализируйте работу на доске и ограничивайте незавершённую работу, чтобы задачи двигались быстрее.",

@@ -17,5 +17,6 @@ public class BoardConfiguration : IEntityTypeConfiguration<Board>
         builder.Property(b => b.ManagementType).HasMaxLength(16);
         builder.Property(b => b.Access).HasMaxLength(16);
         builder.Property(b => b.Features).HasMaxLength(300);
+        builder.Property(b => b.AvatarUrl).HasMaxLength(500);
     }
 }

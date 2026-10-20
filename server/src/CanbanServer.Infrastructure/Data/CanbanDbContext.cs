@@ -48,6 +48,8 @@ public class CanbanDbContext : DbContext
     public DbSet<DevelopmentLink> DevelopmentLinks => Set<DevelopmentLink>();
     public DbSet<Dashboard> Dashboards => Set<Dashboard>();
     public DbSet<DashboardStar> DashboardStars => Set<DashboardStar>();
+    public DbSet<SpaceDocument> SpaceDocuments => Set<SpaceDocument>();
+    public DbSet<SpaceForm> SpaceForms => Set<SpaceForm>();
     public DbSet<AssetSchema> AssetSchemas => Set<AssetSchema>();
     public DbSet<AssetObjectType> AssetObjectTypes => Set<AssetObjectType>();
     public DbSet<AssetAttribute> AssetAttributes => Set<AssetAttribute>();

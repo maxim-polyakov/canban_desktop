@@ -17,6 +17,7 @@ public static partial class DatabaseSchemaInitializer
         await EnsureHomeSchemaAsync(db, ct);
         await EnsureBillingSchemaAsync(db, ct);
         await EnsureDashboardsSchemaAsync(db, ct);
+        await EnsureSpaceContentSchemaAsync(db, ct);
 
         await db.Database.ExecuteSqlRawAsync(
             """
@@ -228,7 +229,6 @@ public static partial class DatabaseSchemaInitializer
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailOwnChanges" boolean NOT NULL DEFAULT FALSE;
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailFormat" character varying(8) NOT NULL DEFAULT 'html';
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AutoWatch" boolean NOT NULL DEFAULT TRUE;
-            ALTER TABLE "Teams" ADD COLUMN IF NOT EXISTS "AvatarUrl" character varying(500) NULL;
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "JobTitle" character varying(120) NULL;
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "Department" character varying(120) NULL;
             ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "Organization" character varying(120) NULL;

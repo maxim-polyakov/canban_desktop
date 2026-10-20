@@ -767,6 +767,10 @@ button.app-nav-item:hover,
   min-width: 0;
 }
 
+.app-space-avatar { position: relative; flex: none; }
+.app-space-avatar-btn { display: grid; padding: 2px; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+.app-space-avatar-btn:hover { background: var(--nav-hover); }
+
 .app-space-title {
   margin: 0;
   min-width: 0;

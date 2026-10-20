@@ -23,6 +23,8 @@ const PATHS = {
   settings: <><circle cx="8" cy="8" r="2" /><path d="M8 1.75v1.6M8 12.65v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.75 8h1.6M12.65 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1" /><circle cx="8" cy="8" r="4.6" /></>,
   chevronRight: <path d="m6 3.5 4.5 4.5L6 12.5" />,
   chevronDown: <path d="m3.5 6 4.5 4.5L12.5 6" />,
+  chevronUp: <path d="m3.5 10 4.5-4.5 4.5 4.5" />,
+  arrowRight: <path d="M2.5 8h11M9.5 4l4 4-4 4" />,
   more: <><circle cx="3.5" cy="8" r=".6" /><circle cx="8" cy="8" r=".6" /><circle cx="12.5" cy="8" r=".6" /></>,
   external: <><path d="M9.5 2.25h4.25V6.5M13.5 2.5 7.5 8.5" /><path d="M11.75 9.5v3a1.25 1.25 0 0 1-1.25 1.25h-7a1.25 1.25 0 0 1-1.25-1.25v-7A1.25 1.25 0 0 1 3.5 4.25h3" /></>,
   close: <path d="m3.5 3.5 9 9M12.5 3.5l-9 9" />,
@@ -95,6 +97,7 @@ const PATHS = {
   info: <><circle cx="8" cy="8" r="6.25" /><path d="M8 7.25V11M8 5h.01" /></>,
   chart: <path d="M2.5 13.5h11M4.5 11V8M8 11V4.5M11.5 11V6.5" />,
   code: <path d="M5.5 4 1.75 8l3.75 4M10.5 4l3.75 4-3.75 4M9.25 2.75l-2.5 10.5" />,
+  forms: <><rect x="2.75" y="1.75" width="10.5" height="12.5" rx="1" /><path d="M5.25 5h5.5M5.25 8h5.5M5.25 11h3" /></>,
   inbox: <><path d="M1.75 9.25 3.5 3.25h9l1.75 6v3.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z" /><path d="M1.75 9.25h3.5l1 1.75h3.5l1-1.75h3.5" /></>,
 };
 

@@ -4,7 +4,7 @@ export { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/tra
 export {
   adminInfo, assets, automations, billing, bulk, clone, home, kudos, people, personalSettings, spaces, components, dashboards, history, importExport,
   integrations, myWork, notifications, permissions, plans, questHierarchy, questLinks,
-  releases, reports, savedFilters, search, workflows, worklogs,
+  releases, reports, savedFilters, search, spaceContent, workflows, worklogs,
 } from './api/jira.js';
 
 export const auth = {
@@ -70,6 +70,12 @@ export const boards = {
   getTemplates: () => apiJson('/api/boards/templates'),
   create: (data) => apiJson('/api/boards', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/boards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  setAvatar: (id, avatarUrl) => apiJson(`/api/boards/${id}/avatar`, { method: 'PUT', body: JSON.stringify({ avatarUrl }) }),
+  uploadAvatar: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiForm(`/api/boards/${id}/avatar`, formData);
+  },
   delete: async (id) => {
     const r = await api(`/api/boards/${id}`, { method: 'DELETE' });
     return r.ok ? true : { ok: false, status: r.status };
@@ -183,12 +189,6 @@ export const teams = {
   getMembers: (teamId) => apiJson(`/api/teams/${teamId}/members`),
   create: (data) => apiJson('/api/teams', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  setAvatar: (id, avatarUrl) => apiJson(`/api/teams/${id}/avatar`, { method: 'PUT', body: JSON.stringify({ avatarUrl }) }),
-  uploadAvatar: (id, file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiForm(`/api/teams/${id}/avatar`, formData);
-  },
   delete: (teamId) => api(`/api/teams/${teamId}`, { method: 'DELETE' }).then((r) => r.ok),
   addMember: (teamId, userId) => api(`/api/teams/${teamId}/members/${userId}`, { method: 'POST' }).then((r) => r.ok),
   removeMember: async (teamId, userId) => {

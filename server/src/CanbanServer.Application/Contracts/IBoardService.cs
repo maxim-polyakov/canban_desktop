@@ -8,6 +8,8 @@ public interface IBoardService
     Task<List<BoardDto>> GetByTeamIdAsync(Guid teamId, CancellationToken ct = default);
     Task<BoardDto> CreateAsync(CreateBoardRequest request, Guid? createdByUserId, CancellationToken ct = default);
     Task<BoardDto?> UpdateAsync(Guid id, UpdateBoardRequest request, CancellationToken ct = default);
+    /// <summary>Stores the new avatar and returns the previous value so an uploaded file can be removed; null if the board is missing.</summary>
+    Task<(BoardDto Board, string? Previous)?> SetAvatarAsync(Guid id, string? avatarUrl, CancellationToken ct = default);
     /// <returns>true = deleted, false = forbidden (not creator), null = not found</returns>
     Task<bool?> DeleteAsync(Guid id, Guid? currentUserId, CancellationToken ct = default);
 }

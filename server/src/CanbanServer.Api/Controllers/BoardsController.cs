@@ -11,10 +11,60 @@ namespace CanbanServer.Api.Controllers;
 [Route("api/[controller]")]
 public class BoardsController : ControllerBase
 {
+    private static readonly System.Text.RegularExpressions.Regex PresetAvatar = new("^preset:[a-z0-9-]{1,32}$");
+    private static readonly string[] ImageTypes = { "image/jpeg", "image/png", "image/webp", "image/gif" };
+
     private readonly IBoardService _boardService;
     private readonly IProjectAccessService _access;
+    private readonly IAvatarStorageService _avatarStorage;
 
-    public BoardsController(IBoardService boardService, IProjectAccessService access) { _boardService = boardService; _access = access; }
+    public BoardsController(IBoardService boardService, IProjectAccessService access, IAvatarStorageService avatarStorage)
+    {
+        _boardService = boardService;
+        _access = access;
+        _avatarStorage = avatarStorage;
+    }
+
+    private async Task<bool> CanManageAsync(Guid boardId, Guid userId, CancellationToken ct)
+    {
+        var access = await _access.GetBoardAccessAsync(boardId, userId, ct);
+        return access.Status == ProjectAccessStatus.Success && access.Permission >= BoardPermission.Manage;
+    }
+
+    private async Task<ActionResult<BoardDto>> ReplaceAvatarAsync(Guid boardId, string? avatarUrl, CancellationToken ct)
+    {
+        var result = await _boardService.SetAvatarAsync(boardId, avatarUrl, ct);
+        if (result == null) return NotFound();
+        var previous = result.Value.Previous;
+        if (previous != null && previous != avatarUrl && !previous.StartsWith("preset:", StringComparison.Ordinal))
+            await _avatarStorage.DeleteByUrlAsync(previous, ct);
+        return Ok(result.Value.Board);
+    }
+
+    /// <summary>Choose a built-in avatar ("preset:&lt;name&gt;") or reset to the default (null).</summary>
+    [HttpPut("{id:guid}/avatar")]
+    public async Task<ActionResult<BoardDto>> SetAvatar(Guid id, [FromBody] SetBoardAvatarRequest request, CancellationToken ct)
+    {
+        var userId = User.GetUserId(); if (!userId.HasValue) return Unauthorized();
+        if (!await CanManageAsync(id, userId.Value, ct)) return Forbid();
+        var value = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        if (value != null && !PresetAvatar.IsMatch(value)) return BadRequest("Выберите аватар из списка или загрузите изображение.");
+        return await ReplaceAvatarAsync(id, value, ct);
+    }
+
+    [HttpPost("{id:guid}/avatar")]
+    public async Task<ActionResult<BoardDto>> UploadAvatar(Guid id, IFormFile? file, CancellationToken ct)
+    {
+        var userId = User.GetUserId(); if (!userId.HasValue) return Unauthorized();
+        if (!await CanManageAsync(id, userId.Value, ct)) return Forbid();
+        if (file == null || file.Length == 0) return BadRequest("Выберите файл изображения.");
+        if (file.Length > 2 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 2 МБ.");
+        var contentType = file.ContentType?.ToLowerInvariant() ?? "";
+        if (!ImageTypes.Contains(contentType)) return BadRequest("Допустимые форматы: JPEG, PNG, WebP, GIF.");
+        var url = await _avatarStorage.UploadAsync(id, file.OpenReadStream(), contentType, file.FileName, ct);
+        if (string.IsNullOrEmpty(url)) return StatusCode(500, "Не удалось загрузить файл в хранилище. Проверьте настройки S3.");
+        return await ReplaceAvatarAsync(id, url, ct);
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BoardDetailDto>> Get(Guid id, CancellationToken ct)

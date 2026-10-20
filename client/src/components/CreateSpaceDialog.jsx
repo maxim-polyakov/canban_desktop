@@ -14,7 +14,7 @@ const TYPE_POINTS = {
   company: ['Общие схемы и workflow', 'Управляют администраторы', 'Подходит для стандартизованных процессов'],
 };
 
-export default function CreateSpaceDialog({ open, initialTemplate, initialTeamId, teamsWithBoards, onClose, onCreated, onChangeTemplate }) {
+export default function CreateSpaceDialog({ open, initialTemplate, teamsWithBoards, onClose, onCreated, onChangeTemplate }) {
   const { t } = useLocalization();
   const { templates } = useSpaceTemplates();
   const [step, setStep] = useState('type');
@@ -40,9 +40,8 @@ export default function CreateSpaceDialog({ open, initialTemplate, initialTeamId
     setStep('type'); setManagementType('team');
     setName(''); setKey(''); setKeyTouched(false); setError(''); setNewTeamName('');
     setAccess('private'); setCopySettings(false); setCopyFrom('');
-    const preset = teamsWithBoards.find(({ team }) => team.id === initialTeamId);
-    setTeamId(preset?.team.id || teamsWithBoards[0]?.team.id || NEW_TEAM);
-  }, [open, initialTemplate, initialTeamId, teamsWithBoards]);
+    setTeamId(teamsWithBoards[0]?.team.id || NEW_TEAM);
+  }, [open, initialTemplate, teamsWithBoards]);
 
   if (!open) return null;
 

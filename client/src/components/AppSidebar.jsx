@@ -4,7 +4,6 @@ import { Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import NavIcon from './NavIcons.jsx';
 import SpaceAvatar from './SpaceAvatar.jsx';
-import TeamAvatar from './TeamAvatar.jsx';
 import { IssueTypeIcon } from './IssueIcons.jsx';
 import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { usePrefs } from '../utils/preferences.js';
@@ -71,7 +70,7 @@ function Flyout({ anchor, onClose, title, children, inline }) {
   );
 }
 
-function SpaceSearch({ boards, teams = [], activeBoardId, starredIds, onNavigate }) {
+function SpaceSearch({ boards, activeBoardId, starredIds, onNavigate }) {
   const { t } = useLocalization();
   const [query, setQuery] = useState('');
   const [remote, setRemote] = useState([]);
@@ -86,37 +85,16 @@ function SpaceSearch({ boards, teams = [], activeBoardId, starredIds, onNavigate
       || (b.keyPrefix || '').toLowerCase().includes(needle)
       || (b.teamName || '').toLowerCase().includes(needle)).slice(0, 12)
     : [];
-  const teamResults = needle ? teams.filter((team) => (team.name || '').toLowerCase().includes(needle)).slice(0, 6) : [];
   return (
     <>
       <label className="app-flyout-search">
         <NavIcon name="search" size={14} />
         <input autoFocus type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Поиск по всем разделам')} aria-label={t('Поиск по всем разделам')} />
       </label>
-      {teamResults.length > 0 && results.length > 0 && <div className="app-nav-section">{t('Разделы')}</div>}
       {results.map((b) => <BoardRow key={b.id} board={b} active={b.id === activeBoardId} starred={starredIds.has(b.id)} onNavigate={onNavigate} showTeam />)}
-      {teamResults.length > 0 && (
-        <>
-          <div className="app-nav-section">{t('Команды')}</div>
-          {teamResults.map((team) => <TeamRow key={team.id} team={team} onNavigate={onNavigate} />)}
-        </>
-      )}
-      {needle && results.length === 0 && teamResults.length === 0 && <p className="app-flyout-empty">{t('Разделы не найдены')}</p>}
+      {needle && results.length === 0 && <p className="app-flyout-empty">{t('Разделы не найдены')}</p>}
       <Link to="/spaces" className="app-flyout-footer app-flyout-footer-icon" onClick={onNavigate}><NavIcon name="list" size={14} />{t('Просмотреть все разделы')}</Link>
     </>
-  );
-}
-
-function TeamRow({ team, active, onNavigate }) {
-  const { t } = useLocalization();
-  return (
-    <Link to={`/team/${team.id}`} className={`app-nav-item app-nav-link ${active ? 'is-active' : ''}`} onClick={onNavigate} title={team.name}>
-      <TeamAvatar id={team.id} avatarUrl={team.avatarUrl} name={team.name} size={20} />
-      <span className="app-nav-text">
-        <span className="app-nav-label">{team.name}</span>
-        <span className="app-nav-sub">{t('Команда')}{team.boardCount != null ? ` · ${team.boardCount} ${t('разд.')}` : ''}</span>
-      </span>
-    </Link>
   );
 }
 
@@ -125,7 +103,7 @@ function BoardRow({ board, active, starred, onNavigate, showTeam, to }) {
   return (
     <div className={`app-nav-item app-nav-board ${active ? 'is-active' : ''}`}>
       <Link to={to || `/board/${board.id}`} className="app-nav-link" onClick={onNavigate} title={board.name}>
-        <SpaceAvatar id={board.id} name={board.name} size={20} />
+        <SpaceAvatar id={board.id} name={board.name} avatarUrl={board.avatarUrl} size={20} />
         <span className="app-nav-text">
           <span className="app-nav-label">{board.name}</span>
           {showTeam && board.teamName && <span className="app-nav-sub">{board.teamName}</span>}
@@ -342,11 +320,10 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
   const allBoards = teamsWithBoards.flatMap(({ team, boards }) => boards.map((b) => ({ ...b, teamName: team.name, teamId: team.id })));
   const boardById = new Map(allBoards.map((b) => [b.id, b]));
   const starredIds = new Set(starredBoards.map((b) => b.id));
-  const teamById = new Map(teamsWithBoards.map(({ team, boards }) => [team.id, { id: team.id, name: team.name, avatarUrl: team.avatarUrl, boardCount: boards.length, kind: 'team' }]));
-  const recent = recentBoards.map((b) => (b.kind === 'team' ? teamById.get(b.id) : boardById.get(b.id))).filter(Boolean);
-  const recentRow = (entry, showTeam) => (entry.kind === 'team'
-    ? <TeamRow key={`team-${entry.id}`} team={entry} active={pathname.startsWith(`/team/${entry.id}`)} onNavigate={navigate} />
-    : <BoardRow key={entry.id} board={entry} active={entry.id === activeBoardId} starred={starredIds.has(entry.id)} onNavigate={navigate} showTeam={showTeam} />);
+  const recent = recentBoards.map((b) => boardById.get(b.id)).filter(Boolean);
+  const recentRow = (entry, showTeam) => (
+    <BoardRow key={entry.id} board={entry} active={entry.id === activeBoardId} starred={starredIds.has(entry.id)} onNavigate={navigate} showTeam={showTeam} />
+  );
   const sidebarRecent = (recent.length ? recent : allBoards).slice(0, 4);
   const starred = starredBoards.map((b) => boardById.get(b.id)).filter(Boolean);
 
@@ -415,8 +392,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
 
   const plansContent = <PlansFlyoutContent onNavigate={navigate} />;
 
-  const searchTeams = teamsWithBoards.map(({ team, boards }) => ({ id: team.id, name: team.name, avatarUrl: team.avatarUrl, boardCount: boards.length }));
-  const otherSpacesContent = <SpaceSearch boards={allBoards} teams={searchTeams} activeBoardId={activeBoardId} starredIds={starredIds} onNavigate={navigate} />;
+  const otherSpacesContent = <SpaceSearch boards={allBoards} activeBoardId={activeBoardId} starredIds={starredIds} onNavigate={navigate} />;
 
   return (
     <nav className="app-sidebar-nav" aria-label={t('Навигация')}>

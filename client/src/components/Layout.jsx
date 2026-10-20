@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { boards as boardsApi, teams as teamsApi, character as characterApi, notifications as notificationsApi, search as searchApi } from '../api.js';
 import NavIcon from './NavIcons.jsx';
-import SpaceAvatar from './SpaceAvatar.jsx';
+import SpaceAvatar, { SpaceAvatarPicker } from './SpaceAvatar.jsx';
 import AppSidebar, { CREATE_SPACE_EVENT, SPACES_CHANGED_EVENT } from './AppSidebar.jsx';
 import CreateSpaceDialog from './CreateSpaceDialog.jsx';
 import { isTeamsHubPath, TeamsHubSidebar } from '../pages/teams/TeamsPages.jsx';
@@ -149,7 +149,7 @@ function GlobalSearch({ inputRef, boardsById, onDone }) {
           {spaces.length > 0 && <div className="app-flyout-section">{t('Недавние разделы')}</div>}
           {spaces.map((b) => (
             <button key={b.id} type="button" className="app-search-item" onClick={() => go(`/board/${b.id}`)}>
-              <SpaceAvatar id={b.id} name={b.name} size={16} />
+              <SpaceAvatar id={b.id} name={b.name} avatarUrl={b.avatarUrl} size={16} />
               <span className="app-nav-label">{b.name}</span>
             </button>
           ))}
@@ -170,6 +170,8 @@ function SpaceHeader({ board, boardId, tab }) {
   const { t } = useLocalization();
   useNavHistory();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const closePicker = useCallback(() => setPickerOpen(false), []);
   const ref = useRef(null);
   const close = useCallback(() => setMenuOpen(false), []);
   useOutsideClose(ref, menuOpen, close);
@@ -179,7 +181,15 @@ function SpaceHeader({ board, boardId, tab }) {
     <div className="app-space-header">
       <div className="app-space-breadcrumbs"><Link to="/spaces">{t('Разделы')}</Link></div>
       <div className="app-space-title-row">
-        <SpaceAvatar id={boardId} name={name} size={24} />
+        <span className="app-space-avatar">
+          <button type="button" className="app-space-avatar-btn" onClick={() => setPickerOpen((v) => !v)} aria-label={t('Изменить аватар')} title={t('Изменить аватар')}>
+            <SpaceAvatar id={boardId} name={name} avatarUrl={board?.avatarUrl} size={24} />
+          </button>
+          {pickerOpen && (
+            <SpaceAvatarPicker boardId={boardId} value={board?.avatarUrl} onClose={closePicker}
+              onChange={() => { setPickerOpen(false); window.dispatchEvent(new CustomEvent(SPACES_CHANGED_EVENT)); }} />
+          )}
+        </span>
         <h1 className="app-space-title" title={name}>{name}</h1>
         <button
           type="button"
@@ -319,7 +329,7 @@ export default function Layout() {
 
   useEffect(() => {
     const onCreateSpace = (e) => {
-      if (e.detail?.template) setCreateSpace({ template: e.detail.template, teamId: e.detail.teamId });
+      if (e.detail?.template) setCreateSpace({ template: e.detail.template });
       else navigate('/spaces/templates');
     };
     window.addEventListener(CREATE_SPACE_EVENT, onCreateSpace);
@@ -484,7 +494,6 @@ export default function Layout() {
       <CreateSpaceDialog
         open={Boolean(createSpace)}
         initialTemplate={createSpace?.template}
-        initialTeamId={createSpace?.teamId}
         teamsWithBoards={teamsWithBoards}
         onClose={() => setCreateSpace(null)}
         onCreated={handleSpaceCreated}

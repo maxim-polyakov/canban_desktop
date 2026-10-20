@@ -13,6 +13,7 @@ public static partial class DatabaseSchemaInitializer
             ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "ManagementType" varchar(16) NOT NULL DEFAULT 'team';
             ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "Access" varchar(16) NOT NULL DEFAULT 'private';
             ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "Features" varchar(300) NOT NULL DEFAULT '';
+            ALTER TABLE "Boards" ADD COLUMN IF NOT EXISTS "AvatarUrl" varchar(500) NULL;
             UPDATE "Quests" SET "ParentQuestId"="ParentEpicId" WHERE "ParentQuestId" IS NULL AND "ParentEpicId" IS NOT NULL;
             CREATE INDEX IF NOT EXISTS "IX_Quests_ParentQuestId" ON "Quests"("ParentQuestId");
 

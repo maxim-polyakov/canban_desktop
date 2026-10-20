@@ -10,58 +10,9 @@ namespace CanbanServer.Api.Controllers;
 [Route("api/[controller]")]
 public class TeamsController : ControllerBase
 {
-    private static readonly System.Text.RegularExpressions.Regex PresetAvatar = new("^preset:[a-z0-9-]{1,32}$");
-    private static readonly string[] ImageTypes = { "image/jpeg", "image/png", "image/webp", "image/gif" };
-
     private readonly ITeamService _teamService;
-    private readonly IAvatarStorageService _avatarStorage;
 
-    public TeamsController(ITeamService teamService, IAvatarStorageService avatarStorage)
-    {
-        _teamService = teamService;
-        _avatarStorage = avatarStorage;
-    }
-
-    private async Task<ActionResult?> EnsureCanManageAsync(Guid teamId, CancellationToken ct)
-    {
-        var userId = User.GetUserId();
-        if (!userId.HasValue) return Unauthorized();
-        var allowed = await _teamService.CanManageAsync(teamId, userId.Value, ct);
-        if (allowed == null) return NotFound();
-        return allowed == true ? null : Forbid();
-    }
-
-    private async Task ReplaceAvatarAsync(Guid teamId, string? avatarUrl, CancellationToken ct)
-    {
-        var previous = await _teamService.SetAvatarAsync(teamId, avatarUrl, ct);
-        if (previous != null && previous != avatarUrl && !previous.StartsWith("preset:", StringComparison.Ordinal))
-            await _avatarStorage.DeleteByUrlAsync(previous, ct);
-    }
-
-    /// <summary>Choose a built-in avatar ("preset:&lt;name&gt;") or reset to the default (null).</summary>
-    [HttpPut("{teamId:guid}/avatar")]
-    public async Task<ActionResult<TeamDto>> SetAvatar(Guid teamId, [FromBody] SetTeamAvatarRequest request, CancellationToken ct)
-    {
-        if (await EnsureCanManageAsync(teamId, ct) is { } denied) return denied;
-        var value = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
-        if (value != null && !PresetAvatar.IsMatch(value)) return BadRequest("Выберите аватар из списка или загрузите изображение.");
-        await ReplaceAvatarAsync(teamId, value, ct);
-        return Ok(await _teamService.GetByIdAsync(teamId, ct));
-    }
-
-    [HttpPost("{teamId:guid}/avatar")]
-    public async Task<ActionResult<TeamDto>> UploadAvatar(Guid teamId, IFormFile? file, CancellationToken ct)
-    {
-        if (await EnsureCanManageAsync(teamId, ct) is { } denied) return denied;
-        if (file == null || file.Length == 0) return BadRequest("Выберите файл изображения.");
-        if (file.Length > 2 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 2 МБ.");
-        var contentType = file.ContentType?.ToLowerInvariant() ?? "";
-        if (!ImageTypes.Contains(contentType)) return BadRequest("Допустимые форматы: JPEG, PNG, WebP, GIF.");
-        var url = await _avatarStorage.UploadAsync(teamId, file.OpenReadStream(), contentType, file.FileName, ct);
-        if (string.IsNullOrEmpty(url)) return StatusCode(500, "Не удалось загрузить файл в хранилище. Проверьте настройки S3.");
-        await ReplaceAvatarAsync(teamId, url, ct);
-        return Ok(await _teamService.GetByIdAsync(teamId, ct));
-    }
+    public TeamsController(ITeamService teamService) => _teamService = teamService;
 
     [HttpGet("my")]
     public async Task<ActionResult<List<TeamWithBoardsDto>>> GetMyTeamsWithBoards(CancellationToken ct)

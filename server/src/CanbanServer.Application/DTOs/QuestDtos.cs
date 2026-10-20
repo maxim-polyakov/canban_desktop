@@ -45,7 +45,8 @@ public record QuestDto(
     List<Guid>? ReleaseIds = null,
     Guid? IssueTypeId = null,
     Dictionary<string, JsonElement>? CustomFields = null,
-    DateTime? StartDate = null
+    DateTime? StartDate = null,
+    bool Flagged = false
 );
 
 public record CreateQuestRequest(
@@ -119,7 +120,8 @@ public record UpdateQuestRequest(
     bool IssueTypeIdSet = false,
     DateTime? StartDate = null,
     bool StartDateSet = false,
-    bool DueDateSet = false
+    bool DueDateSet = false,
+    bool? Flagged = null
 );
 
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>

@@ -235,6 +235,7 @@ public class QuestService : IQuestService
         if (assigneesChanged) changes.Add("изменены исполнители");
         if ((request.DueDateSet || request.DueDate != null) && request.DueDate != q.DueDate) changes.Add("изменён срок");
         if (request.StartDateSet && request.StartDate != q.StartDate) changes.Add("изменена дата начала");
+        if (request.Flagged != null && request.Flagged != q.IsFlagged) changes.Add(request.Flagged.Value ? "добавлен флажок" : "снят флажок");
         if (request.XpReward != null && request.XpReward != q.XpReward) changes.Add("изменена награда XP");
         if ((request.IssueType != null && request.IssueType != q.IssueType) || typeIdChanged) changes.Add("изменён тип задачи");
         if (request.Priority != null && request.Priority != q.Priority) changes.Add("изменён приоритет");
@@ -264,6 +265,11 @@ public class QuestService : IQuestService
         {
             auditChanges.Add(("startdate", q.StartDate?.ToString("yyyy-MM-dd"), request.StartDate?.ToString("yyyy-MM-dd")));
             q.StartDate = request.StartDate;
+        }
+        if (request.Flagged != null && request.Flagged != q.IsFlagged)
+        {
+            auditChanges.Add(("flagged", q.IsFlagged ? "Impediment" : null, request.Flagged.Value ? "Impediment" : null));
+            q.IsFlagged = request.Flagged.Value;
         }
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;

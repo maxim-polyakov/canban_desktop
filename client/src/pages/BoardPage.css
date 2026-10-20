@@ -452,6 +452,15 @@
   font-size: 0.75rem;
   color: var(--success);
 }
+
+.quest-card.quest-card-flagged {
+  background: var(--warning-soft, #fff7d6);
+}
+
+.quest-card-flag {
+  color: var(--danger, #c9372c);
+  font-size: 0.9rem;
+}
 @media (max-width: 700px) {
   .board-page {
     padding: 0.5rem 0.75rem;

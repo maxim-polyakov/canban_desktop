@@ -190,7 +190,8 @@ public class BoardService : IBoardService
         q.QuestReleases.Select(x => x.ReleaseId).ToList(),
         q.IssueTypeId,
         IssueFieldService.ReadValues(q.CustomFieldsJson),
-        q.StartDate);
+        q.StartDate,
+        q.IsFlagged);
 
     private static string NormalizeKey(string? key)
     {

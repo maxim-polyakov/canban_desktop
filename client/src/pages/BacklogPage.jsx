@@ -7,6 +7,7 @@ import { IssueTypeIcon, PriorityIcon, WatcherBadge } from '../components/IssueIc
 import AssigneeAvatar from '../components/AssigneeAvatar.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import StartSprintDialog from '../components/StartSprintDialog.jsx';
+import IssueActionsMenu from '../components/IssueActionsMenu.jsx';
 import useMediaQuery from '../utils/useMediaQuery.js';
 import './BacklogPage.css';
 
@@ -16,7 +17,7 @@ const BACKLOG_DRAG_PREFIX = 'backlog-quest-';
 const SPRINT_DROP_PREFIX = 'sprint-drop-';
 const BACKLOG_DROP_ID = 'backlog-drop';
 
-function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklog, dragDisabled, selected, onSelect }) {
+function IssueRow({ quest, onOpen, actions, dragDisabled, selected, onSelect }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: BACKLOG_DRAG_PREFIX + quest.id,
     data: { type: 'backlog-quest', questId: quest.id },
@@ -25,7 +26,7 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
   return (
     <li
       ref={setNodeRef}
-      className={`backlog-issue-row ${isDragging ? 'backlog-issue-row-dragging' : ''}`}
+      className={`backlog-issue-row ${isDragging ? 'backlog-issue-row-dragging' : ''} ${quest.flagged ? 'backlog-issue-row-flagged' : ''}`}
       {...attributes}
       {...listeners}
     >
@@ -37,6 +38,7 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
         {quest.title}
       </button>
       <span className="backlog-issue-spacer" />
+      {quest.flagged && <span className="backlog-issue-flag" title="Флажок" aria-label="Флажок">⚑</span>}
       {quest.labels && String(quest.labels).split(',').filter(Boolean).slice(0, 2).map((label) => (
         <span key={label} className="backlog-issue-label">{label.trim()}</span>
       ))}
@@ -49,28 +51,8 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
           <AssigneeAvatar key={a.userId} userId={a.userId} displayName={a.displayName} avatarUrl={a.avatarUrl} size={20} />
         ))}
       </span>
-      {onMoveToBacklog ? (
-        <button
-          type="button"
-          className="backlog-issue-move-btn"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => onMoveToBacklog(quest.id)}
-        >
-          В бэклог
-        </button>
-      ) : (
-        sprintOptions && sprintOptions.length > 0 && (
-          <select
-            className="backlog-issue-move-select"
-            defaultValue=""
-            onPointerDown={(e) => e.stopPropagation()}
-            onChange={(e) => { if (e.target.value) { onMoveToSprint(quest.id, e.target.value); e.target.value = ''; } }}
-          >
-            <option value="" disabled>В спринт…</option>
-            {sprintOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        )
-      )}
+      {quest.storyPoints != null && <span className="backlog-issue-points" title="Story points">{quest.storyPoints}</span>}
+      {actions?.(quest)}
     </li>
   );
 }
@@ -150,6 +132,7 @@ export default function BacklogPage() {
   const [activeDragId, setActiveDragId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [startingSprint, setStartingSprint] = useState(null);
+  const [toast, setToast] = useState('');
   const isMobile = useMediaQuery();
 
   const sensors = useSensors(
@@ -254,6 +237,61 @@ export default function BacklogPage() {
     }
   };
 
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(''), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const updateQuest = async (id, patch) => {
+    await quests.update(id, patch);
+    await loadAll();
+  };
+
+  const deleteQuest = async (quest) => {
+    if (!window.confirm(t('Удалить задачу ${key}? Это действие нельзя отменить.', { key: quest.issueKey }))) return;
+    if (!(await quests.delete(quest.id))) throw new Error('Не удалось удалить задачу.');
+    await loadAll();
+  };
+
+  const splitQuest = async (quest) => {
+    const title = window.prompt(t('Название новой задачи, которая будет отделена от ${key}', { key: quest.issueKey }), quest.title);
+    if (!title?.trim()) return;
+    const created = await quests.create({
+      title: title.trim(),
+      columnId: quest.columnId,
+      category: quest.category ?? 0,
+      xpReward: quest.xpReward ?? 10,
+      isEpic: false,
+      issueType: quest.issueType,
+      issueTypeId: quest.issueTypeId ?? null,
+      priority: quest.priority,
+      labels: quest.labels || null,
+      sprintId: quest.sprintId ?? null,
+      parentQuestId: quest.parentQuestId ?? null,
+      assigneeIds: quest.assigneeIds ?? [],
+    });
+    setToast(t('Создана задача ${key}', { key: created?.issueKey ?? '' }));
+    await loadAll();
+  };
+
+  const loadEpics = useCallback(() => quests.filter(boardId, { issueType: 0 }), [boardId]);
+
+  const renderActions = (quest) => (
+    <IssueActionsMenu
+      quest={quest}
+      boardId={boardId}
+      sprints={sprintList}
+      members={members}
+      loadEpics={loadEpics}
+      onMove={(sprintId) => updateQuest(quest.id, { sprintId, sprintIdSet: true })}
+      onUpdate={(patch) => updateQuest(quest.id, patch)}
+      onSplit={() => splitQuest(quest)}
+      onDelete={() => deleteQuest(quest)}
+      onNotify={setToast}
+    />
+  );
+
   const handleCreateBacklogIssue = async (e) => {
     e.preventDefault();
     if (!newIssueTitle.trim() || !board) return;
@@ -350,7 +388,7 @@ export default function BacklogPage() {
       )}
 
       <p className="backlog-dnd-hint">
-        Перетащите задачу между бэклогом и спринтом (поддерживается касание), либо используйте кнопку/список «В спринт…» / «В бэклог».
+        Перетащите задачу между бэклогом и спринтом (поддерживается касание) или откройте меню «⋯» у задачи.
       </p>
       {selectedIds.length > 0 && <div className="backlog-bulk-bar" role="toolbar">
         <strong>{t('Выбрано')}: {selectedIds.length}</strong>
@@ -381,7 +419,7 @@ export default function BacklogPage() {
             </header>
             <SprintDropList sprintId={sprint.id}>
               {(sprintQuests[sprint.id] ?? []).map((q) => (
-                <IssueRow key={q.id} quest={q} onOpen={openIssue} onMoveToBacklog={moveQuestToBacklog} selected={selectedIds.includes(q.id)} onSelect={toggleSelected} />
+                <IssueRow key={q.id} quest={q} onOpen={openIssue} actions={renderActions} selected={selectedIds.includes(q.id)} onSelect={toggleSelected} />
               ))}
               {(sprintQuests[sprint.id] ?? []).length === 0 && <li className="backlog-empty">Нет задач в этом спринте. Перетащите сюда задачу из бэклога.</li>}
             </SprintDropList>
@@ -399,8 +437,7 @@ export default function BacklogPage() {
                 key={q.id}
                 quest={q}
                 onOpen={openIssue}
-                sprintOptions={futureAndActiveSprints}
-                onMoveToSprint={moveQuestToSprint}
+                actions={renderActions}
                 selected={selectedIds.includes(q.id)}
                 onSelect={toggleSelected}
               />
@@ -428,6 +465,8 @@ export default function BacklogPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {toast && <div className="backlog-toast" role="status">{toast}</div>}
 
       {startingSprint && (
         <StartSprintDialog

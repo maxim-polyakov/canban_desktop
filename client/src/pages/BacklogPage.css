@@ -274,20 +274,41 @@
   margin-left: -0.4rem;
 }
 
-.backlog-issue-move-btn,
-.backlog-issue-move-select {
-  flex-shrink: 0;
-  padding: 0.25rem 0.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  font-size: 0.74rem;
+.backlog-issue-row-flagged {
+  background: var(--warning-soft, #fff7d6);
 }
 
-.backlog-issue-move-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+.backlog-issue-flag {
+  flex-shrink: 0;
+  color: var(--danger, #c9372c);
+  font-size: 0.95rem;
+}
+
+.backlog-issue-points {
+  flex-shrink: 0;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--chip-bg, #dfe1e6);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+.backlog-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 80;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border-radius: 4px;
+  background: var(--text, #172b4d);
+  color: var(--surface, #fff);
+  font-size: 0.875rem;
+  box-shadow: var(--overlay-shadow, 0 8px 16px rgba(9, 30, 66, 0.25));
 }
 
 .backlog-empty {
@@ -452,9 +473,7 @@
   .backlog-issue-checkbox,
   .backlog-issue-label,
   .backlog-issue-xp,
-  .backlog-issue-row .watcher-badge,
-  .backlog-issue-move-btn,
-  .backlog-issue-move-select {
+  .backlog-issue-row .watcher-badge {
     display: none;
   }
 

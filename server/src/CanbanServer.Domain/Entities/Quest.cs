@@ -16,6 +16,8 @@ public class Quest
     public int Order { get; set; }
     public DateTime? DueDate { get; set; }
     public DateTime? StartDate { get; set; }
+    /// <summary>Jira's flag (Impediment): highlights a blocked issue on boards and backlog.</summary>
+    public bool IsFlagged { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     /// <summary>Категория для дерева навыков: Frontend, Backend, DevOps и т.д.</summary>

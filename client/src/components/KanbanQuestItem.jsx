@@ -35,7 +35,7 @@ export default function KanbanQuestItem({ quest, columnId, onDeleteQuest, onQues
     <div
       ref={setNodeRef}
       style={style}
-      className={`quest-card ${isDragging ? 'quest-card-ghost' : ''} ${hidden ? 'quest-card-filtered-out' : ''}`}
+      className={`quest-card ${isDragging ? 'quest-card-ghost' : ''} ${hidden ? 'quest-card-filtered-out' : ''} ${quest.flagged ? 'quest-card-flagged' : ''}`}
       {...attributes}
       {...listeners}
       onClick={openDetail}
@@ -70,6 +70,7 @@ export default function KanbanQuestItem({ quest, columnId, onDeleteQuest, onQues
         <span className="quest-card-key">{quest.issueKey || '—'}</span>
         {quest.statusLabel && <span className={`quest-card-status ccd-lozenge is-${statusTone(quest.statusKind)}`} title={quest.statusLabel}>{quest.statusLabel}</span>}
         <span className="quest-card-bottom-spacer" />
+        {quest.flagged && <span className="quest-card-flag" title="Флажок" aria-label="Флажок">⚑</span>}
         {quest.xpReward > 0 && <span className="quest-card-xp">+{quest.xpReward} XP</span>}
         <WatcherBadge count={(quest.notificationRecipientIds ?? []).length} />
         {(quest.linkCount > 0 || quest.hasBlockingLinks) && <span title="Linked or blocked">⛓{quest.hasBlockingLinks ? '⛔' : ''}</span>}

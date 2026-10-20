@@ -329,7 +329,8 @@
 
 .create-branch-panel label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--text-muted); }
 
-.create-branch-panel input {
+.create-branch-panel input,
+.create-branch-panel select {
   padding: 0.4rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -350,7 +351,21 @@
   overflow-wrap: anywhere;
 }
 
-.create-branch-actions { display: flex; gap: 0.5rem; }
+.create-branch-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; font-size: 0.8rem; }
+
+.create-branch-primary {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary, #0C66E4);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.create-branch-primary:disabled { opacity: 0.6; cursor: default; }
+
+.create-branch-error { margin: 0; font-size: 0.8rem; color: var(--danger, #C9372C); }
 
 .create-branch-hint { margin: 0; font-size: 0.75rem; color: var(--text-muted); }
 

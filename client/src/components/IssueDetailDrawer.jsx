@@ -652,7 +652,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                 <h4>{t('Разработка GitHub')}</h4>
                 <button type="button" onClick={handleSyncDevelopment} disabled={developmentSyncing}>{developmentSyncing ? '…' : t('Синхронизировать')}</button>
               </div>
-              {quest.issueKey && <CreateBranchPanel issueKey={quest.issueKey} title={quest.title} />}
+              {quest.issueKey && <CreateBranchPanel questId={questId} issueKey={quest.issueKey} title={quest.title} onCreated={setDevelopment} />}
               {developmentItems.length === 0 ? <p className="issue-drawer-empty">{t('Связанные ветки, коммиты и pull request не найдены.')}</p> : (
                 <ul className="issue-drawer-compact-list">
                   {developmentItems.map((item) => <li key={item.id}>

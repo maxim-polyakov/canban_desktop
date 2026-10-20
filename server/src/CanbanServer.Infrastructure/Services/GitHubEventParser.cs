@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace CanbanServer.Infrastructure.Services;
 
 public sealed record GitHubDevelopmentEvent(string Kind, string ExternalId, string Url, string Title, string? Status, IReadOnlyList<string> IssueKeys,
-    string? AuthorEmail = null, string? Message = null);
+    string? AuthorEmail = null, string? Message = null, string? HeadSha = null);
 
 /// <summary>A Jira-style smart commit command: "#comment text", "#time 1h 30m note" or a transition such as "#done".</summary>
 public sealed record SmartCommitCommand(string Name, string Arguments);
@@ -81,12 +81,19 @@ public static class GitHubEventParser
                     var headBranch = check.TryGetProperty("check_suite", out var suite) ? Str(suite, "head_branch") : null;
                     var name = Str(check, "name") ?? "check";
                     result.Add(new GitHubDevelopmentEvent(CheckRunKind, check.GetProperty("id").ToString(), Str(check, "html_url") ?? repoUrl,
-                        name, Str(check, "conclusion") ?? Str(check, "status"), ExtractIssueKeys(headBranch, name)));
+                        name, Str(check, "conclusion") ?? Str(check, "status"), ExtractIssueKeys(headBranch, name), HeadSha: Str(check, "head_sha")));
                 }
                 break;
         }
-        return result.Where(e => e.IssueKeys.Count > 0).ToList();
+        // Check runs without a key (e.g. CI on main) are still kept: they are linked through the commit they ran on.
+        return result.Where(e => e.IssueKeys.Count > 0 || (e.Kind == CheckRunKind && !string.IsNullOrEmpty(e.HeadSha))).ToList();
     }
+
+    private static readonly Regex BranchNamePattern =
+        new(@"^(?!/)(?!.*(\.\.|//|@\{|\.lock$|[/.]$))[^\s~^:?*\[\\\x00-\x1f\x7f]{1,200}$", RegexOptions.Compiled);
+
+    /// <summary>The subset of git check-ref-format rules GitHub enforces for new branches.</summary>
+    public static bool IsValidBranchName(string name) => BranchNamePattern.IsMatch(name);
 
     private static readonly Regex SmartCommandPattern = new(@"(?<![\w#])#(\p{L}[\w-]*)", RegexOptions.Compiled);
     private static readonly Regex DurationPart = new(@"^(\d+(?:[.,]\d+)?)([wdhm])$", RegexOptions.Compiled | RegexOptions.IgnoreCase);

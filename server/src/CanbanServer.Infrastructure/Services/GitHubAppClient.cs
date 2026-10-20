@@ -13,6 +13,7 @@ public interface IGitHubAppClient
     bool IsConfigured { get; }
     Task<long?> FindRepositoryInstallationAsync(string owner, string repository, CancellationToken ct);
     Task<JsonDocument> GetAsync(long installationId, string path, CancellationToken ct);
+    Task<JsonDocument> PostAsync(long installationId, string path, object body, CancellationToken ct);
 }
 
 public sealed class GitHubAppClient : IGitHubAppClient
@@ -64,10 +65,18 @@ public sealed class GitHubAppClient : IGitHubAppClient
         return doc.RootElement.GetProperty("id").GetInt64();
     }
 
-    public async Task<JsonDocument> GetAsync(long installationId, string path, CancellationToken ct)
+    public Task<JsonDocument> GetAsync(long installationId, string path, CancellationToken ct) =>
+        SendAsync(installationId, HttpMethod.Get, path, null, ct);
+
+    public Task<JsonDocument> PostAsync(long installationId, string path, object body, CancellationToken ct) =>
+        SendAsync(installationId, HttpMethod.Post, path, body, ct);
+
+    private async Task<JsonDocument> SendAsync(long installationId, HttpMethod method, string path, object? body, CancellationToken ct)
     {
         var token = await GetInstallationTokenAsync(installationId, ct);
-        using var request = CreateRequest(HttpMethod.Get, path.TrimStart('/'), token);
+        using var request = CreateRequest(method, path.TrimStart('/'), token);
+        if (body != null)
+            request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
         using var response = await _clients.CreateClient(HttpClientName).SendAsync(request, ct);
         if (response.StatusCode == HttpStatusCode.Unauthorized) InstallationTokens.TryRemove(installationId, out _);
         await EnsureSuccessAsync(response, ct);

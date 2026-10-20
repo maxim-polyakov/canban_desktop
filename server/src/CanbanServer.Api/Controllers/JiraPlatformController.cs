@@ -621,6 +621,20 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.GetDevelopmentAsync(questId, ct));
     }
 
+    [HttpGet("integrations/github/quests/{questId:guid}/repositories")]
+    public async Task<ActionResult> GetQuestRepositories(Guid questId, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.View, ct);
+        return Ok(await _jira.GetQuestRepositoriesAsync(questId, ct));
+    }
+
+    [HttpPost("integrations/github/quests/{questId:guid}/branches")]
+    public async Task<ActionResult> CreateBranch(Guid questId, [FromBody] CreateGitHubBranchRequest request, CancellationToken ct)
+    {
+        await EnsureQuestAsync(questId, BoardPermission.Work, ct);
+        return Ok(await _jira.CreateBranchAsync(questId, request, ct));
+    }
+
     [HttpPost("integrations/github/quests/{questId:guid}/sync")]
     public async Task<ActionResult> SyncDevelopment(Guid questId, CancellationToken ct)
     {

@@ -55,5 +55,7 @@ public interface IJiraPlatformService
     Task<IReadOnlyList<SmartCommitRequest>> ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct);
     Task<DevelopmentSummaryDto> GetDevelopmentAsync(Guid questId, CancellationToken ct);
     Task<DevelopmentSummaryDto> SyncDevelopmentAsync(Guid questId, CancellationToken ct);
+    Task<List<GitHubRepositoryOptionDto>> GetQuestRepositoriesAsync(Guid questId, CancellationToken ct);
+    Task<DevelopmentSummaryDto> CreateBranchAsync(Guid questId, CreateGitHubBranchRequest request, CancellationToken ct);
     Task<BoardPermissionsDto> GetBoardPermissionsAsync(Guid boardId, Guid userId, CancellationToken ct);
 }

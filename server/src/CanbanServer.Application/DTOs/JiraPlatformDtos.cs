@@ -37,6 +37,8 @@ public record AutomationRuleDto(Guid Id, Guid BoardId, string Name, AutomationTr
 public record UpsertAutomationRuleRequest(string Name, AutomationTrigger Trigger, string? ConditionsJson, string ActionsJson, bool Enabled = true);
 public record OutboundWebhookDto(Guid Id, Guid BoardId, string Url, string SecretConfigurationKey, string Events, bool Enabled);
 public record UpsertOutboundWebhookRequest(string Url, string SecretConfigurationKey, string Events, bool Enabled = true);
+public record GitHubRepositoryOptionDto(Guid IntegrationId, string Owner, string Name, string? DefaultBranch);
+public record CreateGitHubBranchRequest(Guid IntegrationId, string Name, string? FromBranch = null);
 public record SmartCommitRequest(Guid QuestId, string? AuthorEmail, string Message);
 public record GitHubIntegrationDto(Guid Id, Guid BoardId, long InstallationId, string RepositoryOwner, string RepositoryName, string WebhookSecretConfigurationKey, bool Enabled);
 public record UpsertGitHubIntegrationRequest(long InstallationId, string RepositoryOwner, string RepositoryName, string WebhookSecretConfigurationKey, bool Enabled = true);

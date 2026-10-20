@@ -1988,7 +1988,11 @@
       "связана с": "relates to",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Issue ${issueKey} does not exist or you do not have access to it.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Keep ${issueKey} in the name so the branch is linked to the issue.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Commits with ${issueKey} in the message are linked too. Commands: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Commits with ${issueKey} in the message are linked too. Commands: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Loading repositories…",
+      "Из ветки": "From branch",
+      "Репозиторий": "Repository",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "No GitHub repository is connected to this space — create the branch with the command below."
     }
   },
   "de": {
@@ -3716,7 +3720,11 @@
       "связана с": "bezieht sich auf",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problem ${issueKey} existiert nicht oder Sie haben keinen Zugriff darauf.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Halten Sie ${issueKey} im Namen, damit der Zweig mit dem Problem verknüpft ist.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Commits mit ${issueKey} in der Nachricht werden ebenfalls verknüpft. Befehle: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Commits mit ${issueKey} in der Nachricht werden ebenfalls verknüpft. Befehle: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Repositories werden geladen...",
+      "Из ветки": "Von Niederlassung",
+      "Репозиторий": "Repository",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Mit diesem Bereich ist kein GitHub-Repository verbunden — erstellen Sie den Zweig mit dem folgenden Befehl."
     }
   },
   "fr": {
@@ -5444,7 +5452,11 @@
       "связана с": "concerne",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Le problème ${issueKey} n'existe pas ou vous n'y avez pas accès.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Conservez ${issueKey} dans le nom pour que la branche soit liée au problème.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Les commits avec ${issueKey} dans le message sont également liés. Commandes : #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Les commits avec ${issueKey} dans le message sont également liés. Commandes : #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Chargement des référentiels…",
+      "Из ветки": "De la succursale",
+      "Репозиторий": "Référentiel",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Aucun référentiel GitHub n'est connecté à cet espace — créez la branche avec la commande ci-dessous."
     }
   },
   "es": {
@@ -7172,7 +7184,11 @@
       "связана с": "se relaciona con",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "El problema ${issueKey} no existe o no tienes acceso a él.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Mantenga ${issueKey} en el nombre para que la sucursal esté vinculada al problema.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Los compromisos con ${issueKey} en el mensaje también están vinculados. Comandos: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Los compromisos con ${issueKey} en el mensaje también están vinculados. Comandos: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Cargando repositorios...",
+      "Из ветки": "De la sucursal",
+      "Репозиторий": "Repositorio",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "No hay ningún repositorio de GitHub conectado a este espacio: cree la rama con el siguiente comando."
     }
   },
   "ar": {
@@ -8900,7 +8916,11 @@
       "связана с": "يتعلق بـ",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "المشكلة ${issueKey} غير موجودة أو لا يمكنك الوصول إليها.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "احتفظ برقم ${issueKey} في الاسم حتى يتم ربط الفرع بالمشكلة.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "الالتزام بالرقم ${issueKey} في الرسالة مرتبط أيضًا. الأوامر: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "الالتزام بالرقم ${issueKey} في الرسالة مرتبط أيضًا. الأوامر: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "جارٍ تحميل المستودعات...",
+      "Из ветки": "من الفرع",
+      "Репозиторий": "المستودع",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "لا يوجد مستودع GitHub متصل بهذه المساحة — أنشئ الفرع باستخدام الأمر أدناه."
     }
   },
   "zh": {
@@ -10628,7 +10648,11 @@
       "связана с": "涉及",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "问题${issueKey}不存在或您无权访问它。",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "在名称中保留${issueKey} ，以便将分支链接到问题。",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "消息中带有${issueKey}的提交也会被链接。 命令： # comment text, # time 1h 30m, # done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "消息中带有${issueKey}的提交也会被链接。 命令： # comment text, # time 1h 30m, # done.",
+      "Загрузка репозиториев…": "正在加载存储库…",
+      "Из ветки": "从分支",
+      "Репозиторий": "存储库",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "没有GitHub存储库连接到此空间—使用下面的命令创建分支。"
     }
   },
   "zh-TW": {
@@ -12356,7 +12380,11 @@
       "связана с": "關於",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "問題${issueKey}不存在或您無權存取。",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "在名稱中保留${issueKey} ，以便將分支連結到問題。",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "訊息中含有${issueKey}的提交也會連結。 命令： # comment text, # time 1h 30m, # done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "訊息中含有${issueKey}的提交也會連結。 命令： # comment text, # time 1h 30m, # done.",
+      "Загрузка репозиториев…": "正在載入儲存庫…",
+      "Из ветки": "從分支機構",
+      "Репозиторий": "儲存庫",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "沒有GitHub儲存庫連接到此空間—使用下面的命令創建分支。"
     }
   },
   "ja": {
@@ -14084,7 +14112,11 @@
       "связана с": "に関連する",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "課題${issueKey}は存在しないか、アクセス権がありません。",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "ブランチがイシューにリンクされるように、名前に${issueKey}を保持します。",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "メッセージ内の${issueKey}のコミットもリンクされています。 コマンド：# comment text、# time 1 h 30 m、# done。"
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "メッセージ内の${issueKey}のコミットもリンクされています。 コマンド：# comment text、# time 1 h 30 m、# done。",
+      "Загрузка репозиториев…": "リポジトリを読み込んでいます…",
+      "Из ветки": "ブランチから",
+      "Репозиторий": "リポジトリ",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "このスペースに接続されているGitHubリポジトリはありません。以下のコマンドでブランチを作成してください。"
     }
   },
   "ko": {
@@ -15812,7 +15844,11 @@
       "связана с": "~ 와 관련됨",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "문제 ${issueKey} 이 (가) 없거나 액세스 권한이 없습니다.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "브랜치가 문제에 연결되도록 이름에 ${issueKey} 을 유지합니다.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "메시지에 ${issueKey} 이 있는 커밋도 연결됩니다. 명령어: # comment text, # time 1시간 30분, # done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "메시지에 ${issueKey} 이 있는 커밋도 연결됩니다. 명령어: # comment text, # time 1시간 30분, # done.",
+      "Загрузка репозиториев…": "저장소 로드 중...",
+      "Из ветки": "브랜치에서",
+      "Репозиторий": "저장소",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "이 공간에 연결된 GitHub 저장소가 없습니다. 아래 명령으로 브랜치를 생성하십시오."
     }
   },
   "it": {
@@ -17540,7 +17576,11 @@
       "связана с": "si riferisce a",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Il problema ${issueKey} non esiste o non hai accesso ad esso.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Mantieni ${issueKey} nel nome in modo che la filiale sia collegata al problema.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Anche i commit con ${issueKey} nel messaggio sono collegati. Comandi: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Anche i commit con ${issueKey} nel messaggio sono collegati. Comandi: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Caricamento dei repository in corso...",
+      "Из ветки": "Dalla filiale",
+      "Репозиторий": "Repository",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Nessun repository GitHub è connesso a questo spazio: crea il ramo con il comando qui sotto."
     }
   },
   "pt": {
@@ -19268,7 +19308,11 @@
       "связана с": "diz respeito a",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "O problema ${issueKey} não existe ou você não tem acesso a ele.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Mantenha ${issueKey} no nome para que a ramificação esteja vinculada ao problema.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Os commits com ${issueKey} na mensagem também estão vinculados. Comandos: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Os commits com ${issueKey} na mensagem também estão vinculados. Comandos: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Carregando repositórios…",
+      "Из ветки": "Da filial",
+      "Репозиторий": "Repositório",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Nenhum repositório do GitHub está conectado a este espaço — crie a ramificação com o comando abaixo."
     }
   },
   "pl": {
@@ -20996,7 +21040,11 @@
       "связана с": "dotyczy",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problem ${issueKey} nie istnieje lub nie masz do niego dostępu.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Zachowaj ${issueKey} w nazwie, aby oddział był powiązany z problemem.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Zobowiązania z ${issueKey} w wiadomości są również połączone. Polecenia: # tekst komentarza, #czas 1h 30m, #gotowe."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Zobowiązania z ${issueKey} w wiadomości są również połączone. Polecenia: # tekst komentarza, #czas 1h 30m, #gotowe.",
+      "Загрузка репозиториев…": "Ładowanie repozytoriów…",
+      "Из ветки": "Od oddziału",
+      "Репозиторий": "Repozytorium",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Żadne repozytorium GitHub nie jest podłączone do tej przestrzeni — utwórz gałąź za pomocą poniższego polecenia."
     }
   },
   "uk": {
@@ -22724,7 +22772,11 @@
       "связана с": "стосується",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Випуск ${issueKey} не існує або у вас немає доступу до нього.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Залиште ${issueKey} у назві, щоб гілка була пов 'язана з проблемою.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Коміти з ${issueKey} у повідомленні також пов 'язані. Команди: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Коміти з ${issueKey} у повідомленні також пов 'язані. Команди: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Завантаження сховищ…",
+      "Из ветки": "Від філії",
+      "Репозиторий": "Репозиторій",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "До цього простору не підключено жоден репозиторій GitHub — створіть гілку за допомогою команди нижче."
     }
   },
   "th": {
@@ -24452,7 +24504,11 @@
       "связана с": "เกี่ยวข้องกับ",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ปัญหา ${issueKey} ไม่มีอยู่หรือคุณไม่สามารถเข้าถึงได้",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "เก็บ ${issueKey} ไว้ในชื่อเพื่อให้สาขาเชื่อมโยงกับปัญหา",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "มีการเชื่อมโยงความมุ่งมั่นที่มี ${issueKey} ในข้อความด้วย คำสั่ง: # comment text, # time 1h 30m, # done"
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "มีการเชื่อมโยงความมุ่งมั่นที่มี ${issueKey} ในข้อความด้วย คำสั่ง: # comment text, # time 1h 30m, # done",
+      "Загрузка репозиториев…": "กำลังโหลดที่เก็บ...",
+      "Из ветки": "จากสาขา",
+      "Репозиторий": "พื้นที่เก็บข้อมูล",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "ไม่มีที่เก็บ GitHub เชื่อมต่อกับพื้นที่นี้ — สร้างสาขาด้วยคำสั่งด้านล่าง"
     }
   },
   "vi": {
@@ -26180,7 +26236,11 @@
       "связана с": "liên quan đến",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Vấn đề ${issueKey} không tồn tại hoặc bạn không có quyền truy cập vào nó.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Giữ ${issueKey} trong tên để nhánh được liên kết với vấn đề.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Các cam kết có ${issueKey} trong tin nhắn cũng được liên kết. Lệnh: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Các cam kết có ${issueKey} trong tin nhắn cũng được liên kết. Lệnh: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Đang tải kho lưu trữ...",
+      "Из ветки": "Từ chi nhánh",
+      "Репозиторий": "Kho lưu trữ",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Không có kho lưu trữ GitHub nào được kết nối với không gian này — hãy tạo nhánh bằng lệnh bên dưới."
     }
   },
   "id": {
@@ -27908,7 +27968,11 @@
       "связана с": "berkaitan dengan",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Masalah ${issueKey} tidak ada atau Anda tidak memiliki akses ke sana.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Simpan ${issueKey} dalam nama sehingga cabang terkait dengan masalah ini.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Berkomitmen dengan ${issueKey} dalam pesan juga ditautkan. Perintah: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Berkomitmen dengan ${issueKey} dalam pesan juga ditautkan. Perintah: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Memuat repositori…",
+      "Из ветки": "Dari cabang",
+      "Репозиторий": "Repositori",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Tidak ada repositori GitHub yang terhubung ke ruang ini — buat cabang dengan perintah di bawah ini."
     }
   },
   "tr": {
@@ -29636,7 +29700,11 @@
       "связана с": "ile ilgilidir",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Sorun ${issueKey} mevcut değil veya buna erişiminiz yok.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Dalın sorunla bağlantılı olması için adında ${issueKey} olsun.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Mesajdaki ${issueKey} ile yapılan işlemler de bağlantılıdır. Komutlar: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Mesajdaki ${issueKey} ile yapılan işlemler de bağlantılıdır. Komutlar: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Depolar yükleniyor...",
+      "Из ветки": "Şubeden",
+      "Репозиторий": "Depo",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Bu alana bağlı GitHub deposu yok — aşağıdaki komutla dalı oluşturun."
     }
   },
   "nl": {
@@ -31364,7 +31432,11 @@
       "связана с": "heeft betrekking op",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Probleem ${issueKey} bestaat niet of u hebt er geen toegang toe.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Houd ${issueKey} in de naam zodat het filiaal aan het probleem is gekoppeld.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Commits met ${issueKey} in het bericht zijn ook gekoppeld. Commando's: #commentaartekst, #tijd 1u 30m, #klaar."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Commits met ${issueKey} in het bericht zijn ook gekoppeld. Commando's: #commentaartekst, #tijd 1u 30m, #klaar.",
+      "Загрузка репозиториев…": "Bezig met laden van repositories...",
+      "Из ветки": "Van filiaal",
+      "Репозиторий": "Repository",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Er is geen GitHub-repository verbonden met deze ruimte — maak de branch aan met het onderstaande commando."
     }
   },
   "hi": {
@@ -33092,7 +33164,11 @@
       "связана с": "से संबंधित है",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "समस्या ${issueKey} मौजूद नहीं है या आपके पास इसका ऐक्सेस नहीं है।",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "नाम में ${issueKey} रखें ताकि शाखा को समस्या से जोड़ा जा सके।",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "मैसेज में ${issueKey} के साथ किए गए कमिट भी लिंक किए गए हैं। कमांड: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "मैसेज में ${issueKey} के साथ किए गए कमिट भी लिंक किए गए हैं। कमांड: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "भंडार लोड हो रहा है...",
+      "Из ветки": "शाखा से",
+      "Репозиторий": "रिपॉजिटरी",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "कोई भी GitHub रिपॉजिटरी इस जगह से जुड़ा नहीं है — नीचे दिए गए कमांड के साथ शाखा बनाएँ।"
     }
   },
   "sq": {
@@ -34820,7 +34896,11 @@
       "связана с": "lidhet me",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Çështja ${issueKey} nuk ekziston ose nuk keni qasje në të.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Mbani ${issueKey} në emër në mënyrë që dega të lidhet me çështjen.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Angazhimet me ${issueKey} në mesazh janë të lidhura gjithashtu. Komandat: #komentoni tekstin, #kohë 1h 30m, #bërë."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Angazhimet me ${issueKey} në mesazh janë të lidhura gjithashtu. Komandat: #komentoni tekstin, #kohë 1h 30m, #bërë.",
+      "Загрузка репозиториев…": "Po ngarkon depot...",
+      "Из ветки": "Nga dega",
+      "Репозиторий": "Depoja",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Asnjë depo GitHub nuk është e lidhur me këtë hapësirë — krijo degën me komandën e mëposhtme."
     }
   },
   "hr": {
@@ -36548,7 +36628,11 @@
       "связана с": "odnosi se na",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problem ${issueKey} ne postoji ili mu nemate pristup.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Zadrži ${issueKey} u nazivu tako da je grana povezana s problemom.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Objave s ${issueKey} u poruci također su povezane. Naredbe: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Objave s ${issueKey} u poruci također su povezane. Naredbe: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Učitavanje repozitorija...",
+      "Из ветки": "Iz podružnice",
+      "Репозиторий": "Repozitorij",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Nijedan GitHub repozitorij nije povezan s ovim prostorom — izradite granu s naredbom u nastavku."
     }
   },
   "am": {
@@ -38275,7 +38359,11 @@
       "мин.": "ደቂቃ",
       "связана с": "ጋር ይዛመዳል",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ርዕሰ ጉዳይ ${issueKey} የለም ወይም ለእሱ መዳረሻ የለዎትም ።",
-      "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "${issueKey} በስም ይያዙ ስለዚህ ቅርንጫፉ ከጉዳዩ ጋር የተቆራኘ ነው ።"
+      "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "${issueKey} በስም ይያዙ ስለዚህ ቅርንጫፉ ከጉዳዩ ጋር የተቆራኘ ነው ።",
+      "Загрузка репозиториев…": "ማከማቻዎችን በመጫን ላይ...",
+      "Из ветки": "ከቅርንጫፍ",
+      "Репозиторий": "ማከማቻ",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "ምንም የ GitHub ማከማቻ ከዚህ ቦታ ጋር የተገናኘ አይደለም — ከዚህ በታች ካለው ትዕዛዝ ጋር ቅርንጫፉን ይፍጠሩ ።"
     }
   },
   "hy": {
@@ -40003,7 +40091,11 @@
       "связана с": "առնչվում է",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Խնդիր ${issueKey} գոյություն չունի կամ դուք մուտք չունեք այն:",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Պահեք ${issueKey} անունը, որպեսզի մասնաճյուղը կապված լինի խնդրի հետ:",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Հաղորդագրության մեջ ${issueKey}- ով պարտավորությունները նույնպես կապված են: Հրամաններ ՝ #comment text, #time 1h 30m, #done:"
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Հաղորդագրության մեջ ${issueKey}- ով պարտավորությունները նույնպես կապված են: Հրամաններ ՝ #comment text, #time 1h 30m, #done:",
+      "Загрузка репозиториев…": "Բեռնվում են պահոցներ…",
+      "Из ветки": "Մասնաճյուղից",
+      "Репозиторий": "Շտեմարան",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "GitHub — ի ոչ մի պահոց կապված չէ այս տարածքի հետ. ստեղծեք մասնաճյուղը ստորև նշված հրահանգով:"
     }
   },
   "az": {
@@ -41731,7 +41823,11 @@
       "связана с": "ilə əlaqəlidir:",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "${issueKey} buraxılışı mövcud deyil və ya ona giriş imkanınız yoxdur.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Filialın problemi ilə əlaqələndirilməsi üçün adda ${issueKey} saxlayın.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Mesajdakı ${issueKey} ilə olan öhdəliklər də əlaqələndirilib. Əmrlər: #şərh mətni, #time 1h 30m, # done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Mesajdakı ${issueKey} ilə olan öhdəliklər də əlaqələndirilib. Əmrlər: #şərh mətni, #time 1h 30m, # done.",
+      "Загрузка репозиториев…": "Yaddaşlar yüklənir...",
+      "Из ветки": "Filialdan",
+      "Репозиторий": "Depozitar",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Heç bir GitHub yaddaşı bu məkana qoşulmayıb — aşağıdakı əmrlə filial yaradın."
     }
   },
   "eu": {
@@ -43723,7 +43819,11 @@
       "связана с": "ставіцца да",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Выпуск ${issueKey} не існуе, інакш вы не маеце да яго доступу.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Захоўваць ${issueKey} у назве, каб галіна была звязана з праблемай.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Абавязкі з ${issueKey} у паведамленні таксама звязаныя. Каманды: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Абавязкі з ${issueKey} у паведамленні таксама звязаныя. Каманды: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Загрузка сховішчаў...",
+      "Из ветки": "З галінкі",
+      "Репозиторий": "Сховішча",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Да гэтай прасторы не падлучаны рэпазітар GitHub — стварыце галінку з камандай ніжэй."
     }
   },
   "bn": {
@@ -45451,7 +45551,11 @@
       "связана с": "সম্পর্কিত",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "সমস্যা ${issueKey} বিদ্যমান নেই বা আপনার কাছে এটির অ্যাক্সেস নেই ।",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "নামের মধ্যে ${issueKey} রাখুন যাতে শাখাটি সমস্যার সাথে সংযুক্ত থাকে ।",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "বার্তায় ${issueKey} এর সাথেও লিঙ্ক করা আছে । কমান্ড: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "বার্তায় ${issueKey} এর সাথেও লিঙ্ক করা আছে । কমান্ড: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "সংগ্রহস্থল লোড হচ্ছে...",
+      "Из ветки": "শাখা থেকে",
+      "Репозиторий": "সংগ্রহস্থল",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "কোনও গিটহাব রিপোজিটরি এই জায়গার সাথে সংযুক্ত নেই — নীচের কমান্ড দিয়ে শাখা তৈরি করুন ।"
     }
   },
   "bg": {
@@ -47179,7 +47283,11 @@
       "связана с": "се отнася до",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Проблем ${issueKey} не съществува или нямате достъп до него.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Запазете ${issueKey} в името, така че клонът да е свързан с проблема.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ангажиментите с ${issueKey} в съобщението също са свързани. Команди: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ангажиментите с ${issueKey} в съобщението също са свързани. Команди: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Зареждане на хранилища...",
+      "Из ветки": "От клон",
+      "Репозиторий": "Хранилище",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Никое хранилище на GitHub не е свързано с това пространство — създайте клона с командата по - долу."
     }
   },
   "my": {
@@ -48907,7 +49015,11 @@
       "связана с": "နှင့် ဆက်စပ်သည် ။",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ပြဿနာ ${issueKey} ရှိမနေပါ (သို့) သင့်တွင် ၎ င်းကိုဝင်ရောက်ခွင့်မရှိပါ ။",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "ဘဏ်ခွဲကိုပြဿနာနှင့်ချိတ်ဆက်ထားရန်${issueKey} ကိုနာမည်ဖြင့်ထားပါ ။",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "${issueKey} # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # အမိန့်များ - #မှတ်ချက်စာသား ၊ #အချိန် 1h 30m ၊ #ပြီးပါပြီ ။"
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "${issueKey} # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # အမိန့်များ - #မှတ်ချက်စာသား ၊ #အချိန် 1h 30m ၊ #ပြီးပါပြီ ။",
+      "Загрузка репозиториев…": "ငွေသိုလှောင်ခန်းများကို ဖွင့်နေသည်...",
+      "Из ветки": "ဘဏ်ခွဲမှ",
+      "Репозиторий": "သိုလှောင်ခန်း",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "မည်သည့် GitHub repository ကိုမျှဤနေရာနှင့်ချိတ်ဆက်ထားခြင်းမရှိပါ — အောက်ပါ command ဖြင့်ဘဏ်ခွဲကိုဖန်တီးပါ ။"
     }
   },
   "ca": {
@@ -50635,7 +50747,11 @@
       "связана с": "es refereix a",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "El problema ${issueKey} no existeix o no hi tens accés.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Mantingues ${issueKey} al nom perquè la branca estigui vinculada al problema.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Els compromisos amb ${issueKey} al missatge també estan enllaçats. Ordres: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Els compromisos amb ${issueKey} al missatge també estan enllaçats. Ordres: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "S'estan carregant els dipòsits...",
+      "Из ветки": "Des de la sucursal",
+      "Репозиторий": "Dipòsit",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "No hi ha cap dipòsit de GitHub connectat a aquest espai. Crea la branca amb l'ordre següent."
     }
   },
   "ga": {
@@ -52363,7 +52479,11 @@
       "связана с": "a bhaineann le",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Níl eagrán ${issueKey} ann nó níl rochtain agat air.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Coinnigh ${issueKey} san ainm ionas go mbeidh an brainse nasctha leis an gceist.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Tá gealltanais le ${issueKey} sa teachtaireacht nasctha freisin. Orduithe: #comment text, #am 1h 30m, #déanta."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Tá gealltanais le ${issueKey} sa teachtaireacht nasctha freisin. Orduithe: #comment text, #am 1h 30m, #déanta.",
+      "Загрузка репозиториев…": "Stóir á luchtú...",
+      "Из ветки": "Ó bhrainse",
+      "Репозиторий": "Stór",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Níl aon stór GitHub ceangailte leis an spás seo — cruthaigh an brainse leis an ordú thíos."
     }
   },
   "kn": {
@@ -54090,7 +54210,11 @@
       "связана с": "ಇದಕ್ಕೆ ಸಂಬಂಧಿಸಿದೆ",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ಸಮಸ್ಯೆ ${issueKey} ಅಸ್ತಿತ್ವದಲ್ಲಿಲ್ಲ ಅಥವಾ ನಿಮಗೆ ಅದಕ್ಕೆ ಪ್ರವೇಶವಿಲ್ಲ.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "ಹೆಸರಿನಲ್ಲಿ ${issueKey} ಇರಿಸಿ, ಆದ್ದರಿಂದ ಶಾಖೆಯನ್ನು ಸಮಸ್ಯೆಗೆ ಲಿಂಕ್ ಮಾಡಲಾಗಿದೆ.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ಸಂದೇಶದಲ್ಲಿ ${issueKey} ನೊಂದಿಗೆ ಬದ್ಧತೆಗಳನ್ನು ಸಹ ಲಿಂಕ್ ಮಾಡಲಾಗಿದೆ. ಆದೇಶಗಳು: #ಕಾಮೆಂಟ್ ಪಠ್ಯ, #ಸಮಯ 1 ಗಂಟೆ 30 ನಿಮಿಷ, #ಮುಗಿದಿದೆ."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ಸಂದೇಶದಲ್ಲಿ ${issueKey} ನೊಂದಿಗೆ ಬದ್ಧತೆಗಳನ್ನು ಸಹ ಲಿಂಕ್ ಮಾಡಲಾಗಿದೆ. ಆದೇಶಗಳು: #ಕಾಮೆಂಟ್ ಪಠ್ಯ, #ಸಮಯ 1 ಗಂಟೆ 30 ನಿಮಿಷ, #ಮುಗಿದಿದೆ.",
+      "Загрузка репозиториев…": "ರೆಪೊಸಿಟರಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...",
+      "Из ветки": "ಶಾಖೆಯಿಂದ",
+      "Репозиторий": "ಭಂಡಾರ",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "ಈ ಸ್ಥಳಕ್ಕೆ ಯಾವುದೇ GitHub ರೆಪೊಸಿಟರಿ ಸಂಪರ್ಕ ಹೊಂದಿಲ್ಲ — ಕೆಳಗಿನ ಆಜ್ಞೆಯೊಂದಿಗೆ ಶಾಖೆಯನ್ನು ರಚಿಸಿ."
     }
   },
   "kk": {
@@ -55818,7 +55942,11 @@
       "связана с": "қатысты",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "${issueKey} мәселесі жоқ немесе оған қол жеткізе алмайсыз.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Тармақ мәселемен байланысты болуы үшін ${issueKey} атауын сақтаңыз.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Хабарламада ${issueKey} деген міндеттемелер де байланыстырылған. Командалар: #түсініктеме мәтіні, #уақыт 1h 30m, #аяқталды."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Хабарламада ${issueKey} деген міндеттемелер де байланыстырылған. Командалар: #түсініктеме мәтіні, #уақыт 1h 30m, #аяқталды.",
+      "Загрузка репозиториев…": "Репозиторийлер жүктелуде...",
+      "Из ветки": "Тармақтан",
+      "Репозиторий": "Репозиторий",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Бұл кеңістікке GitHub репозиторы қосылмаған — төмендегі пәрменменмен филиал жасаңыз."
     }
   },
   "km": {
@@ -57546,7 +57674,11 @@
       "связана с": "ពាក់ព័ន្ធនឹង",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "បញ្ហា ${issueKey} មិន មាន ឬ អ្នក មិន អាច ចូល ទៅ ក្នុង វា បាន ទេ ។",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "សូមរក្សាទុក ${issueKey} ក្នុងឈ្មោះ ដើម្បីឲ្យសាខាបានភ្ជាប់ទៅនឹងបញ្ហានេះ ។",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ការប្តេជ្ញាចិត្តជាមួយ ${issueKey} នៅក្នុងសារត្រូវបានភ្ជាប់ផងដែរ ។ ពាក្យបញ្ជា៖ #អត្ថបទអត្ថាធិប្បាយ #ពេលវេលា 1ម៉ោង 30 ម៉ែត្រ #ធ្វើរួច ។"
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ការប្តេជ្ញាចិត្តជាមួយ ${issueKey} នៅក្នុងសារត្រូវបានភ្ជាប់ផងដែរ ។ ពាក្យបញ្ជា៖ #អត្ថបទអត្ថាធិប្បាយ #ពេលវេលា 1ម៉ោង 30 ម៉ែត្រ #ធ្វើរួច ។",
+      "Загрузка репозиториев…": "កំពុង ផ្ទុក ឃ្លាំង...",
+      "Из ветки": "ពីសាខា",
+      "Репозиторий": "ឃ្លាំង",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "គ្មានឃ្លាំង GitHub ត្រូវបានភ្ជាប់ទៅចន្លោះនេះទេ — បង្កើតសាខាដោយប្រើពាក្យបញ្ជាខាងក្រោម ។"
     }
   },
   "lo": {
@@ -59274,7 +59406,11 @@
       "связана с": "ກ່ຽວຂ້ອງກັບ",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ບັນຫາ ${issueKey} ບໍ່ມີຫຼືທ່ານບໍ່ມີການເຂົ້າເຖິງມັນ.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "ຮັກສາ ${issueKey} ໃນຊື່ດັ່ງນັ້ນສາຂາແມ່ນເຊື່ອມໂຍງກັບບັນຫາ.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ການພົວພັນກັບ ${issueKey} ໃນຂໍ້ຄວາມແມ່ນເຊື່ອມໂຍງເຊັ່ນກັນ. ຄໍາສັ່ງ: #ຂໍ້ຄວາມຄໍາເຫັນ, #ເວລາ 1h 30m, #ເຮັດແລ້ວ."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ການພົວພັນກັບ ${issueKey} ໃນຂໍ້ຄວາມແມ່ນເຊື່ອມໂຍງເຊັ່ນກັນ. ຄໍາສັ່ງ: #ຂໍ້ຄວາມຄໍາເຫັນ, #ເວລາ 1h 30m, #ເຮັດແລ້ວ.",
+      "Загрузка репозиториев…": "ກຳລັງໂຫຼດບ່ອນເກັບມ້ຽນ…",
+      "Из ветки": "ຈາກ ສາຂາ",
+      "Репозиторий": "ບ່ອນເກັບມ້ຽນ",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "ບໍ່ມີຫໍເກັບຂໍ້ມູນ GitHub ທີ່ເຊື່ອມຕໍ່ກັບພື້ນທີ່ນີ້ - ສ້າງສາຂາດ້ວຍ ຄໍາ ສັ່ງຂ້າງລຸ່ມນີ້."
     }
   },
   "cs": {
@@ -61002,7 +61138,11 @@
       "связана с": "se týká",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problém ${issueKey} neexistuje nebo k němu nemáte přístup.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Ponechte ${issueKey} v názvu, aby byla větev spojena s problémem.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Odkazy s ${issueKey} ve zprávě jsou také propojeny. Příkazy: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Odkazy s ${issueKey} ve zprávě jsou také propojeny. Příkazy: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Načítání úložišť...",
+      "Из ветки": "Z pobočky",
+      "Репозиторий": "Úložiště",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "K tomuto prostoru není připojeno žádné úložiště GitHub — vytvořte větev příkazem níže."
     }
   },
   "da": {
@@ -62730,7 +62870,11 @@
       "связана с": "vedrører",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problem ${issueKey} findes ikke, eller du har ikke adgang til det.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Behold ${issueKey} i navnet, så grenen er knyttet til problemet.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Forpligtelser med ${issueKey} i meddelelsen er også forbundet. Kommandoer: #kommentartekst, #tid 1t 30m, #færdig."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Forpligtelser med ${issueKey} i meddelelsen er også forbundet. Kommandoer: #kommentartekst, #tid 1t 30m, #færdig.",
+      "Загрузка репозиториев…": "Indlæser lagre...",
+      "Из ветки": "Fra gren",
+      "Репозиторий": "Repository",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Intet GitHub-lager er forbundet til dette rum — opret grenen med kommandoen nedenfor."
     }
   },
   "et": {
@@ -64458,7 +64602,11 @@
       "связана с": "on seotud",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Probleemi ${issueKey} pole olemas või pole teil sellele juurdepääsu.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Hoia nimes ${issueKey}, et haru oleks probleemiga seotud.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Lingitud on ka kinnitused, mille sõnum on ${issueKey}. Käsud: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Lingitud on ka kinnitused, mille sõnum on ${issueKey}. Käsud: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Hoidlate laadimine…",
+      "Из ветки": "Harust",
+      "Репозиторий": "Hoidla",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Selle ruumiga pole ühendatud ühtegi GitHubi hoidlat — loo haru alloleva käsuga."
     }
   },
   "fi": {
@@ -66185,7 +66333,11 @@
       "связана с": "liittyy",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Ongelmaa ${issueKey} ei ole olemassa tai sinulla ei ole pääsyä siihen.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Pidä ${issueKey} nimessä, jotta haara on linkitetty ongelmaan.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Sitoumukset, joissa on ${issueKey} viestissä, on myös linkitetty. Komennot: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Sitoumukset, joissa on ${issueKey} viestissä, on myös linkitetty. Komennot: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Ladataan arkistoja...",
+      "Из ветки": "Sivuliikkeestä",
+      "Репозиторий": "Arkisto",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Tähän tilaan ei ole yhdistetty GitHub-arkistoa — luo haara alla olevalla komennolla."
     }
   },
   "gl": {
@@ -67913,7 +68065,11 @@
       "связана с": "relaciona con",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "O problema ${issueKey} non existe ou non ten acceso a el.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Manteña ${issueKey} no nome para que a rama estea ligada á cuestión.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Os compromisos con ${issueKey} na mensaxe tamén están ligados. Comandos: #comentartexto, #tempo 1h 30m, #feito."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Os compromisos con ${issueKey} na mensaxe tamén están ligados. Comandos: #comentartexto, #tempo 1h 30m, #feito.",
+      "Загрузка репозиториев…": "A cargar os repositorios...",
+      "Из ветки": "De ramaxe",
+      "Репозиторий": "Repositorio",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Ningún repositorio de GitHub está conectado a este espazo — crea a rama co comando de abaixo."
     }
   },
   "ka": {
@@ -69641,7 +69797,11 @@
       "связана с": "უკავშირდება",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Პრობლემა ${issueKey} არ არსებობს ან მასზე წვდომა არ გაქვთ.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Შეინახეთ ${issueKey} სახელით, რათა ფილიალი მიბმული იყოს პრობლემასთან.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Შეტყობინებაში ${issueKey} -თან დაკავშირებული ვალდებულებებიც მიბმულია. Ბრძანებები: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Შეტყობინებაში ${issueKey} -თან დაკავშირებული ვალდებულებებიც მიბმულია. Ბრძანებები: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Მიმდინარეობს რეპოზიტორიების ჩატვირთვა…",
+      "Из ветки": "Ბრენჩიდან",
+      "Репозиторий": "Საცავი",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "GitHub-ის რეპოზიტორია არ არის დაკავშირებული ამ სივრცესთან — შექმენით ფილიალი ქვემოთ მოცემული ბრძანებით."
     }
   },
   "el": {
@@ -71369,7 +71529,11 @@
       "связана с": "σχετίζεται με",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Το τεύχος ${issueKey} δεν υπάρχει ή δεν έχετε πρόσβαση σε αυτό.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Κρατήστε το ${issueKey} στο όνομα, ώστε ο κλάδος να συνδεθεί με το ζήτημα.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Οι υποβολές με ${issueKey} στο μήνυμα συνδέονται επίσης. Εντολές: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Οι υποβολές με ${issueKey} στο μήνυμα συνδέονται επίσης. Εντολές: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Φόρτωση αποθετηρίων…",
+      "Из ветки": "Από υποκατάστημα",
+      "Репозиторий": "Αποθετήριο",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Κανένα αποθετήριο GitHub δεν είναι συνδεδεμένο σε αυτόν τον χώρο — δημιουργήστε τον κλάδο με την παρακάτω εντολή."
     }
   },
   "he": {
@@ -73097,7 +73261,11 @@
       "связана с": "מתייחס ל",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "בעיה ${issueKey} לא קיימת או שאין לך גישה אליה.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "השאר את ${issueKey} בשם כך שהענף יקושר לבעיה.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "גם ההתחייבויות עם ${issueKey} בהודעה מקושרות. פקודות: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "גם ההתחייבויות עם ${issueKey} בהודעה מקושרות. פקודות: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "טוען מאגרים…",
+      "Из ветки": "מסניף",
+      "Репозиторий": "מאגר",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "אין מאגר GitHub המחובר למרחב זה — צור את הענף עם הפקודה למטה."
     }
   },
   "hu": {
@@ -74825,7 +74993,11 @@
       "связана с": "a következőhöz kapcsolódik:",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "A (z)${issueKey} probléma nem létezik, vagy nincs hozzáférése.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Maradjon ${issueKey} a névben, hogy az ág kapcsolódjon a problémához.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Az üzenetben ${issueKey} értékkel szereplő kötelezettségvállalások is össze vannak kapcsolva. Parancsok: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Az üzenetben ${issueKey} értékkel szereplő kötelezettségvállalások is össze vannak kapcsolva. Parancsok: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Tárolók betöltése…",
+      "Из ветки": "Ágtól",
+      "Репозиторий": "Adattár",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Ehhez a térhez nincs GitHub-tárhely csatlakoztatva — hozza létre az ágat az alábbi paranccsal."
     }
   },
   "is": {
@@ -76553,7 +76725,11 @@
       "связана с": "tengist",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Vandamál ${issueKey} er ekki til eða þú hefur ekki aðgang að því.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Haltu ${issueKey} í nafninu svo að útibúið tengist vandamálinu.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Skuldbindingar með ${issueKey} í skilaboðunum eru einnig tengdar. Skipanir: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Skuldbindingar með ${issueKey} í skilaboðunum eru einnig tengdar. Skipanir: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Hleð inn geymslum…",
+      "Из ветки": "Frá útibúi",
+      "Репозиторий": "Geymsla",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Engin GitHub geymsla er tengd þessu rými — búðu til útibúið með skipuninni hér að neðan."
     }
   },
   "lv": {
@@ -78281,7 +78457,11 @@
       "связана с": "attiecas uz",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problēma ${issueKey} nepastāv vai jums nav piekļuves tai.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Saglabājiet ${issueKey} nosaukumā, lai filiāle būtu saistīta ar problēmu.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ziņojumā ietvertās saistības ar ${issueKey} arī ir saistītas. Komandas: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ziņojumā ietvertās saistības ar ${issueKey} arī ir saistītas. Komandas: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Notiek repozitoriju ielāde...",
+      "Из ветки": "No filiāles",
+      "Репозиторий": "Repozitorijs",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Neviens GitHub repozitorijs nav savienots ar šo telpu — izveidojiet filiāli ar tālāk norādīto komandu."
     }
   },
   "lt": {
@@ -80009,7 +80189,11 @@
       "связана с": "susijęs su",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problema ${issueKey} neegzistuoja arba jūs neturite prieigos prie jos.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Išlaikykite ${issueKey} pavadinime, kad filialas būtų susietas su problema.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ryšiai su ${issueKey} žinutėje taip pat yra susieti. Komandos: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ryšiai su ${issueKey} žinutėje taip pat yra susieti. Komandos: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Įkeliamos saugyklos...",
+      "Из ветки": "Iš filialo",
+      "Репозиторий": "Saugykla",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Prie šios erdvės neprijungta jokia „GitHub“ saugykla — sukurkite filialą naudodami žemiau pateiktą komandą."
     }
   },
   "mk": {
@@ -81736,7 +81920,11 @@
       "мин.": "мин.",
       "связана с": "се однесува на",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Проблемот ${issueKey} не постои или немате пристап до него.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Поврзани се и обврските со ${issueKey} во пораката. Команди: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Поврзани се и обврските со ${issueKey} во пораката. Команди: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Се вчитуваат складишта...",
+      "Из ветки": "Од филијала",
+      "Репозиторий": "Репозиториум",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Ниту едно складиште на GitHub не е поврзано со овој простор — креирајте ја филијалата со командата подолу."
     }
   },
   "ms": {
@@ -83464,7 +83652,11 @@
       "связана с": "berkaitan dengan",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Isu ${issueKey} tidak wujud atau anda tidak mempunyai akses kepadanya.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Kekalkan ${issueKey} pada nama supaya cabang dikaitkan dengan isu ini.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Komitmen dengan ${issueKey} dalam mesej juga dipautkan. Arahan: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Komitmen dengan ${issueKey} dalam mesej juga dipautkan. Arahan: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Memuatkan repositori...",
+      "Из ветки": "Dari cabang",
+      "Репозиторий": "Repositori",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Tiada repositori GitHub disambungkan ke ruang ini — cipta cabang dengan perintah di bawah."
     }
   },
   "ml": {
@@ -85192,7 +85384,11 @@
       "связана с": "ഇതുമായി ബന്ധപ്പെട്ടിരിക്കുന്നു",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "പ്രശ്നം ${issueKey} നിലവിലില്ല അല്ലെങ്കിൽ നിങ്ങൾക്ക് അതിലേക്ക് ആക്‌സസ് ഇല്ല.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "ബ്രാഞ്ച് ഇഷ്യുവുമായി ലിങ്കുചെയ്‌തിരിക്കുന്നതിനാൽ ${issueKey} പേരിൽ സൂക്ഷിക്കുക.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "സന്ദേശത്തിലെ ${issueKey} ഉപയോഗിച്ചുള്ള പ്രതിബദ്ധതകളും ലിങ്കുചെയ്‌തിരിക്കുന്നു. കമാൻഡുകൾ: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "സന്ദേശത്തിലെ ${issueKey} ഉപയോഗിച്ചുള്ള പ്രതിബദ്ധതകളും ലിങ്കുചെയ്‌തിരിക്കുന്നു. കമാൻഡുകൾ: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "ശേഖരങ്ങൾ ലോഡുചെയ്യുന്നു...",
+      "Из ветки": "ശാഖയിൽ നിന്ന്",
+      "Репозиторий": "ശേഖരം",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "ഈ സ്ഥലവുമായി ഒരു GitHub റിപോസിറ്ററിയും കണക്റ്റുചെയ്തിട്ടില്ല — ചുവടെയുള്ള കമാൻഡ് ഉപയോഗിച്ച് ബ്രാഞ്ച് സൃഷ്ടിക്കുക."
     }
   },
   "mt": {
@@ -86920,7 +87116,11 @@
       "связана с": "jirrigwarda",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Il-problema ${issueKey} ma teżistix jew m' għandekx aċċess għaliha.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Żomm ${issueKey} fl-isem sabiex il-fergħa tkun marbuta mal-kwistjoni.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Impenji b' ${issueKey} fil-messaġġ huma marbuta wkoll. Kmandi: #kumment test, #ħin 1h 30m, #magħmul."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Impenji b' ${issueKey} fil-messaġġ huma marbuta wkoll. Kmandi: #kumment test, #ħin 1h 30m, #magħmul.",
+      "Загрузка репозиториев…": "Qed itella' r-repożitorji...",
+      "Из ветки": "Mill-fergħa",
+      "Репозиторий": "Repożitorju",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "L-ebda repożitorju ta' GitHub mhu konness ma' dan l-ispazju — oħloq il-fergħa bil-kmand t' hawn taħt."
     }
   },
   "mr": {
@@ -88648,7 +88848,11 @@
       "связана с": "संबंधित",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "प्रश्न ${issueKey} अस्तित्वात नाही किंवा आपण त्यात प्रवेश करू शकत नाही.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "नावात ${issueKey} ठेवा जेणेकरून शाखा समस्येशी जोडली जाईल.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "मेसेजमध्ये ${issueKey} सह वचनबद्धता देखील जोडली गेली आहे. आदेश: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "मेसेजमध्ये ${issueKey} सह वचनबद्धता देखील जोडली गेली आहे. आदेश: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "रेपॉजिटरी लोड करत आहे...",
+      "Из ветки": "शाखेकडून",
+      "Репозиторий": "रेपॉजिटरी",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "कोणतेही GitHub रेपॉजिटरी या जागेशी जोडलेले नाही — खालील आदेशासह शाखा तयार करा."
     }
   },
   "mn": {
@@ -90374,7 +90578,11 @@
       "связана с": "-тай холбогдсон",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Асуудал ${issueKey} байхгүй байна эсвэл та үүнийг үзэх эрхгүй.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Салбарыг энэ асуудалтай холбохын тулд ${issueKey} нэртэй байлга.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Мессеж дэх ${issueKey}-тэй холбогдсон амлалтыг мөн холбогдоно уу. Тушаал: #санал текст, #цаг 1 цаг 30м, #дууссан."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Мессеж дэх ${issueKey}-тэй холбогдсон амлалтыг мөн холбогдоно уу. Тушаал: #санал текст, #цаг 1 цаг 30м, #дууссан.",
+      "Загрузка репозиториев…": "Архивыг ачаалж байна…",
+      "Из ветки": "Салбараас",
+      "Репозиторий": "Архив",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "GitHub-ийн репозиторыг энэ орон зайнтай холбоогүй тул салбарыг доорх тушаалаар үүсгэнэ."
     }
   },
   "ne": {
@@ -92102,7 +92310,11 @@
       "связана с": "यससँग सम्बन्धित छ",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "मुद्दा ${issueKey} अवस्थित छैन वा तपाईंसँग यसमा पहुँच छैन ।",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "नाममा ${issueKey} राख्नुहोस् ताकि शाखा समस्यासँग जोडिएको होस् ।",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "सन्देशमा ${issueKey} भएको प्रतिबद्धता पनि लिङ्क गरिएको छ । आदेशहरू: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "सन्देशमा ${issueKey} भएको प्रतिबद्धता पनि लिङ्क गरिएको छ । आदेशहरू: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "भण्डारहरू लोड गर्दै...",
+      "Из ветки": "शाखाबाट",
+      "Репозиторий": "भण्डार",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "कुनै GitHub भण्डार यस स्थानमा जडान गरिएको छैन — तलको आदेशको साथ शाखा सिर्जना गर्नुहोस् ।"
     }
   },
   "nb": {
@@ -93830,7 +94042,11 @@
       "связана с": "gjelder",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problem ${issueKey} finnes ikke, eller du har ikke tilgang til det.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Hold ${issueKey} i navnet slik at grenen er koblet til problemet.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Forpliktelser med ${issueKey} i meldingen er også koblet sammen. Kommandoer: #comment text, #time 1t 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Forpliktelser med ${issueKey} i meldingen er også koblet sammen. Kommandoer: #comment text, #time 1t 30m, #done.",
+      "Загрузка репозиториев…": "Laster inn programdatabaser...",
+      "Из ветки": "Fra gren",
+      "Репозиторий": "Repositorium",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Ingen GitHub-repositorium er koblet til dette området — opprett grenen med kommandoen nedenfor."
     }
   },
   "fa": {
@@ -95557,7 +95773,11 @@
       "связана с": "مرتبط با",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "مشکل ${issueKey} وجود ندارد یا شما به آن دسترسی ندارید.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "${issueKey} را در نام نگه دارید تا شاخه به موضوع مرتبط شود.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "متعهدها با ${issueKey} در پیام نیز مرتبط هستند. دستورات: #comment text، #time 1h 30m، #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "متعهدها با ${issueKey} در پیام نیز مرتبط هستند. دستورات: #comment text، #time 1h 30m، #done.",
+      "Загрузка репозиториев…": "Loading Repositories (مخازن بارگیری)",
+      "Из ветки": "برگرفته از: branch",
+      "Репозиторий": "مخزن (Repository)",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "هیچ مخزن GitHub به این فضا متصل نیست — شاخه را با دستور زیر ایجاد کنید."
     }
   },
   "pa": {
@@ -97285,7 +97505,11 @@
       "связана с": "ਨਾਲ ਸੰਬੰਧਿਤ ਹੈ",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ਮੁੱਦਾ ${issueKey} ਮੌਜੂਦ ਨਹੀਂ ਹੈ ਜਾਂ ਤੁਹਾਡੇ ਕੋਲ ਇਸ ਤੱਕ ਪਹੁੰਚ ਨਹੀਂ ਹੈ ।",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "ਨਾਮ ਵਿੱਚ ${issueKey} ਰੱਖੋ ਤਾਂ ਜੋ ਬ੍ਰਾਂਚ ਮੁੱਦੇ ਨਾਲ ਜੁੜ ਜਾਵੇ.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ਸੰਦੇਸ਼ ਵਿਚ ${issueKey} ਨਾਲ ਵਚਨਬੱਧਤਾਵਾਂ ਵੀ ਜੁੜੀਆਂ ਹੋਈਆਂ ਹਨ. ਕਮਾਂਡਾਂਃ #ਟਿੱਪਣੀ ਟੈਕਸਟ, #ਸਮਾਂ 1h 30m, #ਕੀਤਾ."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "ਸੰਦੇਸ਼ ਵਿਚ ${issueKey} ਨਾਲ ਵਚਨਬੱਧਤਾਵਾਂ ਵੀ ਜੁੜੀਆਂ ਹੋਈਆਂ ਹਨ. ਕਮਾਂਡਾਂਃ #ਟਿੱਪਣੀ ਟੈਕਸਟ, #ਸਮਾਂ 1h 30m, #ਕੀਤਾ.",
+      "Загрузка репозиториев…": "ਰਿਪੋਜ਼ਟਰੀਆਂ ਲੋਡ ਕੀਤੀਆਂ ਜਾ ਰਹੀਆਂ ਹਨ...",
+      "Из ветки": "ਸ਼ਾਖਾ ਤੋਂ",
+      "Репозиторий": "ਰਿਪੋਜ਼ਟਰੀ",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "ਕੋਈ ਵੀ GitHub ਰਿਪੋਜ਼ਟਰੀ ਇਸ ਸਪੇਸ ਨਾਲ ਜੁੜਿਆ ਹੋਇਆ ਨਹੀਂ ਹੈ — ਹੇਠਾਂ ਦਿੱਤੀ ਕਮਾਂਡ ਨਾਲ ਸ਼ਾਖਾ ਬਣਾਓ."
     }
   },
   "ro": {
@@ -99013,7 +99237,11 @@
       "связана с": "se referă la",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problema ${issueKey} nu există sau nu aveți acces la ea.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Păstrați ${issueKey} în nume, astfel încât sucursala să fie legată de problemă.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Comenzile cu ${issueKey} în mesaj sunt, de asemenea, legate. Comenzi: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Comenzile cu ${issueKey} în mesaj sunt, de asemenea, legate. Comenzi: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Se încarcă depozitele...",
+      "Из ветки": "De la filială",
+      "Репозиторий": "Depozit",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Niciun depozit GitHub nu este conectat la acest spațiu — creați ramura cu comanda de mai jos."
     }
   },
   "sr": {
@@ -100741,7 +100969,11 @@
       "связана с": "односи се на",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Издање ${issueKey} не постоји или му немате приступ.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Задржите ${issueKey} у називу тако да грана буде повезана са проблемом.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Обавезе са ${issueKey} у поруци су такође повезане. Команде: #цоммент теxт, #тиме 1х 30м, #доне."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Обавезе са ${issueKey} у поруци су такође повезане. Команде: #цоммент теxт, #тиме 1х 30м, #доне.",
+      "Загрузка репозиториев…": "Учитавање репозиторијума…",
+      "Из ветки": "Из огранка",
+      "Репозиторий": "Складиште",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Ниједан ГитХуб репозиторијум није повезан са овим простором — креирајте грану помоћу наредбе испод."
     }
   },
   "si": {
@@ -102467,7 +102699,11 @@
       "Упоминания": "සඳහන් කිරීම්",
       "мин.": "මිනි. ක්",
       "связана с": "සම්බන්ධයි",
-      "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ප් රශ්නය ${issueKey} නොපවතින අතර ඔබට එයට ප් රවේශය නොමැත."
+      "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ප් රශ්නය ${issueKey} නොපවතින අතර ඔබට එයට ප් රවේශය නොමැත.",
+      "Загрузка репозиториев…": "ගබඩාවන් පූරණය වෙමින් පවතී...",
+      "Из ветки": "ශාඛාවෙන්",
+      "Репозиторий": "ගබඩාව",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "කිසිදු GitHub ගබඩාවක් මෙම අවකාශයට සම්බන්ධ වී නැත — පහත විධානය සමඟ ශාඛාව සාදන්න."
     }
   },
   "sk": {
@@ -104195,7 +104431,11 @@
       "связана с": "sa týka",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Problém ${issueKey} neexistuje alebo k nemu nemáte prístup.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Ponechajte ${issueKey} v názve, aby bola pobočka prepojená s problémom.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Odkazy s ${issueKey} v správe sú tiež prepojené. Príkazy: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Odkazy s ${issueKey} v správe sú tiež prepojené. Príkazy: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Načítavajú sa úložiská...",
+      "Из ветки": "Z pobočky",
+      "Репозиторий": "Úložisko",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "K tomuto priestoru nie je pripojené žiadne úložisko GitHub — vytvorte pobočku pomocou príkazu nižšie."
     }
   },
   "sl": {
@@ -105923,7 +106163,11 @@
       "связана с": "se nanaša na",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Izdaja ${issueKey} ne obstaja ali pa nimate dostopa do nje.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Ohranite ${issueKey} v imenu, tako da je veja povezana s težavo.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Objave z ${issueKey} v sporočilu so tudi povezane. Ukazi: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Objave z ${issueKey} v sporočilu so tudi povezane. Ukazi: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Nalaganje skladišč...",
+      "Из ветки": "Iz podružnice",
+      "Репозиторий": "Skladišče",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Nobeno skladišče GitHub ni povezano s tem prostorom — ustvarite vejo s spodnjim ukazom."
     }
   },
   "sw": {
@@ -107651,7 +107895,11 @@
       "связана с": "inahusiana na",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Tatizo ${issueKey} halipo au huwezi kulifikia.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Weka ${issueKey} kwa jina ili tawi liunganishwe na tatizo.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Kujizatiti na ${issueKey} katika ujumbe pia kuunganishwa. Amri: #maoni maandishi, #muda 1h 30m, #kufanyika."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Kujizatiti na ${issueKey} katika ujumbe pia kuunganishwa. Amri: #maoni maandishi, #muda 1h 30m, #kufanyika.",
+      "Загрузка репозиториев…": "Inapakia hazina...",
+      "Из ветки": "Kutoka tawi",
+      "Репозиторий": "Hifadhi",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Hakuna hazina ya GitHub iliyounganishwa kwenye sehemu hii — unda tawi kwa amri iliyo hapa chini."
     }
   },
   "tl": {
@@ -109379,7 +109627,11 @@
       "связана с": "may kaugnayan sa",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Ang isyu ${issueKey} ay hindi umiiral o wala kang access dito.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Panatilihin ang ${issueKey} sa pangalan upang ang sangay ay naka - link sa isyu.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ang mga commit na may ${issueKey} sa mensahe ay naka - link din. Mga utos: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ang mga commit na may ${issueKey} sa mensahe ay naka - link din. Mga utos: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Naglo - load ng mga repository...",
+      "Из ветки": "Mula sa branch",
+      "Репозиторий": "Repository",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Walang GitHub repository ay konektado sa puwang na ito — lumikha ng sangay na may utos sa ibaba."
     }
   },
   "tg": {
@@ -111107,7 +111359,11 @@
       "связана с": "nakaugnay sa",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Масъалаи ${issueKey} вуҷуд надорад ё шумо ба он дастрасӣ надоред.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Нигоҳ доштани ${issueKey} дар ном, то ки филиал ба масъала пайваст карда шавад.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Супоришҳо бо ${issueKey} дар иттилоот низ пайваст карда шудаанд. Фармонҳо: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Супоришҳо бо ${issueKey} дар иттилоот низ пайваст карда шудаанд. Фармонҳо: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Пурборкунии репозиторияҳо...",
+      "Из ветки": "Аз шоха",
+      "Репозиторий": "Repository",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Walang gitHub repository ay naka-ugnay sa lugar na ito — lumikha ng şaxê gamit ang command sa ibaba."
     }
   },
   "ur": {
@@ -112835,7 +113091,11 @@
       "связана с": "سے متعلق",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "مسئلہ ${issueKey} موجود نہیں ہے یا آپ کو اس تک رسائی حاصل نہیں ہے ۔",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "نام میں ${issueKey} رکھیں تاکہ برانچ اس مسئلے سے منسلک ہو ۔",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "پیغام میں ${issueKey} کے ساتھ ارتکاب بھی منسلک ہیں ۔ کمانڈز: #تبصرہ کا متن، #وقت 1 گھنٹے 30 منٹ، #ہو گیا ۔"
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "پیغام میں ${issueKey} کے ساتھ ارتکاب بھی منسلک ہیں ۔ کمانڈز: #تبصرہ کا متن، #وقت 1 گھنٹے 30 منٹ، #ہو گیا ۔",
+      "Загрузка репозиториев…": "ذخائر لوڈ ہو رہے ہیں…",
+      "Из ветки": "برانچ سے",
+      "Репозиторий": "مخزن",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "کوئی بھی GitHub ذخیرہ اس جگہ سے منسلک نہیں ہے — نیچے دیئے گئے کمانڈ کے ساتھ برانچ بنائیں ۔"
     }
   },
   "uz": {
@@ -114556,7 +114816,11 @@
       "связана с": "hakkinda",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Muammo ${issueKey} mavjud emas yoki siz unga kirish huquqiga ega emassiz.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Mavzu nomi bilan bog'lanish uchun ${issueKey} ni saqlang.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Xabarda ${issueKey} bilan bog'langan majburiyatlar ham bog'langan. Buyruqlar: #comment text, #time 1h 30m, #do."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Xabarda ${issueKey} bilan bog'langan majburiyatlar ham bog'langan. Buyruqlar: #comment text, #time 1h 30m, #do.",
+      "Загрузка репозиториев…": "Fayllarni yuklash...",
+      "Из ветки": "Filialidan",
+      "Репозиторий": "Depozit hisobvarag'i",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Ushbu maydonga hech qanday GitHub omborxonasi ulanmagan - quyidagi buyruq bilan filialni yarating."
     }
   },
   "cy": {
@@ -116279,7 +116543,11 @@
       "Создать ветку": "Creu cangen",
       "Упоминания": "Crybwylliadau",
       "мин.": "mun",
-      "связана с": "yn ymwneud â"
+      "связана с": "yn ymwneud â",
+      "Загрузка репозиториев…": "Llwytho storfannau...",
+      "Из ветки": "O gangen",
+      "Репозиторий": "Storfa",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Nid oes storfa GitHub wedi'i chysylltu â'r gofod hwn — crëwch y gangen gyda'r gorchymyn isod."
     }
   },
   "xh": {
@@ -118007,7 +118275,11 @@
       "связана с": "inxulumene",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Ingxaki ${issueKey} ayikho okanye awunayo imvume yokuyifumana.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Gcina ${issueKey} egameni ukuze isebe linxulunyaniswe nomcimbi.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ukuzibophelela nge- ${issueKey} kumyalezo nako kudityanisiwe. Imiyalelo: # umbhalo wezimvo, #ixesha 1h 30m, #kwenziwe."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ukuzibophelela nge- ${issueKey} kumyalezo nako kudityanisiwe. Imiyalelo: # umbhalo wezimvo, #ixesha 1h 30m, #kwenziwe.",
+      "Загрузка репозиториев…": "Isafaka iindawo zokugcina izinto...",
+      "Из ветки": "Ukusuka kwisebe",
+      "Репозиторий": "Indawo yokugcina izinto",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Akukho ndawo yokugcina iGitHub ekonektiweyo kule ndawo — yenza isebe ngomyalelo ongezantsi."
     }
   },
   "yi": {
@@ -119732,7 +120004,11 @@
       "связана с": "עס דעפּענדס אויף",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "פאַקט ${issueKey} טוט נישט עקסיסטירן אָדער איר טאָן ניט האָבן צוטריט צו עס.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "האַלטן ${issueKey} אין די נאָמען אַזוי די צווייַג איז פארבונדן צו די אַרויסגעבן.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "עס איז אויך פארבונדן מיט ${issueKey} אין די אָנזאָג. קאַמאַנדז: #באַמערקונג טעקסט, #צייט 1: 30 ם, #געטאן."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "עס איז אויך פארבונדן מיט ${issueKey} אין די אָנזאָג. קאַמאַנדז: #באַמערקונג טעקסט, #צייט 1: 30 ם, #געטאן.",
+      "Загрузка репозиториев…": "לאָודינג ריפּאַזאַטאָריז...",
+      "Из ветки": "פון צווייַג",
+      "Репозиторий": "ריפּאַזאַטאָרי",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "קיין GitHub ריפּאַזאַטאָרי איז פארבונדן צו דעם פּלאַץ — שאַפֿן די צווייַג מיט די באַפֿעל אונטן."
     }
   },
   "yo": {
@@ -121460,7 +121736,11 @@
       "связана с": "ó ní í ṣe pẹ̀lú",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Ìṣòro ${issueKey} kò sí tàbí o kò ní àǹfààní sí i.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Fi ${issueKey} sínú orúkọ náà kí ẹ̀ka náà lè so mọ́ ọ̀rọ̀ náà.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ó bá ${issueKey} nínú àtẹ̀jíṣẹ́ náà so pọ̀ pẹ̀lú. Àwọn àṣẹ: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ó bá ${issueKey} nínú àtẹ̀jíṣẹ́ náà so pọ̀ pẹ̀lú. Àwọn àṣẹ: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "Àwọn ibi ìpamọ́ ẹrù...",
+      "Из ветки": "Lati ẹka",
+      "Репозиторий": "Ibi ìpamọ́",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Kò sí ibi ìpamọ́ GitHub tí ó so mọ́ ààyè yìí — ṣẹ̀dá ẹ̀ka pẹ̀lú àṣẹ tó wà nísàlẹ̀ yìí."
     }
   },
   "zu": {
@@ -123188,7 +123468,11 @@
       "связана с": "ihlobene",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Inkinga ${issueKey} ayikho noma awukwazi ukuyithola.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Gcina u- ${issueKey} egameni ukuze igatsha lixhunyaniswe nenkinga.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ukuzibophezela nge ${issueKey} emyalezweni nakho kuxhunyiwe. Imiyalo: # umbhalo wokuphawula, #isikhathi 1h 30m, #kwenziwe."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ukuzibophezela nge ${issueKey} emyalezweni nakho kuxhunyiwe. Imiyalo: # umbhalo wokuphawula, #isikhathi 1h 30m, #kwenziwe.",
+      "Загрузка репозиториев…": "Ifaka izinqolobane...",
+      "Из ветки": "Kusuka egatsheni",
+      "Репозиторий": "Indawo yokugcina",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Ayikho indawo yokugcina i-GitHub exhunywe kule ndawo — yakha igatsha ngomyalo ongezansi."
     }
   },
   "gu": {
@@ -124916,7 +125200,11 @@
       "связана с": "સાથે સંબંધિત છે",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "ઇશ્યૂ ${issueKey} અસ્તિત્વમાં નથી અથવા તમારી પાસે તેની ઍક્સેસ નથી.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "નામમાં ${issueKey} રાખો જેથી શાખા સમસ્યા સાથે જોડાયેલ હોય.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "સંદેશમાં ${issueKey} સાથે કટિબદ્ધતા પણ જોડાયેલી છે. આદેશો: #comment text, #time 1h 30m, #done."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "સંદેશમાં ${issueKey} સાથે કટિબદ્ધતા પણ જોડાયેલી છે. આદેશો: #comment text, #time 1h 30m, #done.",
+      "Загрузка репозиториев…": "રિપોઝીટરીઓ લોડ થઈ રહી છે...",
+      "Из ветки": "શાખામાંથી",
+      "Репозиторий": "રીપોઝીટરી",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "કોઈ GitHub રીપોઝીટરી આ જગ્યા સાથે જોડાયેલ નથી — નીચે આપેલા આદેશ સાથે શાખા બનાવો."
     }
   },
   "haw": {
@@ -126908,7 +127196,11 @@
       "связана с": "n 'okpuru bụ mpempe ihe akaebe vidiyo.",
       "Задачи ${issueKey} нет или у вас нет к ней доступа.": "Nsogbu ${issueKey} adịghị adị ma ọ bụ na ịnweghị ike ịnweta ya.",
       "Оставьте ключ ${issueKey} в названии, чтобы ветка привязалась к задаче.": "Debe ${issueKey} n 'aha ka alaka ụlọ ọrụ ahụ jikọtara ya na okwu ahụ.",
-      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ime na ${issueKey} na ozi na-jikọrọ kwa. Iwu: #ederede ederede, #oge 1h 30m, #mere."
+      "Коммиты с ${issueKey} в сообщении тоже привяжутся. Команды: #comment текст, #time 1h 30m, #done.": "Ime na ${issueKey} na ozi na-jikọrọ kwa. Iwu: #ederede ederede, #oge 1h 30m, #mere.",
+      "Загрузка репозиториев…": "Na-edebata ebe nchekwa...",
+      "Из ветки": "Site n 'alaka ụlọ ọrụ",
+      "Репозиторий": "Ebe nchekwa",
+      "К разделу не подключён репозиторий GitHub — ветку можно создать командой ниже.": "Enweghị ebe nchekwa GitHub jikọtara na oghere a — mepụta alaka ụlọ ọrụ ahụ site na iwu dị n 'okpuru."
     }
   }
 }

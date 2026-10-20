@@ -884,6 +884,92 @@ public sealed class JiraPlatformService : IJiraPlatformService
             dtos.Where(x => x.Kind == GitHubEventParser.CheckRunKind).ToList());
     }
 
+    public async Task<List<GitHubRepositoryOptionDto>> GetQuestRepositoriesAsync(Guid questId, CancellationToken ct)
+    {
+        var boardId = await _db.Quests.AsNoTracking().Where(q => q.Id == questId).Select(q => (Guid?)q.BoardId).FirstOrDefaultAsync(ct)
+            ?? throw new KeyNotFoundException("Quest not found");
+        var integrations = await _db.GitHubIntegrations.Where(x => x.BoardId == boardId && x.Enabled)
+            .OrderBy(x => x.RepositoryOwner).ThenBy(x => x.RepositoryName).ToListAsync(ct);
+        var result = new List<GitHubRepositoryOptionDto>();
+        foreach (var integration in integrations)
+        {
+            string? defaultBranch = null;
+            if (await EnsureInstallationAsync(integration, ct))
+            {
+                try
+                {
+                    using var repo = await _gitHub.GetAsync(integration.InstallationId, RepoPath(integration), ct);
+                    defaultBranch = repo.RootElement.TryGetProperty("default_branch", out var b) ? b.GetString() : null;
+                }
+                catch (InvalidOperationException) { }
+            }
+            result.Add(new GitHubRepositoryOptionDto(integration.Id, integration.RepositoryOwner, integration.RepositoryName, defaultBranch));
+        }
+        await _db.SaveChangesAsync(ct);
+        return result;
+    }
+
+    public async Task<DevelopmentSummaryDto> CreateBranchAsync(Guid questId, CreateGitHubBranchRequest request, CancellationToken ct)
+    {
+        var quest = await _db.Quests.AsNoTracking().FirstOrDefaultAsync(q => q.Id == questId, ct)
+            ?? throw new KeyNotFoundException("Quest not found");
+        var integration = await _db.GitHubIntegrations.FirstOrDefaultAsync(x => x.Id == request.IntegrationId && x.BoardId == quest.BoardId && x.Enabled, ct)
+            ?? throw new ArgumentException("Репозиторий не подключён к этому разделу");
+        var name = (request.Name ?? "").Trim();
+        if (!GitHubEventParser.IsValidBranchName(name)) throw new ArgumentException("Недопустимое название ветки");
+        if (!await EnsureInstallationAsync(integration, ct))
+            throw new InvalidOperationException("GitHub App не установлен для этого репозитория");
+
+        var repoPath = RepoPath(integration);
+        var from = request.FromBranch?.Trim();
+        if (string.IsNullOrEmpty(from))
+        {
+            using var repo = await _gitHub.GetAsync(integration.InstallationId, repoPath, ct);
+            from = repo.RootElement.GetProperty("default_branch").GetString() ?? "main";
+        }
+        string sha;
+        try
+        {
+            using var baseRef = await _gitHub.GetAsync(integration.InstallationId, $"{repoPath}/git/ref/heads/{EscapeRef(from)}", ct);
+            sha = baseRef.RootElement.GetProperty("object").GetProperty("sha").GetString() ?? throw new InvalidOperationException("GitHub returned no commit for the base branch");
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("GitHub API 404", StringComparison.Ordinal))
+        {
+            throw new ArgumentException($"Ветка «{from}» не найдена в репозитории");
+        }
+        try
+        {
+            using var created = await _gitHub.PostAsync(integration.InstallationId, $"{repoPath}/git/refs", new { @ref = $"refs/heads/{name}", sha }, ct);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("GitHub API 422", StringComparison.Ordinal))
+        {
+            throw new ArgumentException($"Ветка «{name}» уже существует");
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("GitHub API 403", StringComparison.Ordinal) || ex.Message.StartsWith("GitHub API 404", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("У GitHub App нет права создавать ветки: включите Contents: Read and write в настройках приложения");
+        }
+
+        var repoUrl = $"https://github.com/{integration.RepositoryOwner}/{integration.RepositoryName}";
+        var keys = string.IsNullOrWhiteSpace(quest.IssueKey) ? Array.Empty<string>() : new[] { quest.IssueKey };
+        await UpsertDevelopmentLinkAsync(questId, integration.Id,
+            new GitHubDevelopmentEvent(GitHubEventParser.BranchKind, name, $"{repoUrl}/tree/{EscapeRef(name)}", name, null, keys), null, ct);
+        await _db.SaveChangesAsync(ct);
+        return await GetDevelopmentAsync(questId, ct);
+    }
+
+    private async Task<bool> EnsureInstallationAsync(GitHubIntegration integration, CancellationToken ct)
+    {
+        if (integration.InstallationId <= 0)
+            integration.InstallationId = await _gitHub.FindRepositoryInstallationAsync(integration.RepositoryOwner, integration.RepositoryName, ct) ?? 0;
+        return integration.InstallationId > 0;
+    }
+
+    private static string RepoPath(GitHubIntegration integration) =>
+        $"repos/{Uri.EscapeDataString(integration.RepositoryOwner)}/{Uri.EscapeDataString(integration.RepositoryName)}";
+
+    private static string EscapeRef(string name) => string.Join('/', name.Split('/').Select(Uri.EscapeDataString));
+
     public async Task<DevelopmentSummaryDto> SyncDevelopmentAsync(Guid questId, CancellationToken ct)
     {
         if (!_gitHub.IsConfigured) throw new InvalidOperationException("GitHub App is not configured on the server");
@@ -981,14 +1067,23 @@ public sealed class JiraPlatformService : IJiraPlatformService
         {
             if (installationId.HasValue && integration.InstallationId != installationId.Value)
                 integration.InstallationId = installationId.Value;
-            if (keys.Count == 0) continue;
+            var shas = events.Where(e => e.Kind == GitHubEventParser.CheckRunKind && !string.IsNullOrEmpty(e.HeadSha)).Select(e => e.HeadSha!).Distinct().ToList();
+            var shaLinks = shas.Count == 0
+                ? new List<(Guid QuestId, string Sha)>()
+                : (await _db.DevelopmentLinks.AsNoTracking()
+                    .Where(l => l.GitHubIntegrationId == integration.Id && l.Kind == GitHubEventParser.CommitKind && shas.Contains(l.ExternalId))
+                    .Select(l => new { l.QuestId, l.ExternalId })
+                    .ToListAsync(ct)).Select(l => (l.QuestId, Sha: l.ExternalId)).ToList();
+            if (keys.Count == 0 && shaLinks.Count == 0) continue;
+            var questIds = shaLinks.Select(l => l.QuestId).ToList();
             var quests = await _db.Quests.AsNoTracking()
-                .Where(q => q.BoardId == integration.BoardId && keys.Contains(q.IssueKey))
+                .Where(q => q.BoardId == integration.BoardId && (keys.Contains(q.IssueKey) || questIds.Contains(q.Id)))
                 .Select(q => new { q.Id, q.IssueKey })
                 .ToListAsync(ct);
             foreach (var quest in quests)
             {
-                foreach (var item in events.Where(e => e.IssueKeys.Contains(quest.IssueKey)))
+                var questShas = shaLinks.Where(l => l.QuestId == quest.Id).Select(l => l.Sha).ToHashSet();
+                foreach (var item in events.Where(e => e.IssueKeys.Contains(quest.IssueKey) || (e.HeadSha != null && questShas.Contains(e.HeadSha))))
                 {
                     var isNew = await UpsertDevelopmentLinkAsync(quest.Id, integration.Id, item, payload, ct);
                     if (isNew && item.Kind == GitHubEventParser.CommitKind && !string.IsNullOrWhiteSpace(item.Message))

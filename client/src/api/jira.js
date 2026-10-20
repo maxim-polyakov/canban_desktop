@@ -205,6 +205,8 @@ export const integrations = {
   deleteWebhook: (boardId, id) => remove(`/api/integrations/board/${boardId}/webhooks/${id}`),
   getDevelopment: (questId) => apiJson(`/api/integrations/github/quests/${questId}`),
   syncDevelopment: (questId) => apiJson(`/api/integrations/github/quests/${questId}/sync`, json('POST')),
+  getRepositories: (questId) => apiJson(`/api/integrations/github/quests/${questId}/repositories`),
+  createBranch: (questId, data) => apiJson(`/api/integrations/github/quests/${questId}/branches`, json('POST', data)),
 };
 
 export function toBulkEditRequest(questIds, fields = {}) {

@@ -99,6 +99,34 @@ public class GitHubIntegrationTests
         Assert.Equal("in-review", SmartCommitService.Slug(" In Review "));
     }
 
+    [Fact]
+    public void CheckRunsOnBranchesWithoutKeysKeepTheirCommitSha()
+    {
+        using var doc = JsonDocument.Parse("""
+            {"check_run":{"id":7,"name":"build","status":"completed","conclusion":"success","head_sha":"abc123",
+              "html_url":"https://github.com/o/r/runs/7","check_suite":{"head_branch":"main"}},
+             "repository":{"html_url":"https://github.com/o/r"}}
+            """);
+
+        var item = Assert.Single(GitHubEventParser.Parse("check_run", doc.RootElement));
+
+        Assert.Empty(item.IssueKeys);
+        Assert.Equal("abc123", item.HeadSha);
+        Assert.Equal("success", item.Status);
+    }
+
+    [Theory]
+    [InlineData("LOTU-1-menu", true)]
+    [InlineData("feature/LOTU-1-menu", true)]
+    [InlineData("LOTU 1", false)]
+    [InlineData("a..b", false)]
+    [InlineData("/start", false)]
+    [InlineData("end/", false)]
+    [InlineData("x.lock", false)]
+    [InlineData("what?", false)]
+    public void BranchNamesFollowGitRules(string name, bool valid) =>
+        Assert.Equal(valid, GitHubEventParser.IsValidBranchName(name));
+
     private static byte[] FromBase64Url(string value)
     {
         var s = value.Replace('-', '+').Replace('_', '/');

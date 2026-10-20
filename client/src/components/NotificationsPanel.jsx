@@ -64,6 +64,9 @@ export default function NotificationsPanel({ open, onClose, onUnreadChange }) {
     if (item.boardId && item.questId) {
       onClose();
       navigate(`/board/${item.boardId}/issue/${item.questId}`);
+    } else if (item.link?.startsWith('/')) {
+      onClose();
+      navigate(item.link);
     } else if (item.type === 'kudos') {
       onClose();
       navigate('/kudos');

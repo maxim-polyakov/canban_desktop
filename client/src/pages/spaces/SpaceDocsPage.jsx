@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from '../../i18n/navigation.jsx';
 import { useLocalization } from '../../i18n/LocalizationContext.jsx';
-import { spaceContent } from '../../api.js';
+import { boards as boardsApi, spaceContent, teams as teamsApi } from '../../api.js';
+import MentionTextarea from '../../components/MentionTextarea.jsx';
 import NavIcon from '../../components/NavIcons.jsx';
 import AssigneeAvatar from '../../components/AssigneeAvatar';
 import { MarkdownView } from '../../utils/markdown.jsx';
@@ -40,7 +41,7 @@ function DocTree({ docs, parentId, activeId, boardId, depth = 0 }) {
   );
 }
 
-function Editor({ value, onChange, t }) {
+function Editor({ value, onChange, members, t }) {
   const ref = useRef(null);
   const apply = (before, after) => {
     const el = ref.current;
@@ -66,7 +67,7 @@ function Editor({ value, onChange, t }) {
           <button key={title} type="button" title={t(title)} aria-label={t(title)} onClick={() => apply(before, after)}>{label}</button>
         ))}
       </div>
-      <textarea ref={ref} value={value} onChange={(e) => onChange(e.target.value)} placeholder={t('Начните писать или используйте Markdown: # заголовок, - список, **жирный**')} />
+      <MentionTextarea ref={ref} value={value} onChange={onChange} members={members} placeholder={t('Начните писать или используйте Markdown: # заголовок, - список, **жирный**. Введите @, чтобы упомянуть пользователя')} />
     </div>
   );
 }
@@ -83,6 +84,16 @@ export default function SpaceDocsPage() {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [members, setMembers] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    boardsApi.getById(boardId)
+      .then((board) => (board?.teamId ? teamsApi.getMembers(board.teamId) : []))
+      .then((list) => { if (alive) setMembers(Array.isArray(list) ? list : []); })
+      .catch(() => { if (alive) setMembers([]); });
+    return () => { alive = false; };
+  }, [boardId]);
 
   const loadList = useCallback(() => spaceContent.listDocs(boardId).then((list) => setDocs(Array.isArray(list) ? list : [])).catch((e) => { setDocs([]); setError(e.message); }), [boardId]);
   useEffect(() => { loadList(); }, [loadList]);
@@ -219,7 +230,7 @@ export default function SpaceDocsPage() {
         {docId && doc && editing && (
           <div className="sc-doc is-editing">
             <input className="sc-doc-title-input" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder={t('Название документа')} maxLength={255} autoFocus aria-label={t('Название документа')} />
-            <Editor value={draft.content} onChange={(content) => setDraft((d) => ({ ...d, content }))} t={t} />
+            <Editor value={draft.content} onChange={(content) => setDraft((d) => ({ ...d, content }))} members={members} t={t} />
             <div className="sc-doc-edit-actions">
               <button type="button" className="app-btn app-btn-primary" onClick={save} disabled={saving}>{saving ? t('Сохранение...') : t('Опубликовать')}</button>
               <button type="button" className="app-btn app-btn-subtle" onClick={() => { setEditing(false); if (startEditing) navigate(`/board/${boardId}/docs/${doc.id}`, { replace: true }); }} disabled={saving}>{t('Отмена')}</button>

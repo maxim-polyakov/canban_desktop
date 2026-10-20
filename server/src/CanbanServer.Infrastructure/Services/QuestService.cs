@@ -24,6 +24,7 @@ public class QuestService : IQuestService
     private readonly IssueFieldService _fields;
     private readonly WorkflowSchemeService _workflows;
     private readonly PermissionSchemeService _permissions;
+    private readonly MentionService _mentions;
 
     public QuestService(
         CanbanDbContext db,
@@ -40,9 +41,11 @@ public class QuestService : IQuestService
         CacheService cache,
         IssueFieldService fields,
         WorkflowSchemeService workflows,
-        PermissionSchemeService permissions)
+        PermissionSchemeService permissions,
+        MentionService mentions)
     {
         _db = db;
+        _mentions = mentions;
         _permissions = permissions;
         _activityFeed = activityFeed;
         _activityHub = activityHub;
@@ -190,6 +193,7 @@ public class QuestService : IQuestService
             notifyBoard: false,
             externalRecipients: request.ExternalNotificationRecipients);
         await _notificationService.NotifyAsync(quest.Id, userId, "Задача создана", "Вам назначены уведомления по новой задаче.", ct, NotificationEvents.Created);
+        await _mentions.NotifyIssueAsync(quest.Id, userId, MentionService.Parse($"{quest.Description}\n{quest.DescriptionDocumentJson}"), "описании задачи", quest.Description, ct);
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(col.BoardId, ct);
         return (await GetByIdAsync(quest.Id, ct))!;
@@ -203,6 +207,7 @@ public class QuestService : IQuestService
             .Include(x => x.QuestReleases)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return null;
+        var (descriptionBefore, documentBefore) = (q.Description, q.DescriptionDocumentJson);
         if (request.IssueTypeIdSet && request.IssueTypeId.HasValue)
         {
             var teamId = await _db.Boards.Where(b => b.Id == q.BoardId).Select(b => b.TeamId).FirstAsync(ct);
@@ -375,6 +380,12 @@ public class QuestService : IQuestService
         if (changes.Count > 0)
             await _notificationService.NotifyAsync(id, userId, "Задача изменена", string.Join(", ", changes), ct,
                 assigneesChanged ? NotificationEvents.Assigned : NotificationEvents.Updated);
+        if (request.Description != null || request.DescriptionDocumentJson != null)
+        {
+            var descriptionAfter = request.Description ?? descriptionBefore;
+            var mentioned = MentionService.Added($"{descriptionBefore}\n{documentBefore}", $"{descriptionAfter}\n{request.DescriptionDocumentJson ?? documentBefore}");
+            await _mentions.NotifyIssueAsync(id, userId, mentioned, "описании задачи", descriptionAfter, ct);
+        }
         await _cache.InvalidateAsync("board:detail:" + q.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(q.BoardId, ct);
         return await GetByIdAsync(id, ct);

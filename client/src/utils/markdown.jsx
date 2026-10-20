@@ -1,11 +1,12 @@
 import React from 'react';
+import '../components/MentionTextarea.css';
 
 const SAFE_URL = /^(https?:\/\/|mailto:|\/)/i;
 
 /** Inline markdown: `code`, **bold**, *italic*, ~~strike~~ and [text](url). Returns React nodes, never HTML. */
 export function renderInline(text, keyPrefix = 'i') {
   const nodes = [];
-  const pattern = /(`[^`]+`)|(\*\*[^*]+\*\*)|(~~[^~]+~~)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(\[[^\]]+\]\([^)\s]+\))/g;
+  const pattern = /(`[^`]+`)|(\*\*[^*]+\*\*)|(~~[^~]+~~)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(@\[[^\]\r\n]+\]\([0-9a-fA-F-]{36}\))|(\[[^\]]+\]\([^)\s]+\))/g;
   let last = 0;
   let match;
   let index = 0;
@@ -17,6 +18,7 @@ export function renderInline(text, keyPrefix = 'i') {
     else if (match[2]) nodes.push(<strong key={key}>{renderInline(token.slice(2, -2), key)}</strong>);
     else if (match[3]) nodes.push(<del key={key}>{renderInline(token.slice(2, -2), key)}</del>);
     else if (match[4]) nodes.push(<em key={key}>{renderInline(token.slice(1, -1), key)}</em>);
+    else if (match[5]) nodes.push(<span key={key} className="mention-chip">@{token.slice(2, token.indexOf(']('))}</span>);
     else {
       const [, label, url] = token.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
       nodes.push(SAFE_URL.test(url)

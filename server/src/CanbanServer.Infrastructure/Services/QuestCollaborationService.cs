@@ -14,10 +14,13 @@ public class QuestCollaborationService : IQuestCollaborationService
     private readonly IQuestNotificationService _notifications;
     private readonly IBoardHub _boardHub;
     private readonly PermissionSchemeService _permissions;
+    private readonly MentionService _mentions;
 
-    public QuestCollaborationService(CanbanDbContext db, IQuestAttachmentService access, IQuestNotificationService notifications, IBoardHub boardHub, PermissionSchemeService permissions)
+    public QuestCollaborationService(CanbanDbContext db, IQuestAttachmentService access, IQuestNotificationService notifications, IBoardHub boardHub, PermissionSchemeService permissions,
+        MentionService mentions)
     {
         _db = db;
+        _mentions = mentions;
         _permissions = permissions;
         _access = access;
         _notifications = notifications;
@@ -117,26 +120,12 @@ public class QuestCollaborationService : IQuestCollaborationService
         if (!string.IsNullOrWhiteSpace(documentJson)) _ = System.Text.Json.JsonDocument.Parse(documentJson);
         var comment = new QuestComment { Id = Guid.NewGuid(), QuestId = questId, AuthorUserId = userId, Text = text.Trim(), DocumentJson = documentJson, CreatedAt = DateTime.UtcNow };
         _db.QuestComments.Add(comment);
-        var mentions = System.Text.RegularExpressions.Regex.Matches(comment.Text, @"@([A-Za-z0-9._+\-@]+)")
-            .Select(m => m.Groups[1].Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (mentions.Count > 0)
-        {
-            var teamId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.Board.TeamId).FirstAsync(ct);
-            var candidates = await _db.Users.Where(u =>
-                u.TeamMemberships.Any(m => m.TeamId == teamId) || _db.Teams.Any(t => t.Id == teamId && t.OwnerId == u.Id)).ToListAsync(ct);
-            var mentionedIds = candidates.Where(u =>
-                mentions.Contains(u.Email) ||
-                mentions.Contains(u.Email.Split('@', StringSplitOptions.None)[0]) ||
-                mentions.Contains(u.DisplayName.Replace(" ", ""))).Select(u => u.Id).ToList();
-            var existing = await _db.QuestNotificationRecipients.Where(r => r.QuestId == questId && mentionedIds.Contains(r.UserId)).Select(r => r.UserId).ToListAsync(ct);
-            foreach (var mentionedId in mentionedIds.Except(existing))
-                _db.QuestNotificationRecipients.Add(new QuestNotificationRecipient { Id = Guid.NewGuid(), QuestId = questId, UserId = mentionedId });
-        }
         await _db.SaveChangesAsync(ct);
+        await _mentions.NotifyIssueAsync(questId, userId, MentionService.Parse(comment.Text), "комментарии", comment.Text, ct);
         comment.AuthorUser = await _db.Users.FirstAsync(u => u.Id == userId, ct);
         var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
         await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
-        await _notifications.NotifyAsync(questId, userId, "Новый комментарий", comment.Text, ct, NotificationEvents.Commented);
+        await _notifications.NotifyAsync(questId, userId, "Новый комментарий", MentionService.ToPlainText(comment.Text), ct, NotificationEvents.Commented);
         return (QuestAttachmentOperationStatus.Success, Map(comment));
     }
 
@@ -153,7 +142,7 @@ public class QuestCollaborationService : IQuestCollaborationService
         await _db.SaveChangesAsync(ct);
         var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
         await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
-        await _notifications.NotifyAsync(questId, userId, "Комментарий удалён", preview, ct, NotificationEvents.CommentDeleted);
+        await _notifications.NotifyAsync(questId, userId, "Комментарий удалён", MentionService.ToPlainText(preview), ct, NotificationEvents.CommentDeleted);
         return QuestAttachmentOperationStatus.Success;
     }
 

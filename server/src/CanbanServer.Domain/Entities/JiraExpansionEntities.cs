@@ -105,6 +105,8 @@ public class AppNotification
     public string Type { get; set; } = "";
     public string Title { get; set; } = "";
     public string? Body { get; set; }
+    /// <summary>In-app path to open when the notification is not about an issue, e.g. a space document.</summary>
+    public string? Link { get; set; }
     public bool Read { get; set; }
     public DateTime CreatedAt { get; set; }
 }

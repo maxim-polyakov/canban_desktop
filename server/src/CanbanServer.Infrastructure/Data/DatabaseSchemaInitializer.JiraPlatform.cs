@@ -51,6 +51,7 @@ public static partial class DatabaseSchemaInitializer
               "Id" uuid PRIMARY KEY, "UserId" uuid NOT NULL, "QuestId" uuid NULL, "Type" varchar(64) NOT NULL,
               "Title" varchar(300) NOT NULL, "Body" text NULL, "Read" boolean NOT NULL DEFAULT false, "CreatedAt" timestamptz NOT NULL);
             CREATE INDEX IF NOT EXISTS "IX_AppNotifications_UserId_Read_CreatedAt" ON "AppNotifications"("UserId","Read","CreatedAt");
+            ALTER TABLE "AppNotifications" ADD COLUMN IF NOT EXISTS "Link" varchar(500) NULL;
             CREATE TABLE IF NOT EXISTS "Kudos" (
               "Id" uuid PRIMARY KEY, "FromUserId" uuid NOT NULL, "ToUserId" uuid NOT NULL, "Kind" varchar(32) NOT NULL DEFAULT 'thanks',
               "Message" varchar(1000) NOT NULL, "CreatedAt" timestamptz NOT NULL);

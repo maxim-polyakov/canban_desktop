@@ -1,0 +1,71 @@
+.mention-input {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.mention-input > textarea {
+  width: 100%;
+}
+
+.mention-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 60;
+  min-width: 260px;
+  max-width: 360px;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--surface-overlay, #fff);
+  border-radius: 4px;
+  box-shadow: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+}
+
+.mention-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mention-menu button.is-active {
+  background: var(--background-neutral-subtle-hovered, rgba(9, 30, 66, 0.06));
+  box-shadow: inset 2px 0 0 var(--border-selected, #0c66e4);
+}
+
+.mention-menu-name {
+  font-weight: 500;
+}
+
+.mention-menu-email {
+  margin-left: auto;
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mention-chip {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 20px;
+  background: var(--background-neutral, rgba(9, 30, 66, 0.06));
+  color: var(--text, #172b4d);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mention-chip.is-me {
+  background: var(--background-brand-bold, #0c66e4);
+  color: #fff;
+}

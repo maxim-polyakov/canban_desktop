@@ -27,10 +27,12 @@ public class SpaceContentController : ControllerBase
     private readonly CanbanDbContext _db;
     private readonly IProjectAccessService _access;
     private readonly IQuestService _quests;
+    private readonly MentionService _mentions;
 
-    public SpaceContentController(CanbanDbContext db, IProjectAccessService access, IQuestService quests)
+    public SpaceContentController(CanbanDbContext db, IProjectAccessService access, IQuestService quests, MentionService mentions)
     {
         _db = db;
+        _mentions = mentions;
         _access = access;
         _quests = quests;
     }
@@ -112,6 +114,7 @@ public class SpaceContentController : ControllerBase
         };
         _db.SpaceDocuments.Add(doc);
         await _db.SaveChangesAsync(ct);
+        await _mentions.NotifyDocumentAsync(boardId, doc.Id, doc.Title, Me, MentionService.Parse(doc.Content), doc.Content, ct);
         return Ok(await DocDto(doc, ct));
     }
 
@@ -121,6 +124,7 @@ public class SpaceContentController : ControllerBase
         await EnsureAsync(boardId, BoardPermission.Work, ct);
         var doc = await _db.SpaceDocuments.FirstOrDefaultAsync(d => d.Id == id && d.BoardId == boardId, ct)
             ?? throw new KeyNotFoundException("Документ не найден");
+        var contentBefore = doc.Content;
         if (request.Title != null) doc.Title = DocTitle(request.Title);
         if (request.Content != null) doc.Content = DocContent(request.Content);
         if (request.ParentId != doc.ParentId)
@@ -131,6 +135,7 @@ public class SpaceContentController : ControllerBase
         doc.UpdatedByUserId = Me;
         doc.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await _mentions.NotifyDocumentAsync(boardId, doc.Id, doc.Title, Me, MentionService.Added(contentBefore, doc.Content), doc.Content, ct);
         return Ok(await DocDto(doc, ct));
     }
 

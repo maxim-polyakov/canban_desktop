@@ -389,7 +389,8 @@ public sealed class JiraPlatformService : IJiraPlatformService
         {
             var quest = x.QuestId.HasValue && quests.TryGetValue(x.QuestId.Value, out var found) ? found : null;
             return new AppNotificationDto(x.Id, x.QuestId, x.Type, x.Title, x.Body, x.Read, x.CreatedAt,
-                quest?.BoardId, quest?.IssueKey, quest?.Title, quest?.BoardName, quest?.IssueType, quest?.Assigned ?? x.Type == "kudos");
+                quest?.BoardId, quest?.IssueKey, quest?.Title, quest?.BoardName, quest?.IssueType,
+                (quest?.Assigned ?? false) || x.Type is "kudos" or "Mention", x.Link);
         }).ToList();
     }
 

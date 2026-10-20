@@ -19,6 +19,7 @@ import { fieldRule } from '../utils/issueLayout.js';
 import { issueWorkflow, needsTransitionDialog, reachableColumns, transitionsTo } from '../utils/workflow.js';
 import { statusTone } from '../utils/boardColumnLayout.js';
 import TransitionScreenDialog from './TransitionScreenDialog.jsx';
+import MentionTextarea, { MentionText } from './MentionTextarea.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
@@ -39,12 +40,13 @@ const ACTIVITY_TABS = [['all', 'Все'], ['comments', 'Комментарии']
 
 const isTyping = (target) => !!target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable);
 
-function RichTextPreview({ value }) {
+function RichTextPreview({ value, currentUserId }) {
   const blocks = parseRichText(value);
+  const text = (block) => <MentionText text={block.text} currentUserId={currentUserId} />;
   return <div className="issue-drawer-rich-preview">
     {blocks.map((block, index) => block.type === 'heading'
-      ? <h4 key={index}>{block.text}</h4>
-      : block.type === 'listItem' ? <div key={index}>• {block.text}</div> : <p key={index}>{block.text}</p>)}
+      ? <h4 key={index}>{text(block)}</h4>
+      : block.type === 'listItem' ? <div key={index}>• {text(block)}</div> : <p key={index}>{text(block)}</p>)}
   </div>;
 }
 
@@ -598,7 +600,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
           <AssigneeAvatar userId={item.authorUserId} displayName={item.authorName} avatarUrl={item.authorAvatarUrl} size={32} />
           <div className="iv-activity-body">
             <div className="iv-activity-head"><strong>{item.authorName}</strong><span>{formatDate(item.createdAt)}</span></div>
-            <p className="iv-comment-text">{item.text}</p>
+            <p className="iv-comment-text"><MentionText text={item.text} currentUserId={user?.id} /></p>
             {item.authorUserId === user?.id && (
               <button type="button" className="iv-link-btn" onClick={() => handleDeleteComment(item)}>{t('Удалить')}</button>
             )}
@@ -751,11 +753,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                         <button type="button" onClick={() => setDescriptionPreview((value) => !value)}>{descriptionPreview ? t('Редактировать') : t('Предпросмотр')}</button>
                       </div>
                       {descriptionPreview
-                        ? <RichTextPreview value={serializeRichText(description)} />
-                        : <textarea autoFocus value={description} onChange={(e) => setDescription(e.target.value)} rows={6} aria-label={t('Описание')} />}
-                      {description.includes('@') && <div className="issue-drawer-mentions" aria-label={t('Упоминания')}>
-                        {members.slice(0, 6).map((member) => <button key={member.userId} type="button" onClick={() => setDescription((value) => `${value}@${member.displayName} `)}>@{member.displayName}</button>)}
-                      </div>}
+                        ? <RichTextPreview value={serializeRichText(description)} currentUserId={user?.id} />
+                        : <MentionTextarea autoFocus value={description} onChange={setDescription} members={members} rows={6} aria-label={t('Описание')} placeholder={t('Введите @, чтобы упомянуть пользователя')} />}
                       <div className="iv-editor-actions">
                         <button type="button" className="app-btn app-btn-primary" onClick={() => { setEditingDescription(false); setDescriptionPreview(false); save(); }}>{t('Сохранить')}</button>
                         <button type="button" className="app-btn app-btn-subtle" onClick={() => { setEditingDescription(false); setDescriptionPreview(false); setDescription(richTextToPlainText(quest.descriptionDocument || quest.description || '')); }}>{t('Отмена')}</button>
@@ -763,7 +762,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                     </div>
                   ) : (
                     <button type="button" className="iv-inline-edit" onClick={() => setEditingDescription(true)}>
-                      {description.trim() ? <RichTextPreview value={serializeRichText(description)} /> : <span className="iv-placeholder-text">{t('Редактировать описание')}</span>}
+                      {description.trim() ? <RichTextPreview value={serializeRichText(description)} currentUserId={user?.id} /> : <span className="iv-placeholder-text">{t('Редактировать описание')}</span>}
                     </button>
                   )}
                 </section>
@@ -869,22 +868,20 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                   <div className="iv-composer">
                     <AssigneeAvatar userId={user?.id} displayName={user?.displayName || me?.displayName || ''} avatarUrl={user?.avatarUrl || me?.avatarUrl} size={32} />
                     <div className="iv-composer-body">
-                      <textarea
+                      <MentionTextarea
                         ref={commentRef}
+                        members={members}
                         value={newComment}
                         rows={commentFocused || newComment ? 3 : 1}
                         placeholder={t('Добавить комментарий…')}
                         aria-label={t('Добавить комментарий…')}
                         onFocus={() => setCommentFocused(true)}
-                        onChange={(e) => setNewComment(e.target.value.slice(0, 5000))}
+                        onChange={(value) => setNewComment(value.slice(0, 5000))}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAddComment();
                           if (e.key === 'Escape') { setNewComment(''); setCommentFocused(false); e.currentTarget.blur(); }
                         }}
                       />
-                      {newComment.includes('@') && <div className="issue-drawer-mentions">
-                        {members.slice(0, 6).map((member) => <button key={member.userId} type="button" onClick={() => setNewComment((value) => `${value}@${member.displayName} `)}>@{member.displayName}</button>)}
-                      </div>}
                       {commentFocused || newComment ? (
                         <div className="iv-editor-actions">
                           <button type="button" className="app-btn app-btn-primary" onClick={handleAddComment} disabled={commentSaving || !newComment.trim()}>{commentSaving ? '…' : t('Сохранить')}</button>

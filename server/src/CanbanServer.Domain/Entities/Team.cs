@@ -10,6 +10,8 @@ public class Team
     public Guid? OwnerId { get; set; }
     /// <summary>Project key used for issue keys, e.g. KAN.</summary>
     public string Key { get; set; } = "KAN";
+    /// <summary>Uploaded image URL or a built-in avatar as "preset:&lt;name&gt;".</summary>
+    public string? AvatarUrl { get; set; }
 
     public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
     public ICollection<Board> Boards { get; set; } = new List<Board>();

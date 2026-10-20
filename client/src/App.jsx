@@ -30,6 +30,7 @@ import SpaceTemplatesPage from './pages/spaces/SpaceTemplatesPage.jsx';
 import { CreatePlanPage, PlanPage, PlansListPage } from './pages/plans/PlansPages.jsx';
 import { SpaceCalendarPage, SpaceFeaturesPage, SpaceListPage, SpaceSummaryPage } from './pages/spaces/SpaceViews.jsx';
 import { KudosPage, PeoplePage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
+import TeamSpacePage from './pages/teams/TeamSpacePage.jsx';
 import { HomeDirectoryPage, HomeItemPage, HomeUpdatesPage } from './pages/home/HomePages.jsx';
 import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="teams/list" element={<TeamsListPage />} />
           <Route path="teams/manage" element={<HomePage />} />
           <Route path="teams/:teamId" element={<TeamPage />} />
+          <Route path="team/:teamId/*" element={<TeamSpacePage />} />
           <Route path="people" element={<PeoplePage />} />
           <Route path="people/:userId" element={<ProfilePage />} />
           <Route path="kudos" element={<KudosPage />} />

@@ -388,7 +388,7 @@ public class JiraPlatformController : ControllerBase
         var teams = await _db.Teams.AsNoTracking()
             .Where(t => personTeamIds.Contains(t.Id) && (t.OwnerId == me || t.Members.Any(m => m.UserId == me)))
             .OrderBy(t => t.Name)
-            .Select(t => new { id = t.Id, name = t.Name, memberCount = t.Members.Count })
+            .Select(t => new { id = t.Id, name = t.Name, avatarUrl = t.AvatarUrl, memberCount = t.Members.Count })
             .ToListAsync(ct);
 
         var since = DateTime.UtcNow.AddDays(-90);

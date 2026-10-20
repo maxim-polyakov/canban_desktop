@@ -85,7 +85,7 @@
 .teams-team-card:hover { text-decoration: none; background: var(--surface-hover); }
 .teams-team-banner { height: 56px; }
 .teams-team-body { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
-.teams-team-name { font-weight: 650; }
+.teams-team-name { display: flex; align-items: center; gap: 8px; font-weight: 650; }
 .teams-team-avatars { display: flex; align-items: center; gap: 2px; }
 .teams-team-avatars .teams-person-sub { margin-left: 6px; }
 

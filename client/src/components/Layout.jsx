@@ -319,7 +319,7 @@ export default function Layout() {
 
   useEffect(() => {
     const onCreateSpace = (e) => {
-      if (e.detail?.template) setCreateSpace({ template: e.detail.template });
+      if (e.detail?.template) setCreateSpace({ template: e.detail.template, teamId: e.detail.teamId });
       else navigate('/spaces/templates');
     };
     window.addEventListener(CREATE_SPACE_EVENT, onCreateSpace);
@@ -484,6 +484,7 @@ export default function Layout() {
       <CreateSpaceDialog
         open={Boolean(createSpace)}
         initialTemplate={createSpace?.template}
+        initialTeamId={createSpace?.teamId}
         teamsWithBoards={teamsWithBoards}
         onClose={() => setCreateSpace(null)}
         onCreated={handleSpaceCreated}

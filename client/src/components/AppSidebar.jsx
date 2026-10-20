@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import NavIcon from './NavIcons.jsx';
 import SpaceAvatar from './SpaceAvatar.jsx';
+import TeamAvatar from './TeamAvatar.jsx';
 import { IssueTypeIcon } from './IssueIcons.jsx';
 import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { usePrefs } from '../utils/preferences.js';
@@ -109,8 +110,8 @@ function SpaceSearch({ boards, teams = [], activeBoardId, starredIds, onNavigate
 function TeamRow({ team, active, onNavigate }) {
   const { t } = useLocalization();
   return (
-    <Link to={`/teams/${team.id}`} className={`app-nav-item app-nav-link ${active ? 'is-active' : ''}`} onClick={onNavigate} title={team.name}>
-      <span className="app-nav-team-mark"><NavIcon name="teams" size={14} /></span>
+    <Link to={`/team/${team.id}`} className={`app-nav-item app-nav-link ${active ? 'is-active' : ''}`} onClick={onNavigate} title={team.name}>
+      <TeamAvatar id={team.id} avatarUrl={team.avatarUrl} name={team.name} size={20} />
       <span className="app-nav-text">
         <span className="app-nav-label">{team.name}</span>
         <span className="app-nav-sub">{t('Команда')}{team.boardCount != null ? ` · ${team.boardCount} ${t('разд.')}` : ''}</span>
@@ -341,10 +342,10 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
   const allBoards = teamsWithBoards.flatMap(({ team, boards }) => boards.map((b) => ({ ...b, teamName: team.name, teamId: team.id })));
   const boardById = new Map(allBoards.map((b) => [b.id, b]));
   const starredIds = new Set(starredBoards.map((b) => b.id));
-  const teamById = new Map(teamsWithBoards.map(({ team, boards }) => [team.id, { id: team.id, name: team.name, boardCount: boards.length, kind: 'team' }]));
+  const teamById = new Map(teamsWithBoards.map(({ team, boards }) => [team.id, { id: team.id, name: team.name, avatarUrl: team.avatarUrl, boardCount: boards.length, kind: 'team' }]));
   const recent = recentBoards.map((b) => (b.kind === 'team' ? teamById.get(b.id) : boardById.get(b.id))).filter(Boolean);
   const recentRow = (entry, showTeam) => (entry.kind === 'team'
-    ? <TeamRow key={`team-${entry.id}`} team={entry} active={pathname.startsWith(`/teams/${entry.id}`)} onNavigate={navigate} />
+    ? <TeamRow key={`team-${entry.id}`} team={entry} active={pathname.startsWith(`/team/${entry.id}`)} onNavigate={navigate} />
     : <BoardRow key={entry.id} board={entry} active={entry.id === activeBoardId} starred={starredIds.has(entry.id)} onNavigate={navigate} showTeam={showTeam} />);
   const sidebarRecent = (recent.length ? recent : allBoards).slice(0, 4);
   const starred = starredBoards.map((b) => boardById.get(b.id)).filter(Boolean);
@@ -414,7 +415,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
 
   const plansContent = <PlansFlyoutContent onNavigate={navigate} />;
 
-  const searchTeams = teamsWithBoards.map(({ team, boards }) => ({ id: team.id, name: team.name, boardCount: boards.length }));
+  const searchTeams = teamsWithBoards.map(({ team, boards }) => ({ id: team.id, name: team.name, avatarUrl: team.avatarUrl, boardCount: boards.length }));
   const otherSpacesContent = <SpaceSearch boards={allBoards} teams={searchTeams} activeBoardId={activeBoardId} starredIds={starredIds} onNavigate={navigate} />;
 
   return (

@@ -13,6 +13,10 @@ public interface ITeamService
     Task<bool> AddMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default);
     /// <returns>true — роль изменена, false — нет прав (только создатель или админ команды), null — участник не найден</returns>
     Task<bool?> SetMemberRoleAsync(Guid teamId, Guid userId, TeamRole role, Guid? requestedByUserId, CancellationToken ct = default);
+    /// <returns>true — owner or team admin, false — no rights, null — team not found</returns>
+    Task<bool?> CanManageAsync(Guid teamId, Guid userId, CancellationToken ct = default);
+    /// <summary>Stores the new avatar and returns the previous value so an uploaded file can be removed.</summary>
+    Task<string?> SetAvatarAsync(Guid teamId, string? avatarUrl, CancellationToken ct = default);
     /// <summary>Отправить приглашение в команду по email. Создаёт запись приглашения; пользователь подтверждает сам.</summary>
     /// <returns>true — приглашение отправлено, false — уже в команде или приглашение уже отправлено, null — пользователь не найден</returns>
     Task<bool?> InviteByEmailAsync(Guid teamId, string email, Guid inviterUserId, CancellationToken ct = default);

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { auth, character, achievements, skills, kudos as kudosApi, people as peopleApi } from '../api.js';
 import NavIcon from '../components/NavIcons.jsx';
+import TeamAvatar from '../components/TeamAvatar.jsx';
 import SpaceAvatar from '../components/SpaceAvatar.jsx';
 import { IssueTypeIcon, getIssueTypeMeta } from '../components/IssueIcons.jsx';
 import { timeAgo } from '../utils/timeAgo.js';
@@ -447,8 +448,8 @@ export default function ProfilePage() {
               <ul className="profile-aside-list">
                 {profile.teams.map((team) => (
                   <li key={team.id}>
-                    <Link to={`/teams/${team.id}`} className="profile-aside-item">
-                      <span className="profile-team-mark" style={{ background: `hsl(${bannerHue(team.id)} 70% 88%)` }}><NavIcon name="teams" size={14} /></span>
+                    <Link to={`/team/${team.id}`} className="profile-aside-item">
+                      <TeamAvatar id={team.id} avatarUrl={team.avatarUrl} name={team.name} size={24} />
                       <span className="profile-aside-text"><span>{team.name}</span><small>{team.memberCount} {t('участн.')}</small></span>
                     </Link>
                   </li>

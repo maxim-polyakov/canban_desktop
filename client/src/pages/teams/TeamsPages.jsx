@@ -4,6 +4,7 @@ import { useLocalization } from '../../i18n/LocalizationContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { kudos as kudosApi, people as peopleApi, teams as teamsApi, users as usersApi } from '../../api.js';
 import NavIcon from '../../components/NavIcons.jsx';
+import TeamAvatar from '../../components/TeamAvatar.jsx';
 import SpaceAvatar from '../../components/SpaceAvatar.jsx';
 import { timeAgo } from '../../utils/timeAgo.js';
 import { rememberTeam } from '../../utils/navHistory.js';
@@ -75,7 +76,7 @@ function TeamCard({ team, members }) {
     <Link to={`/teams/${team.id}`} className="teams-team-card">
       <span className="teams-team-banner" style={{ background: `hsl(${[...team.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 360} 70% 88%)` }} />
       <span className="teams-team-body">
-        <span className="teams-team-name">{team.name}</span>
+        <span className="teams-team-name"><TeamAvatar id={team.id} avatarUrl={team.avatarUrl} name={team.name} size={24} />{team.name}</span>
         <span className="teams-team-avatars">
           {(members || []).slice(0, 5).map((m) => <Avatar key={m.userId} url={m.avatarUrl} name={m.displayName} size={24} />)}
           <span className="teams-person-sub">{members ? `${members.length} ${t('участн.')}` : '…'}</span>

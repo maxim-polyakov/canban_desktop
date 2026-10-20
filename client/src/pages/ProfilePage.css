@@ -270,8 +270,6 @@
 .profile-aside-text { display: flex; flex-direction: column; min-width: 0; font-size: 14px; }
 .profile-aside-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-aside-text small { color: var(--text-subtle); font-size: 12px; }
-.profile-team-mark { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 4px; color: var(--text); }
-
 .profile-teams-empty {
   padding: 16px;
   border: 1px solid var(--border);

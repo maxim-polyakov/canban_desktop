@@ -1,4 +1,4 @@
-import { API_BASE, api, apiJson, buildQuery, getToken } from './api/transport.js';
+import { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
 
 export { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
 export {
@@ -183,6 +183,12 @@ export const teams = {
   getMembers: (teamId) => apiJson(`/api/teams/${teamId}/members`),
   create: (data) => apiJson('/api/teams', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  setAvatar: (id, avatarUrl) => apiJson(`/api/teams/${id}/avatar`, { method: 'PUT', body: JSON.stringify({ avatarUrl }) }),
+  uploadAvatar: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiForm(`/api/teams/${id}/avatar`, formData);
+  },
   delete: (teamId) => api(`/api/teams/${teamId}`, { method: 'DELETE' }).then((r) => r.ok),
   addMember: (teamId, userId) => api(`/api/teams/${teamId}/members/${userId}`, { method: 'POST' }).then((r) => r.ok),
   removeMember: async (teamId, userId) => {

@@ -19,3 +19,10 @@ public class AuditEvent
     public string? IpAddress { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+/// <summary>Per-team audit log settings.</summary>
+public class AuditSetting
+{
+    public Guid TeamId { get; set; }
+    public int RetentionDays { get; set; } = 365;
+}

@@ -1,4 +1,5 @@
 using System.Text;
+using CanbanServer.Api.Auditing;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -33,4 +34,14 @@ public class AuditController : ControllerBase
         var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray();
         return File(bytes, "text/csv; charset=utf-8", $"audit-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv");
     }
+
+    [HttpGet("settings/{teamId:guid}")]
+    public async Task<ActionResult> Settings(Guid teamId, CancellationToken ct) => Ok(await _audit.GetSettingsAsync(Me, teamId, ct));
+
+    [HttpPut("settings/{teamId:guid}")]
+    [Audit("audit.retention", AuditTarget.Team, "teamId", ObjectType = "auditsettings", ObjectKey = "teamId")]
+    public async Task<ActionResult> SaveSettings(Guid teamId, [FromBody] AuditSettingsRequest request, CancellationToken ct) =>
+        Ok(await _audit.SetRetentionAsync(Me, teamId, request.RetentionDays, ct));
 }
+
+public sealed record AuditSettingsRequest(int RetentionDays);

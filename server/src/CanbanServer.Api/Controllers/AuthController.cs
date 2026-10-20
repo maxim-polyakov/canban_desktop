@@ -1,3 +1,5 @@
+using CanbanServer.Infrastructure.Services;
+using CanbanServer.Api.Auditing;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
@@ -45,6 +47,7 @@ public class AuthController : ControllerBase
     [HttpGet("google")]
     public IActionResult Google() => Challenge(new AuthenticationProperties { RedirectUri = "/signin-google" }, GoogleDefaults.AuthenticationScheme);
 
+    [Audit("auth.login", AuditTarget.Actor, Details = false)]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
@@ -109,6 +112,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>Обновить профиль текущего пользователя (имя и/или аватар). Требуется авторизация.</summary>
+    [Audit("user.profile", AuditTarget.Actor)]
     [HttpPatch("me")]
     [Authorize]
     public async Task<ActionResult<UserDto>> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken ct)

@@ -14,6 +14,8 @@ public static partial class DatabaseSchemaInitializer
               "Category" varchar(40) NOT NULL, "ObjectType" varchar(40) NULL, "ObjectId" uuid NULL, "ObjectName" varchar(300) NULL,
               "DetailsJson" text NULL, "IpAddress" varchar(64) NULL, "CreatedAt" timestamptz NOT NULL DEFAULT now());
             CREATE INDEX IF NOT EXISTS "IX_AuditEvents_TeamId_CreatedAt" ON "AuditEvents"("TeamId", "CreatedAt");
+            CREATE TABLE IF NOT EXISTS "AuditSettings" (
+              "TeamId" uuid PRIMARY KEY REFERENCES "Teams"("Id") ON DELETE CASCADE, "RetentionDays" integer NOT NULL DEFAULT 365);
             """, ct);
     }
 }

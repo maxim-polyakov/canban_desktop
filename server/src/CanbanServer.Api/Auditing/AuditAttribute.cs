@@ -24,4 +24,6 @@ public sealed class AuditAttribute : Attribute
     public string? ObjectType { get; init; }
     /// <summary>Route value that identifies the affected object when it differs from <see cref="Key"/>.</summary>
     public string? ObjectKey { get; init; }
+    /// <summary>Store request arguments with the event (credentials are masked either way).</summary>
+    public bool Details { get; init; } = true;
 }

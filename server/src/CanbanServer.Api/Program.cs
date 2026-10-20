@@ -80,6 +80,12 @@ builder.Services.AddAuthentication(options =>
             }
             var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
             var response = await authService.GoogleLoginOrCreateAsync(email, name ?? email, picture, context.HttpContext.RequestAborted);
+            try
+            {
+                await context.HttpContext.RequestServices.GetRequiredService<AuditLogService>().RecordForUserAsync(response.User.Id, "auth.login", null, null, "Google",
+                    null, context.HttpContext.Connection.RemoteIpAddress?.ToString(), CancellationToken.None);
+            }
+            catch (Exception ex) { context.HttpContext.RequestServices.GetRequiredService<ILogger<AuditLogService>>().LogWarning(ex, "Audit record failed for Google sign-in"); }
             var callbackUrl = builder.Configuration["Auth:FrontendCallbackUrl"] ?? "https://kanban.baxic.ru";
             var redirectUrl = callbackUrl.TrimEnd('/') + "/auth/callback#token=" + Uri.EscapeDataString(response.AccessToken);
             context.Response.Redirect(redirectUrl);
@@ -180,6 +186,7 @@ builder.Services.AddHttpClient("outbox");
 builder.Services.AddHttpClient(GitHubAppClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddSingleton<IGitHubAppClient, GitHubAppClient>();
 builder.Services.AddHostedService<OutboxDispatcher>();
+builder.Services.AddHostedService<AuditRetentionService>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration
 var redisConfig = builder.Configuration["Redis:Configuration"];

@@ -20,3 +20,12 @@ public class AuditEventConfiguration : IEntityTypeConfiguration<AuditEvent>
         b.HasIndex(x => new { x.TeamId, x.CreatedAt });
     }
 }
+
+public class AuditSettingConfiguration : IEntityTypeConfiguration<AuditSetting>
+{
+    public void Configure(EntityTypeBuilder<AuditSetting> b)
+    {
+        b.HasKey(x => x.TeamId);
+        b.HasOne<Team>().WithMany().HasForeignKey(x => x.TeamId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

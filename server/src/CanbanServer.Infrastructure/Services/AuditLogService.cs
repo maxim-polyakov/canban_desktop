@@ -21,6 +21,8 @@ public enum AuditTarget
     AssetSchema,
     /// <summary>Team or board is taken from the request body (TeamId / BoardId property).</summary>
     Body,
+    /// <summary>A personal action (sign-in, API tokens) recorded in every team the user belongs to.</summary>
+    Actor,
 }
 
 public sealed record AuditScope(Guid TeamId, Guid? BoardId, string? BoardName, string? ObjectType, Guid? ObjectId, string? ObjectName);
@@ -33,9 +35,9 @@ public sealed record AuditQuery(
     Guid? TeamId = null, string? Category = null, Guid? ActorId = null, string? Search = null,
     DateTime? From = null, DateTime? To = null, int Page = 1, int PageSize = 50);
 
-public class AuditLogService
+public partial class AuditLogService
 {
-    public const int MaxDetailsLength = 4000;
+    public const int MaxDetailsLength = 16000;
     private static readonly string[] SecretMarkers = { "password", "secret", "token", "apikey", "privatekey", "credential" };
 
     private readonly CanbanDbContext _db;
@@ -224,17 +226,22 @@ public class AuditLogService
     }
 
     /// <summary>Serializes request arguments for the log, masking anything that looks like a credential.</summary>
-    public static string? SerializeDetails(IReadOnlyDictionary<string, object?> values)
+    public static string? SerializeDetails(IReadOnlyDictionary<string, object?> values, IReadOnlyList<AuditChange>? changes = null)
     {
-        if (values.Count == 0) return null;
         var root = new JsonObject();
         foreach (var (name, value) in values)
         {
             try { root[name] = JsonSerializer.SerializeToNode(value, JsonOptions); }
             catch (Exception ex) when (ex is NotSupportedException or JsonException or InvalidOperationException) { }
         }
+        Redact(root);
+        var changesNode = changes is { Count: > 0 } ? JsonSerializer.SerializeToNode(changes, JsonOptions) : null;
+        if (changesNode != null) root["changes"] = changesNode;
         if (root.Count == 0) return null;
-        var json = Redact(root)!.ToJsonString();
+        var json = root.ToJsonString();
+        if (json.Length <= MaxDetailsLength) return json;
+        if (changesNode == null) return null;
+        json = new JsonObject { ["changes"] = JsonSerializer.SerializeToNode(changes, JsonOptions) }.ToJsonString();
         return json.Length <= MaxDetailsLength ? json : null;
     }
 

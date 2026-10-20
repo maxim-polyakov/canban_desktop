@@ -5,6 +5,9 @@ import NavIcon from '../../components/NavIcons.jsx';
 import SettingsShell, { ADMIN_NAV } from './SettingsShell.jsx';
 
 export const AUDIT_CATEGORIES = [
+  ['auth', 'Вход и API-токены'],
+  ['user', 'Профили пользователей'],
+  ['audit', 'Журнал аудита'],
   ['team', 'Команды'],
   ['member', 'Участники'],
   ['space', 'Пространства'],
@@ -20,6 +23,12 @@ export const AUDIT_CATEGORIES = [
 ];
 
 export const AUDIT_ACTIONS = {
+  'auth.login': 'Вход в систему',
+  'auth.token.create': 'API-токен создан',
+  'auth.token.revoke': 'API-токен отозван',
+  'auth.token.revokeall': 'Все API-токены отозваны',
+  'user.profile': 'Профиль изменён',
+  'audit.retention': 'Срок хранения журнала изменён',
   'team.create': 'Команда создана',
   'team.update': 'Команда изменена',
   'team.delete': 'Команда удалена',
@@ -74,6 +83,20 @@ export const AUDIT_ACTIONS = {
   'assets.schema.delete': 'Схема ресурсов удалена',
 };
 
+export const FIELD_LABELS = {
+  Name: 'Название', Title: 'Название', Description: 'Описание', Key: 'Ключ', KeyPrefix: 'Ключ', Kind: 'Категория статуса', Order: 'Порядок',
+  Role: 'Роль', Enabled: 'Включено', SourceColumnId: 'Из статуса', TargetColumnId: 'В статус', FromAnyStatus: 'Из любого статуса',
+  AllowedIssueTypes: 'Типы задач', AllowedRoles: 'Роли', ConditionsJson: 'Условия', PostFunctionsJson: 'Действия после перехода',
+  BaseType: 'Уровень иерархии', Icon: 'Иконка', Color: 'Цвет', FieldType: 'Тип поля', OptionsJson: 'Варианты', Boards: 'Пространства',
+  IssueTypes: 'Типы задач', Required: 'Обязательное', Url: 'URL', Events: 'События', SecretConfigurationKey: 'Ключ секрета',
+  RepositoryOwner: 'Владелец репозитория', RepositoryName: 'Репозиторий', TriggerType: 'Триггер', ActionsJson: 'Действия',
+  StartDate: 'Начало', EndDate: 'Окончание', ReleaseDate: 'Дата релиза', Released: 'Выпущен', Goal: 'Цель', State: 'Состояние', Status: 'Состояние',
+  RetentionDays: 'Срок хранения (дней)', IssueKey: 'Ключ задачи', Priority: 'Приоритет', IssueType: 'Тип задачи', AssigneeId: 'Исполнитель',
+  DueDate: 'Срок', StoryPoints: 'Story points', Labels: 'Метки', OwnerId: 'Владелец', AvatarUrl: 'Аватар',
+};
+
+export const RETENTION_LABELS = { 30: '1 месяц', 90: '3 месяца', 180: '6 месяцев', 365: '1 год', 730: '2 года', 1095: '3 года', 1825: '5 лет', 2555: '7 лет', 3650: '10 лет' };
+
 const PAGE_SIZE = 50;
 const EMPTY_FILTER = { teamId: '', category: '', actorId: '', search: '', from: '', to: '' };
 
@@ -95,9 +118,95 @@ export function auditQuery(filter, page) {
   };
 }
 
-function Details({ value }) {
+export function Details({ value }) {
+  const { t } = useLocalization();
   if (!value || typeof value !== 'object') return null;
-  return <pre className="audit-details">{JSON.stringify(value, null, 2)}</pre>;
+  const { changes, ...request } = value;
+  const empty = <span className="settings-table-sub">—</span>;
+  return (
+    <div className="audit-details">
+      {Array.isArray(changes) && changes.length > 0 && (
+        <table className="audit-changes">
+          <thead>
+            <tr><th>{t('Поле')}</th><th>{t('Было')}</th><th>{t('Стало')}</th></tr>
+          </thead>
+          <tbody>
+            {changes.map((change) => (
+              <tr key={change.field}>
+                <td>{t(FIELD_LABELS[change.field] || change.field)}</td>
+                <td className="audit-from">{change.from ?? empty}</td>
+                <td className="audit-to">{change.to ?? empty}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {Object.keys(request).length > 0 && (
+        <details className="audit-request">
+          <summary>{t('Параметры запроса')}</summary>
+          <pre>{JSON.stringify(request, null, 2)}</pre>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function RetentionDialog({ teams, onClose }) {
+  const { t } = useLocalization();
+  const [teamId, setTeamId] = useState(teams[0]?.id || '');
+  const [settings, setSettings] = useState(null);
+  const [days, setDays] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    if (!teamId) return;
+    setSettings(null);
+    audit.settings(teamId).then((value) => { setSettings(value); setDays(String(value.retentionDays)); }).catch((e) => setError(e.message || 'Не удалось загрузить настройки.'));
+  }, [teamId]);
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await audit.saveSettings(teamId, { retentionDays: Number(days) });
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Не удалось сохранить настройки.');
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="app-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form className="app-modal" role="dialog" aria-modal="true" aria-label={t('Срок хранения журнала')} onSubmit={submit}>
+        <div className="app-modal-header">
+          <h2>{t('Срок хранения журнала')}</h2>
+          <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={onClose}><NavIcon name="close" /></button>
+        </div>
+        <div className="app-modal-body">
+          {teams.length > 1 && (
+            <label className="app-field">
+              <span>{t('Команда')}</span>
+              <select value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+                {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="app-field">
+            <span>{t('Хранить события')}</span>
+            <select value={days} onChange={(e) => setDays(e.target.value)} disabled={!settings} aria-label={t('Хранить события')}>
+              {(settings?.options || []).map((option) => <option key={option} value={option}>{t(RETENTION_LABELS[option] || ``)}</option>)}
+            </select>
+          </label>
+          <p className="app-modal-hint">{t('События старше этого срока удаляются автоматически.')}</p>
+          {error && <p className="app-modal-error" role="alert">{t(error)}</p>}
+        </div>
+        <div className="app-modal-footer">
+          <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Отмена')}</button>
+          <button type="submit" className="app-btn app-btn-primary" disabled={saving || !settings}>{saving ? '…' : t('Сохранить')}</button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 export default function AuditLogPage() {
@@ -109,6 +218,7 @@ export default function AuditLogPage() {
   const [error, setError] = useState('');
   const [open, setOpen] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [retention, setRetention] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -166,10 +276,15 @@ export default function AuditLogPage() {
       breadcrumbs={[['Настройки Канбан', '/admin'], ['Безопасность'], ['Журнал аудита']]}
       title={t('Журнал аудита')}
       description={t('Журнал показывает, кто и когда менял настройки команд и пространств: участников, workflow, поля, интеграции, автоматизацию, а также удаление задач. Значения секретов в журнал не попадают.')}
-      actions={!noAccess && (
-        <button type="button" className="app-btn app-btn-subtle" onClick={exportCsv} disabled={exporting || total === 0}>
-          <NavIcon name="download" size={14} /> {t(exporting ? 'Выгрузка…' : 'Экспорт в CSV')}
-        </button>
+      actions={!noAccess && data && (
+        <>
+          <button type="button" className="app-btn app-btn-subtle" onClick={() => setRetention(true)}>
+            <NavIcon name="settings" size={14} /> {t('Срок хранения')}
+          </button>
+          <button type="button" className="app-btn app-btn-subtle" onClick={exportCsv} disabled={exporting || total === 0}>
+            <NavIcon name="download" size={14} /> {t(exporting ? 'Выгрузка…' : 'Экспорт в CSV')}
+          </button>
+        </>
       )}
     >
       {noAccess ? (
@@ -275,6 +390,7 @@ export default function AuditLogPage() {
           )}
         </>
       )}
+      {retention && <RetentionDialog teams={teams} onClose={() => setRetention(false)} />}
     </SettingsShell>
   );
 }

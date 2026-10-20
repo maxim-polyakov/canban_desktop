@@ -289,6 +289,8 @@ export const issueConfig = {
 
 export const audit = {
   list: (params) => apiJson(`/api/audit${buildQuery(params)}`),
+  settings: (teamId) => apiJson(`/api/audit/settings/${teamId}`),
+  saveSettings: (teamId, data) => apiJson(`/api/audit/settings/${teamId}`, json('PUT', data)),
   exportCsv: async (params) => {
     const response = await api(`/api/audit/export${buildQuery(params)}`);
     if (!response.ok) throw new Error((await response.text()) || response.statusText);

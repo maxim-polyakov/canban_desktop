@@ -1,3 +1,4 @@
+using CanbanServer.Api.Auditing;
 using CanbanServer.Api.Auth;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Infrastructure.Services;
@@ -23,10 +24,12 @@ public class ApiTokensController : ControllerBase
     [HttpGet]
     public async Task<ActionResult> List(CancellationToken ct) => Ok(await _tokens.ListAsync(Me, ct));
 
+    [Audit("auth.token.create", AuditTarget.Actor, ObjectType = "apitoken")]
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] CreateApiTokenRequest request, CancellationToken ct) =>
         Ok(await _tokens.CreateAsync(Me, request, ct));
 
+    [Audit("auth.token.revoke", AuditTarget.Actor, ObjectType = "apitoken")]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Revoke(Guid id, CancellationToken ct)
     {
@@ -34,6 +37,7 @@ public class ApiTokensController : ControllerBase
         return NoContent();
     }
 
+    [Audit("auth.token.revokeall", AuditTarget.Actor, ObjectType = "apitoken")]
     [HttpDelete]
     public async Task<ActionResult> RevokeAll(CancellationToken ct) => Ok(new { revoked = await _tokens.RevokeAllAsync(Me, ct) });
 }

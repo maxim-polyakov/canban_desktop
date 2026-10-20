@@ -25,11 +25,21 @@ public sealed class AuditActionFilter : IAsyncActionFilter
         var audit = context.HttpContext.RequestServices.GetRequiredService<AuditLogService>();
         var ct = context.HttpContext.RequestAborted;
         AuditScope? scope = null;
-        try { scope = await ResolveBeforeAsync(attribute, context, audit, ct); }
+        Dictionary<string, string?>? before = null;
+        try
+        {
+            if (attribute.Target != AuditTarget.Actor)
+            {
+                scope = await ResolveBeforeAsync(attribute, context, audit, ct);
+                if (scope is not null) before = await audit.SnapshotAsync(scope.ObjectType, scope.ObjectId, scope.TeamId, ct);
+            }
+        }
         catch (Exception ex) { _logger.LogWarning(ex, "Audit scope resolution failed for {Action}", attribute.Action); }
-        var arguments = context.ActionArguments
-            .Where(a => a.Value is not CancellationToken and not Guid and not IFormFile and not IFormFileCollection and not Stream)
-            .ToDictionary(a => a.Key, a => a.Value);
+        var arguments = attribute.Details
+            ? context.ActionArguments
+                .Where(a => a.Value is not CancellationToken and not Guid and not IFormFile and not IFormFileCollection and not Stream)
+                .ToDictionary(a => a.Key, a => a.Value)
+            : new Dictionary<string, object?>();
 
         var executed = await next();
         if (executed.Exception is not null && !executed.ExceptionHandled) return;
@@ -38,20 +48,35 @@ public sealed class AuditActionFilter : IAsyncActionFilter
         try
         {
             var value = (executed.Result as ObjectResult)?.Value;
+            var ip = context.HttpContext.Connection.RemoteIpAddress?.ToString();
+            if (attribute.Target == AuditTarget.Actor)
+            {
+                var userId = context.HttpContext.User.GetUserId() ?? ReadGuid(Read(value, "User"), "Id");
+                if (userId is null) return;
+                var objectId = RouteGuid(context, attribute.Key) ?? ReadGuid(Read(value, "Token"), "Id") ?? ReadGuid(value, "Id");
+                var name = arguments.Values.Select(NameOf).FirstOrDefault(n => n is not null) ?? NameOf(Read(value, "Token"));
+                await audit.RecordForUserAsync(userId.Value, attribute.Action, attribute.ObjectType, objectId, name,
+                    AuditLogService.SerializeDetails(arguments), ip, CancellationToken.None);
+                return;
+            }
+
             scope ??= await ResolveFromValueAsync(value, attribute, audit, ct);
             if (scope is null) return;
 
-            var objectId = scope.ObjectId ?? ReadGuid(value, "Id");
+            var id = scope.ObjectId ?? ReadGuid(value, "Id");
             var objectName = scope.ObjectName
                 ?? arguments.Values.Select(NameOf).FirstOrDefault(n => n is not null)
                 ?? NameOf(value);
-            if (scope.ObjectType == "user" && objectId is { } userId && objectName is null)
-                objectName = await audit.UserNameAsync(userId, ct);
+            if (scope.ObjectType == "user" && id is { } memberId && objectName is null)
+                objectName = await audit.UserNameAsync(memberId, ct);
+            var after = await audit.SnapshotAsync(scope.ObjectType, id, scope.TeamId, CancellationToken.None);
+            if (objectName is null && (after ?? before) is { } snapshot)
+                objectName = snapshot.GetValueOrDefault("Name") ?? snapshot.GetValueOrDefault("Title");
+            var changes = AuditLogService.Diff(before, after);
 
             await audit.RecordAsync(new AuditEntry(
                 scope.TeamId, scope.BoardId, scope.BoardName, context.HttpContext.User.GetUserId(), attribute.Action,
-                scope.ObjectType, objectId, objectName, AuditLogService.SerializeDetails(arguments),
-                context.HttpContext.Connection.RemoteIpAddress?.ToString()), CancellationToken.None);
+                scope.ObjectType, id, objectName, AuditLogService.SerializeDetails(arguments, changes), ip), CancellationToken.None);
         }
         catch (Exception ex)
         {

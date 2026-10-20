@@ -12,20 +12,22 @@ jest.mock('./SettingsShell.jsx', () => ({
   default: ({ title, actions, children }) => require('react').createElement('section', null, require('react').createElement('h1', null, title), actions, children),
 }));
 
-const calls = { list: [], exported: [] };
+const calls = { list: [], exported: [], saved: [] };
 let mockResponse;
 
 jest.mock('../../api.js', () => ({
   audit: {
     list: (params) => { calls.list.push(params); return Promise.resolve(mockResponse); },
     exportCsv: (params) => { calls.exported.push(params); return Promise.resolve(new Blob(['a,b'])); },
+    settings: (teamId) => Promise.resolve({ teamId, retentionDays: 365, options: [30, 365, 3650] }),
+    saveSettings: (teamId, data) => { calls.saved.push({ teamId, ...data }); return Promise.resolve({}); },
   },
 }));
 
 const event = {
   id: 'e1', teamId: 't1', teamName: 'Команда', boardId: 'b1', boardName: 'Сайт',
   actor: { id: 'u1', name: 'Анна', avatarUrl: null }, action: 'workflow.transition.save', category: 'workflow',
-  objectType: 'transition', objectName: 'Начать', details: { request: { name: 'Начать', secret: '***' } },
+  objectType: 'transition', objectName: 'Начать', details: { request: { name: 'Начать', secret: '***' }, changes: [{ field: 'Name', from: 'Старт', to: 'Начать' }, { field: 'Enabled', from: null, to: 'true' }] },
   ipAddress: '10.0.0.1', createdAt: '2026-10-20T06:00:00Z',
 };
 
@@ -35,6 +37,7 @@ beforeAll(() => { global.IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
   calls.list = [];
   calls.exported = [];
+  calls.saved = [];
   mockResponse = { total: 1, page: 1, pageSize: 50, teams: [{ id: 't1', name: 'Команда' }, { id: 't2', name: 'Вторая' }], actors: [{ id: 'u1', name: 'Анна' }], items: [event] };
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -70,6 +73,8 @@ test('shows events with readable actions and expandable details', async () => {
   expect(container.querySelector('.audit-details')).toBeNull();
   await act(async () => { container.querySelector('.audit-event').click(); });
   expect(container.querySelector('.audit-details').textContent).toContain('"secret": "***"');
+  const rows = [...container.querySelectorAll('.audit-changes tbody tr')].map((tr) => [...tr.children].map((td) => td.textContent));
+  expect(rows).toEqual([['Название', 'Старт', 'Начать'], ['Включено', '—', 'true']]);
 });
 
 test('filters reload the log and export uses the same filters', async () => {
@@ -91,4 +96,18 @@ test('users without admin teams see an explanation instead of the log', async ()
   await render();
   expect(container.textContent).toContain('Журнал аудита доступен владельцам и администраторам команд.');
   expect(container.querySelector('table')).toBeNull();
+});
+
+test('retention period can be changed per team', async () => {
+  await render();
+  const open = [...container.querySelectorAll('button')].find((b) => b.textContent.includes('Срок хранения'));
+  await act(async () => { open.click(); });
+  await flush();
+  const dialog = container.querySelector('.app-modal');
+  expect([...dialog.querySelector('select[aria-label="Хранить события"]').options].map((o) => o.textContent)).toEqual(['1 месяц', '1 год', '10 лет']);
+  await choose(dialog.querySelector('select[aria-label="Хранить события"]'), '3650');
+  await act(async () => { dialog.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+  await flush();
+  expect(calls.saved).toEqual([{ teamId: 't1', retentionDays: 3650 }]);
+  expect(container.querySelector('.app-modal')).toBeNull();
 });

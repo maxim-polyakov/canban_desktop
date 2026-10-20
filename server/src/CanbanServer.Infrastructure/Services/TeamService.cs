@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 using CanbanServer.Domain.Entities;
@@ -12,17 +13,36 @@ public class TeamService : ITeamService
     private readonly IAchievementService _achievementService;
     private readonly IQuestAttachmentService _attachmentService;
     private readonly IBoardHub _boardHub;
+    private readonly IConfiguration _config;
 
     public TeamService(
         CanbanDbContext db,
         IAchievementService achievementService,
         IQuestAttachmentService attachmentService,
-        IBoardHub boardHub)
+        IBoardHub boardHub,
+        IConfiguration config)
     {
         _db = db;
         _achievementService = achievementService;
         _attachmentService = attachmentService;
         _boardHub = boardHub;
+        _config = config;
+    }
+
+    /// <summary>Teams created by a service account are led by a real person, so its spaces show a human lead.</summary>
+    public static bool IsServiceAccount(string? email, string? serviceEmails) =>
+        !string.IsNullOrWhiteSpace(email) && (serviceEmails ?? "")
+            .Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(e => string.Equals(e, email.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private async Task<Guid?> ServiceAccountLeadAsync(Guid creatorId, CancellationToken ct)
+    {
+        var leadEmail = _config["Teams:ServiceAccountLeadEmail"]?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(leadEmail)) return null;
+        var creatorEmail = await _db.Users.Where(u => u.Id == creatorId).Select(u => u.Email).FirstOrDefaultAsync(ct);
+        if (!IsServiceAccount(creatorEmail, _config["Teams:ServiceAccountEmails"])) return null;
+        var leadId = await _db.Users.Where(u => u.Email.ToLower() == leadEmail).Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
+        return leadId == creatorId ? null : leadId;
     }
 
     public async Task<TeamDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -65,13 +85,15 @@ public class TeamService : ITeamService
 
     public async Task<TeamDto> CreateAsync(CreateTeamRequest request, Guid ownerId, CancellationToken ct = default)
     {
+        var leadId = await ServiceAccountLeadAsync(ownerId, ct);
+        var now = DateTime.UtcNow;
         var team = new Team
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
             Description = request.Description,
-            CreatedAt = DateTime.UtcNow,
-            OwnerId = ownerId,
+            CreatedAt = now,
+            OwnerId = leadId ?? ownerId,
             Key = NormalizeTeamKey(request.Key, request.Name)
         };
         _db.Teams.Add(team);
@@ -81,8 +103,19 @@ public class TeamService : ITeamService
             TeamId = team.Id,
             UserId = ownerId,
             Role = TeamRole.Admin,
-            JoinedAt = DateTime.UtcNow
+            JoinedAt = now
         });
+        if (leadId.HasValue)
+        {
+            _db.TeamMembers.Add(new TeamMember
+            {
+                Id = Guid.NewGuid(),
+                TeamId = team.Id,
+                UserId = leadId.Value,
+                Role = TeamRole.Admin,
+                JoinedAt = now
+            });
+        }
         await _db.SaveChangesAsync(ct);
         return new TeamDto(team.Id, team.Name, team.Description, team.CreatedAt, team.OwnerId, team.Key);
     }

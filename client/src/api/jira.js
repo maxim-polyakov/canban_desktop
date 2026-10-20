@@ -295,3 +295,10 @@ export const audit = {
     return response.blob();
   },
 };
+
+export const apiTokens = {
+  list: () => apiJson('/api/me/tokens'),
+  create: (data) => apiJson('/api/me/tokens', json('POST', data)),
+  revoke: (id) => remove(`/api/me/tokens/${id}`),
+  revokeAll: () => apiJson('/api/me/tokens', { method: 'DELETE' }),
+};

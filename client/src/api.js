@@ -2,7 +2,7 @@ import { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/tra
 
 export { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
 export {
-  adminInfo, assets, audit, automations, billing, bulk, clone, home, kudos, people, personalSettings, spaces, components, dashboards, history, importExport,
+  adminInfo, apiTokens, assets, audit, automations, billing, bulk, clone, home, kudos, people, personalSettings, spaces, components, dashboards, history, importExport,
   integrations, issueConfig, myWork, notifications, permissions, plans, questHierarchy, questLinks,
   releases, reports, savedFilters, search, spaceContent, workflows, worklogs,
 } from './api/jira.js';

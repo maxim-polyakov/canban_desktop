@@ -27,6 +27,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter());
+    options.Filters.Add<CanbanServer.Api.Auth.ApiTokenScopeFilter>();
     options.Filters.Add<CanbanServer.Api.Auditing.AuditActionFilter>();
 });
 builder.Services.AddEndpointsApiExplorer();
@@ -46,7 +47,16 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key не задан.");
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = "Smart";
+    options.DefaultChallengeScheme = "Smart";
+})
+    .AddPolicyScheme("Smart", "JWT or API token", options =>
+        options.ForwardDefaultSelector = context => CanbanServer.Api.Auth.ApiTokenAuthenticationHandler.Accepts(context.Request)
+            ? CanbanServer.Api.Auth.ApiTokenAuthenticationHandler.SchemeName
+            : JwtBearerDefaults.AuthenticationScheme)
+    .AddScheme<AuthenticationSchemeOptions, CanbanServer.Api.Auth.ApiTokenAuthenticationHandler>(CanbanServer.Api.Auth.ApiTokenAuthenticationHandler.SchemeName, null)
     .AddCookie("External")
     .AddGoogle(options =>
     {
@@ -163,6 +173,7 @@ builder.Services.AddScoped<PlanService>();
 builder.Services.AddScoped<HomeService>();
 builder.Services.AddScoped<IssueFieldService>();
 builder.Services.AddScoped<AuditLogService>();
+builder.Services.AddScoped<ApiTokenService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHttpClient("outbox");

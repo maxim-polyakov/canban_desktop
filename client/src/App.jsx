@@ -38,6 +38,7 @@ import { HomeDirectoryPage, HomeUpdatesPage } from './pages/home/HomePages.jsx';
 import { HomeItemPage } from './pages/home/HomeItemPage.jsx';
 import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
+import PersonalSecurityPage from './pages/settings/PersonalSecurityPage.jsx';
 import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
 import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
 import { CustomFieldsPage } from './pages/settings/IssueConfigPages.jsx';
@@ -116,6 +117,7 @@ export default function App() {
           <Route path="assets/object/:objectId" element={<AssetObjectPage />} />
           <Route path="settings/personal/general" element={<PersonalGeneralPage />} />
           <Route path="settings/personal/notifications" element={<PersonalNotificationsPage />} />
+          <Route path="settings/personal/security" element={<PersonalSecurityPage />} />
           <Route path="settings/issues/issue-types" element={<IssueTypesPage />} />
           <Route path="settings/issues/fields" element={<CustomFieldsPage />} />
           <Route path="notifications-settings" element={<Navigate to="/settings/personal/notifications" replace />} />

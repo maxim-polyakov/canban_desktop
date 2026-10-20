@@ -12,6 +12,7 @@ export const PERSONAL_NAV = {
     { items: [
       ['/settings/personal/general', 'settings', 'Общее'],
       ['/settings/personal/notifications', 'bell', 'Электронные письма и уведомления'],
+      ['/settings/personal/security', 'lock', 'Безопасность'],
     ] },
   ],
 };

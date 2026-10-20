@@ -21,6 +21,15 @@ public sealed record SpaceTemplate(
 public static class SpaceTemplates
 {
     public static readonly string[] AllFeatures = { "summary", "backlog", "board", "list", "timeline", "calendar", "docs", "forms", "development", "reports", "releases", "archive" };
+    /// <summary>Built-in avatar keys; must match SPACE_AVATAR_PRESETS in the client.</summary>
+    public static readonly string[] AvatarPresets =
+    {
+        "rocket", "target", "people", "star", "idea", "chat", "code", "laptop", "box", "megaphone", "chart", "calendar",
+        "globe", "sparkle", "bolt", "cube", "board", "docs", "folder", "network", "phone", "moon", "sun", "server",
+    };
+
+    public static string RandomAvatar() => "preset:" + AvatarPresets[Random.Shared.Next(AvatarPresets.Length)];
+
     public static readonly string[] LegacyFeatures = { "summary", "board", "backlog", "timeline", "docs", "forms", "development", "releases", "reports", "archive" };
     /// <summary>Jira spaces always offer documents and forms; software spaces also get the development view.</summary>
     private static readonly string[] ContentFeatures = { "docs", "forms" };

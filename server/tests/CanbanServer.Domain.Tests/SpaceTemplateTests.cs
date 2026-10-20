@@ -40,4 +40,15 @@ public class SpaceTemplateTests
         Assert.Equal(BoardPermission.View, ProjectAccessService.OutsiderPermission("limited"));
         Assert.Null(ProjectAccessService.OutsiderPermission("private"));
     }
+
+    [Fact]
+    public void NewSpacesGetBuiltInAvatar()
+    {
+        for (var i = 0; i < 50; i++)
+        {
+            var avatar = SpaceTemplates.RandomAvatar();
+            Assert.Matches("^preset:[a-z0-9-]{1,32}$", avatar);
+            Assert.Contains(avatar["preset:".Length..], SpaceTemplates.AvatarPresets);
+        }
+    }
 }

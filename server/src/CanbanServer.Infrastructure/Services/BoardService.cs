@@ -88,6 +88,7 @@ public class BoardService : IBoardService
             ManagementType = management,
             Access = access,
             Features = SpaceTemplates.NormalizeFeatures(template.Features),
+            AvatarUrl = SpaceTemplates.RandomAvatar(),
         };
         _db.Boards.Add(board);
 

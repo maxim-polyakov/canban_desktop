@@ -8,7 +8,7 @@ import SpaceAvatar, { SpaceAvatarPicker } from './SpaceAvatar.jsx';
 import AppSidebar, { CREATE_SPACE_EVENT, SPACES_CHANGED_EVENT } from './AppSidebar.jsx';
 import CreateSpaceDialog from './CreateSpaceDialog.jsx';
 import { isTeamsHubPath, TeamsHubSidebar } from '../pages/teams/TeamsPages.jsx';
-import { HomeHubSidebar, isHomeHubPath } from '../pages/home/HomePages.jsx';
+import { CreateHomeItemDialog, HomeHubSidebar, isHomeHubPath } from '../pages/home/HomePages.jsx';
 
 const APP_SWITCHER = [
   ['/for-you', 'board', 'Канбан', (p) => !isTeamsHubPath(p) && !isHomeHubPath(p) && !p.startsWith('/assets')],
@@ -259,6 +259,8 @@ export default function Layout() {
   const [unread, setUnread] = useState(0);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [createSpace, setCreateSpace] = useState(null);
+  const homeKind = isHomeHubPath(location.pathname) ? (location.pathname.startsWith('/goals') ? 'goals' : 'projects') : null;
+  const closeCreate = useCallback(() => setCreateOpen(false), []);
 
   const loadTeams = useCallback(() => {
     teamsApi.getMyTeamsWithBoards()
@@ -500,7 +502,9 @@ export default function Layout() {
         onCreated={handleSpaceCreated}
         onChangeTemplate={changeTemplate}
       />
-      <CreateIssueDialog open={createOpen} onClose={() => setCreateOpen(false)} boards={allBoards} defaultBoardId={boardId} />
+      <CreateIssueDialog open={createOpen && !homeKind} onClose={() => setCreateOpen(false)} boards={allBoards} defaultBoardId={boardId} />
+      <CreateHomeItemDialog open={createOpen && Boolean(homeKind)} kind={homeKind || 'projects'} onClose={closeCreate}
+        onCreated={(created) => { setCreateOpen(false); navigate(`/${homeKind}/${created.item.id}`); }} />
     </div>
   );
 }

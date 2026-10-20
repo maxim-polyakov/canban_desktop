@@ -52,6 +52,35 @@ public class HomeController : ControllerBase
     [HttpDelete("items/{id:guid}/follow")]
     public async Task<ActionResult> Unfollow(Guid id, CancellationToken ct) { await _home.FollowAsync(id, Me, false, ct); return NoContent(); }
 
+    [HttpPost("items/{id:guid}/followers")]
+    public async Task<ActionResult> AddFollower(Guid id, [FromBody] HomeMemberRequest request, CancellationToken ct)
+    { await _home.SetFollowerAsync(id, Me, request.UserId, true, ct); return NoContent(); }
+
+    [HttpDelete("items/{id:guid}/followers/{userId:guid}")]
+    public async Task<ActionResult> RemoveFollower(Guid id, Guid userId, CancellationToken ct)
+    { await _home.SetFollowerAsync(id, Me, userId, false, ct); return NoContent(); }
+
+    [HttpPost("items/{id:guid}/star")]
+    public async Task<ActionResult> Star(Guid id, CancellationToken ct) { await _home.StarAsync(id, Me, true, ct); return NoContent(); }
+
+    [HttpDelete("items/{id:guid}/star")]
+    public async Task<ActionResult> Unstar(Guid id, CancellationToken ct) { await _home.StarAsync(id, Me, false, ct); return NoContent(); }
+
+    [HttpPost("items/{id:guid}/clone")]
+    public async Task<ActionResult> Clone(Guid id, CancellationToken ct) => Ok(await _home.CloneAsync(id, Me, ct));
+
+    [HttpPost("items/{id:guid}/entries")]
+    public async Task<ActionResult> AddEntry(Guid id, [FromBody] HomeEntryRequest request, CancellationToken ct) =>
+        Ok(await _home.AddEntryAsync(id, Me, request, ct));
+
+    [HttpPut("items/{id:guid}/entries/{entryId:guid}")]
+    public async Task<ActionResult> UpdateEntry(Guid id, Guid entryId, [FromBody] UpdateHomeEntryRequest request, CancellationToken ct) =>
+        Ok(await _home.UpdateEntryAsync(id, Me, entryId, request, ct));
+
+    [HttpDelete("items/{id:guid}/entries/{entryId:guid}")]
+    public async Task<ActionResult> DeleteEntry(Guid id, Guid entryId, CancellationToken ct)
+    { await _home.DeleteEntryAsync(id, Me, entryId, ct); return NoContent(); }
+
     [HttpPost("items/{id:guid}/contributors")]
     public async Task<ActionResult> AddContributor(Guid id, [FromBody] HomeMemberRequest request, CancellationToken ct)
     { await _home.AddContributorAsync(id, Me, request.UserId, ct); return NoContent(); }

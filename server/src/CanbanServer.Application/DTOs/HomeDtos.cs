@@ -28,7 +28,14 @@ public record UpdateHomeItemRequest(
     DateTime? TargetDate = null,
     bool? ClearTargetDate = null,
     List<string>? Tags = null,
-    bool? IsPrivate = null);
+    bool? IsPrivate = null,
+    string? Status = null,
+    string? Why = null,
+    string? Success = null);
+
+public record HomeEntryRequest(string? Type, string? Title = null, string? Body = null, string? Url = null, Guid? TargetId = null);
+
+public record UpdateHomeEntryRequest(string? Title = null, string? Body = null, bool? Resolved = null);
 
 public record HomeArchiveRequest(bool Archived);
 

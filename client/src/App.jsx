@@ -34,7 +34,8 @@ import SpaceDocsPage from './pages/spaces/SpaceDocsPage.jsx';
 import SpaceDevelopmentPage from './pages/spaces/SpaceDevelopmentPage.jsx';
 import { SpaceFormEditPage, SpaceFormSubmitPage, SpaceFormsListPage } from './pages/spaces/SpaceFormsPage.jsx';
 import { KudosPage, PeoplePage, TeamPage, TeamsHomePage, TeamsListPage } from './pages/teams/TeamsPages.jsx';
-import { HomeDirectoryPage, HomeItemPage, HomeUpdatesPage } from './pages/home/HomePages.jsx';
+import { HomeDirectoryPage, HomeUpdatesPage } from './pages/home/HomePages.jsx';
+import { HomeItemPage } from './pages/home/HomeItemPage.jsx';
 import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } from './pages/assets/AssetsPages.jsx';
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
 import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
@@ -101,12 +102,12 @@ export default function App() {
           <Route path="projects/following" element={<HomeDirectoryPage key="projects-following" kind="projects" view="following" />} />
           <Route path="projects/archived" element={<HomeDirectoryPage key="projects-archived" kind="projects" view="archived" />} />
           <Route path="projects/updates" element={<HomeUpdatesPage key="projects-updates" kind="projects" />} />
-          <Route path="projects/:itemId" element={<HomeItemPage key="projects-item" kind="projects" />} />
+          <Route path="projects/:itemId/:tab?" element={<HomeItemPage key="projects-item" kind="projects" />} />
           <Route path="goals" element={<HomeDirectoryPage key="goals" kind="goals" />} />
           <Route path="goals/following" element={<HomeDirectoryPage key="goals-following" kind="goals" view="following" />} />
           <Route path="goals/archived" element={<HomeDirectoryPage key="goals-archived" kind="goals" view="archived" />} />
           <Route path="goals/updates" element={<HomeUpdatesPage key="goals-updates" kind="goals" />} />
-          <Route path="goals/:itemId" element={<HomeItemPage key="goals-item" kind="goals" />} />
+          <Route path="goals/:itemId/:tab?" element={<HomeItemPage key="goals-item" kind="goals" />} />
           <Route path="assets" element={<AssetsHomePage />} />
           <Route path="assets/search" element={<AssetSearchPage />} />
           <Route path="assets/schema/:schemaId" element={<AssetSchemaPage />} />

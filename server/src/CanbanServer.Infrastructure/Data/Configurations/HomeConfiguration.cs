@@ -58,6 +58,21 @@ public class HomeItemWorkConfiguration : IEntityTypeConfiguration<HomeItemWork>
     }
 }
 
+public class HomeEntryConfiguration : IEntityTypeConfiguration<HomeEntry>
+{
+    public void Configure(EntityTypeBuilder<HomeEntry> b)
+    {
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Type).HasMaxLength(16);
+        b.Property(x => x.Title).HasMaxLength(300);
+        b.Property(x => x.Url).HasMaxLength(2000);
+        b.HasIndex(x => new { x.ItemId, x.Type });
+        b.HasOne<HomeItem>().WithMany().HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<HomeItem>().WithMany().HasForeignKey(x => x.TargetItemId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.AuthorUserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class HomeStatusUpdateConfiguration : IEntityTypeConfiguration<HomeStatusUpdate>
 {
     public void Configure(EntityTypeBuilder<HomeStatusUpdate> b)

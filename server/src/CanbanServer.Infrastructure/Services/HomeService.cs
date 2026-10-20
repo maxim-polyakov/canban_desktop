@@ -13,6 +13,11 @@ public class HomeService
     public const string Goal = "goal";
     public const string Contributor = "contributor";
     public const string Follower = "follower";
+    public const string Starred = "starred";
+    public const string CommentEntry = "comment";
+    public const string LinkEntry = "link";
+    public const string RelatedEntry = "related";
+    public static readonly string[] EntryTypes = { "learning", "risk", "decision", CommentEntry, LinkEntry, RelatedEntry };
     public static readonly string[] Statuses = { "pending", "on_track", "at_risk", "off_track", "paused", "done", "cancelled" };
     private const int MaxTags = 10;
     private const int MaxTagLength = 40;
@@ -93,14 +98,34 @@ public class HomeService
         var parent = item.ParentId is Guid pid ? await visible.AsNoTracking().FirstOrDefaultAsync(i => i.Id == pid, ct) : null;
         var updates = await _db.HomeStatusUpdates.AsNoTracking().Where(u => u.ItemId == id)
             .OrderByDescending(u => u.CreatedAt).Take(100).ToListAsync(ct);
-        var users = await UsersAsync(members.Select(m => m.UserId).Concat(updates.Select(u => u.AuthorUserId)), ct);
+        var entries = await _db.HomeEntries.AsNoTracking()
+            .Where(e => e.ItemId == id || (e.Type == RelatedEntry && e.TargetItemId == id))
+            .OrderBy(e => e.CreatedAt).Take(1000).ToListAsync(ct);
+        var relatedIds = entries.Where(e => e.Type == RelatedEntry)
+            .Select(e => e.ItemId == id ? e.TargetItemId!.Value : e.ItemId).Distinct().ToList();
+        var relatedItems = await visible.AsNoTracking().Where(i => relatedIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);
+        var users = await UsersAsync(members.Select(m => m.UserId).Concat(updates.Select(u => u.AuthorUserId))
+            .Concat(entries.Select(e => e.AuthorUserId)).Append(item.OwnerUserId), ct);
         var work = await WorkAsync(id, userId, ct);
+        object EntryList(string type) => entries.Where(e => e.Type == type && e.ItemId == id).Select(e => EntryView(e, users)).ToList();
 
         return new
         {
             item = summary,
             item.Description,
+            item.Why,
+            item.Success,
             item.StartDate,
+            learnings = EntryList("learning"),
+            risks = EntryList("risk"),
+            decisions = EntryList("decision"),
+            comments = EntryList(CommentEntry),
+            links = EntryList(LinkEntry),
+            related = entries.Where(e => e.Type == RelatedEntry)
+                .Select(e => (entry: e, otherId: e.ItemId == id ? e.TargetItemId!.Value : e.ItemId))
+                .Where(x => relatedItems.ContainsKey(x.otherId))
+                .Select(x => new { entryId = x.entry.Id, item = Brief(relatedItems[x.otherId]) }),
+            ownerUser = users.GetValueOrDefault(item.OwnerUserId),
             contributors = members.Where(m => m.Role == Contributor).Select(m => users.GetValueOrDefault(m.UserId)).Where(u => u != null),
             followers = members.Where(m => m.Role == Follower).Select(m => users.GetValueOrDefault(m.UserId)).Where(u => u != null),
             parent = parent == null ? null : Brief(parent),
@@ -122,6 +147,7 @@ public class HomeService
             Id = Guid.NewGuid(),
             Kind = kind,
             Name = RequireName(request.Name),
+            Number = await NextNumberAsync(kind, ct),
             Description = Clean(request.Description),
             Icon = CleanIcon(request.Icon),
             OwnerUserId = await ResolvePersonAsync(request.OwnerUserId ?? userId, viewer, ct),
@@ -165,6 +191,13 @@ public class HomeService
         var item = await RequireEditableAsync(id, viewer, ct);
         if (request.Name != null) item.Name = RequireName(request.Name);
         if (request.Description != null) item.Description = Clean(request.Description);
+        if (request.Why != null) item.Why = Clean(request.Why);
+        if (request.Success != null) item.Success = Clean(request.Success);
+        if (request.Status != null)
+        {
+            if (!Statuses.Contains(request.Status)) throw new ArgumentException("Unknown status");
+            item.Status = request.Status;
+        }
         if (request.Icon != null) item.Icon = CleanIcon(request.Icon);
         if (request.OwnerUserId is Guid owner && owner != item.OwnerUserId)
         {
@@ -343,6 +376,181 @@ public class HomeService
         await _db.SaveChangesAsync(ct);
     }
 
+    /// <summary>Comments can be left by anyone who sees the item; other entries need edit rights.</summary>
+    public async Task<object> AddEntryAsync(Guid id, Guid userId, HomeEntryRequest request, CancellationToken ct)
+    {
+        var type = (request.Type ?? "").Trim().ToLowerInvariant();
+        if (!EntryTypes.Contains(type)) throw new ArgumentException("Unknown entry type");
+        var viewer = await ViewerAsync(userId, ct);
+        var item = type == CommentEntry ? await RequireVisibleAsync(id, viewer, ct) : await RequireEditableAsync(id, viewer, ct);
+        var now = DateTime.UtcNow;
+        var entry = new HomeEntry { Id = Guid.NewGuid(), ItemId = id, Type = type, AuthorUserId = userId, CreatedAt = now, UpdatedAt = now };
+        switch (type)
+        {
+            case CommentEntry:
+                entry.Body = RequireText(request.Body, 10000, "Write a comment");
+                break;
+            case LinkEntry:
+                entry.Url = NormalizeUrl(request.Url);
+                entry.Title = Limit(Clean(request.Title) ?? entry.Url, 300);
+                break;
+            case RelatedEntry:
+                if (request.TargetId is not Guid targetId || targetId == id) throw new ArgumentException("Choose another item");
+                var target = await RequireVisibleAsync(targetId, viewer, ct);
+                if (target.Kind != item.Kind) throw new ArgumentException(item.Kind == Goal ? "Choose a goal" : "Choose a project");
+                if (await _db.HomeEntries.AnyAsync(e => e.Type == RelatedEntry
+                        && ((e.ItemId == id && e.TargetItemId == targetId) || (e.ItemId == targetId && e.TargetItemId == id)), ct))
+                    throw new ArgumentException("Already linked");
+                entry.TargetItemId = targetId;
+                entry.Title = target.Name;
+                break;
+            default:
+                entry.Title = RequireText(request.Title, 300, "Title is required");
+                entry.Body = Limit(Clean(request.Body) ?? "", 10000);
+                break;
+        }
+        if (await _db.HomeEntries.CountAsync(e => e.ItemId == id && e.Type == type, ct) >= 500) throw new InvalidOperationException("Too many entries");
+        _db.HomeEntries.Add(entry);
+        await _db.SaveChangesAsync(ct);
+        return EntryView(entry, await UsersAsync(new[] { userId }, ct));
+    }
+
+    public async Task<object> UpdateEntryAsync(Guid id, Guid userId, Guid entryId, UpdateHomeEntryRequest request, CancellationToken ct)
+    {
+        var (entry, _) = await RequireEntryAsync(id, userId, entryId, ct);
+        if (entry.Type is LinkEntry or RelatedEntry) throw new ArgumentException("Remove the link and add it again");
+        if (request.Title != null && entry.Type != CommentEntry) entry.Title = RequireText(request.Title, 300, "Title is required");
+        if (request.Body != null)
+            entry.Body = entry.Type == CommentEntry ? RequireText(request.Body, 10000, "Write a comment") : Limit(request.Body.Trim(), 10000);
+        if (request.Resolved.HasValue && entry.Type == "risk") entry.Resolved = request.Resolved.Value;
+        entry.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return EntryView(entry, await UsersAsync(new[] { entry.AuthorUserId }, ct));
+    }
+
+    public async Task DeleteEntryAsync(Guid id, Guid userId, Guid entryId, CancellationToken ct)
+    {
+        var (entry, _) = await RequireEntryAsync(id, userId, entryId, ct);
+        _db.HomeEntries.Remove(entry);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Authors may change their own entries; editors may change any entry except someone else's comment text.</summary>
+    private async Task<(HomeEntry Entry, HomeItem Item)> RequireEntryAsync(Guid id, Guid userId, Guid entryId, CancellationToken ct)
+    {
+        var viewer = await ViewerAsync(userId, ct);
+        var item = await RequireVisibleAsync(id, viewer, ct);
+        var entry = await _db.HomeEntries.FirstOrDefaultAsync(e => e.Id == entryId && (e.ItemId == id || (e.Type == RelatedEntry && e.TargetItemId == id)), ct)
+            ?? throw new KeyNotFoundException("Entry not found");
+        if (entry.AuthorUserId == userId) return (entry, item);
+        var isContributor = await _db.HomeItemMembers.AnyAsync(m => m.ItemId == id && m.UserId == userId && m.Role == Contributor, ct);
+        var canEdit = CanEdit(item, viewer, isContributor);
+        if (!canEdit || (entry.Type == CommentEntry && item.OwnerUserId != userId))
+            throw new UnauthorizedAccessException("Only the author can change it");
+        return (entry, item);
+    }
+
+    /// <summary>Anyone can follow; editors can also add or remove other followers.</summary>
+    public async Task SetFollowerAsync(Guid id, Guid userId, Guid followerId, bool follow, CancellationToken ct)
+    {
+        if (followerId == userId) { await FollowAsync(id, userId, follow, ct); return; }
+        var viewer = await ViewerAsync(userId, ct);
+        await RequireEditableAsync(id, viewer, ct);
+        followerId = await ResolvePersonAsync(followerId, viewer, ct);
+        var existing = await _db.HomeItemMembers.FirstOrDefaultAsync(m => m.ItemId == id && m.UserId == followerId && m.Role == Follower, ct);
+        if (follow && existing == null)
+            _db.HomeItemMembers.Add(new HomeItemMember { ItemId = id, UserId = followerId, Role = Follower, CreatedAt = DateTime.UtcNow });
+        else if (!follow && existing != null)
+            _db.HomeItemMembers.Remove(existing);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task StarAsync(Guid id, Guid userId, bool starred, CancellationToken ct)
+    {
+        var viewer = await ViewerAsync(userId, ct);
+        await RequireVisibleAsync(id, viewer, ct);
+        var existing = await _db.HomeItemMembers.FirstOrDefaultAsync(m => m.ItemId == id && m.UserId == userId && m.Role == Starred, ct);
+        if (starred && existing == null)
+            _db.HomeItemMembers.Add(new HomeItemMember { ItemId = id, UserId = userId, Role = Starred, CreatedAt = DateTime.UtcNow });
+        else if (!starred && existing != null)
+            _db.HomeItemMembers.Remove(existing);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Copies the description, dates, tags, team, contributors, goal links and web links; updates and comments stay with the original.</summary>
+    public async Task<object> CloneAsync(Guid id, Guid userId, CancellationToken ct)
+    {
+        var viewer = await ViewerAsync(userId, ct);
+        var source = await RequireVisibleAsync(id, viewer, ct);
+        var now = DateTime.UtcNow;
+        var copy = new HomeItem
+        {
+            Id = Guid.NewGuid(),
+            Kind = source.Kind,
+            Name = Limit(CloneName(source.Name), 200),
+            Number = await NextNumberAsync(source.Kind, ct),
+            Description = source.Description,
+            Why = source.Why,
+            Success = source.Success,
+            Icon = source.Icon,
+            OwnerUserId = userId,
+            CreatedByUserId = userId,
+            TeamId = source.TeamId is Guid t && viewer.TeamIds.Contains(t) ? t : null,
+            ParentId = source.ParentId,
+            StartDate = source.StartDate,
+            TargetDate = source.TargetDate,
+            Tags = source.Tags,
+            IsPrivate = source.IsPrivate,
+            Score = source.Kind == Goal ? 0 : null,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        AddMember(copy, userId, Follower, now);
+        var contributors = await _db.HomeItemMembers.AsNoTracking().Where(m => m.ItemId == id && m.Role == Contributor).Select(m => m.UserId).ToListAsync(ct);
+        foreach (var contributor in contributors.Where(viewer.Colleagues.Contains)) AddMember(copy, contributor, Contributor, now);
+        _db.HomeItems.Add(copy);
+        var links = await _db.HomeItemLinks.AsNoTracking().Where(l => l.GoalId == id || l.ProjectId == id).ToListAsync(ct);
+        foreach (var link in links)
+            _db.HomeItemLinks.Add(new HomeItemLink { GoalId = link.GoalId == id ? copy.Id : link.GoalId, ProjectId = link.ProjectId == id ? copy.Id : link.ProjectId, CreatedAt = now });
+        var webLinks = await _db.HomeEntries.AsNoTracking().Where(e => e.ItemId == id && e.Type == LinkEntry).ToListAsync(ct);
+        foreach (var link in webLinks)
+            _db.HomeEntries.Add(new HomeEntry { Id = Guid.NewGuid(), ItemId = copy.Id, Type = LinkEntry, AuthorUserId = userId, Title = link.Title, Url = link.Url, CreatedAt = now, UpdatedAt = now });
+        await _db.SaveChangesAsync(ct);
+        return await GetAsync(copy.Id, userId, ct);
+    }
+
+    public static string CloneName(string name) => name.StartsWith("Копия ", StringComparison.Ordinal) ? name : $"Копия {name}";
+
+    public static string KeyOf(string kind, int number) => $"{(kind == Goal ? "GOAL" : "PROJ")}-{number}";
+
+    private async Task<int> NextNumberAsync(string kind, CancellationToken ct) =>
+        (await _db.HomeItems.Where(i => i.Kind == kind).MaxAsync(i => (int?)i.Number, ct) ?? 0) + 1;
+
+    public static string NormalizeUrl(string? url)
+    {
+        var value = (url ?? "").Trim();
+        if (value.Length > 0 && !value.Contains("://", StringComparison.Ordinal)) value = "https://" + value;
+        if (value.Length > 2000 || !Uri.TryCreate(value, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) || uri.Host.Length == 0)
+            throw new ArgumentException("Enter a valid http(s) link");
+        return uri.ToString();
+    }
+
+    private static string RequireText(string? value, int max, string emptyMessage)
+    {
+        var text = (value ?? "").Trim();
+        if (text.Length == 0) throw new ArgumentException(emptyMessage);
+        if (text.Length > max) throw new ArgumentException("Text is too long");
+        return text;
+    }
+
+    private static string Limit(string value, int max) => value.Length > max ? value[..max] : value;
+
+    private static object EntryView(HomeEntry e, Dictionary<Guid, object> users) => new
+    {
+        e.Id, e.Type, e.Title, e.Body, e.Url, e.Resolved, e.CreatedAt, e.UpdatedAt,
+        author = users.GetValueOrDefault(e.AuthorUserId),
+    };
+
     /// <summary>Status update feed; <paramref name="scope"/> "following" limits it to items the user owns, contributes to or follows.</summary>
     public async Task<object> FeedAsync(Guid userId, string? kind, string? scope, CancellationToken ct)
     {
@@ -404,7 +612,7 @@ public class HomeService
             var itemWork = workByItem[i.Id].ToList();
             return (object)new
             {
-                i.Id, i.Kind, i.Name, i.Icon, i.Status, i.Score, i.StartDate, i.TargetDate, i.ParentId, i.IsPrivate, i.IsArchived, i.ArchivedAt,
+                i.Id, key = KeyOf(i.Kind, i.Number), i.Kind, i.Name, i.Icon, i.Status, i.Score, i.StartDate, i.TargetDate, i.ParentId, i.IsPrivate, i.IsArchived, i.ArchivedAt,
                 i.LastUpdateAt, i.CreatedAt, i.UpdatedAt,
                 owner = users.GetValueOrDefault(i.OwnerUserId),
                 team = i.TeamId is Guid t && teams.TryGetValue(t, out var teamName) ? new { id = t, name = teamName } : null,
@@ -413,6 +621,7 @@ public class HomeService
                 contributors = itemMembers.Count(m => m.Role == Contributor),
                 contributorIds = itemMembers.Where(m => m.Role == Contributor).Select(m => m.UserId),
                 isFollowing = itemMembers.Any(m => m.UserId == userId && m.Role == Follower),
+                isStarred = itemMembers.Any(m => m.UserId == userId && m.Role == Starred),
                 isContributor,
                 goalIds = i.Kind == Project ? links.Where(l => l.ProjectId == i.Id).Select(l => l.GoalId) : Enumerable.Empty<Guid>(),
                 projectIds = i.Kind == Goal ? links.Where(l => l.GoalId == i.Id).Select(l => l.ProjectId) : Enumerable.Empty<Guid>(),
@@ -448,7 +657,7 @@ public class HomeService
         };
     }
 
-    private static object Brief(HomeItem i) => new { i.Id, i.Kind, i.Name, i.Icon, i.Status, i.Score, i.TargetDate, i.IsArchived };
+    private static object Brief(HomeItem i) => new { i.Id, key = KeyOf(i.Kind, i.Number), i.Kind, i.Name, i.Icon, i.Status, i.Score, i.TargetDate, i.IsArchived };
 
     private static object UpdateView(HomeStatusUpdate u, Dictionary<Guid, object> users) => new
     {

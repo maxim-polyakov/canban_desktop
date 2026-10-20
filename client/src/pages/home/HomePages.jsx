@@ -70,7 +70,7 @@ export function HomeHubSidebar({ pathname, onNavigate }) {
   );
 }
 
-function Avatar({ user, size = 24 }) {
+export function Avatar({ user, size = 24 }) {
   if (!user) return null;
   return user.avatarUrl
     ? <img src={user.avatarUrl} alt="" className="home-avatar" style={{ width: size, height: size }} title={user.displayName} />
@@ -88,7 +88,7 @@ export function HomeStatus({ status, score, kind }) {
   );
 }
 
-function ItemIcon({ item, size = 24 }) {
+export function ItemIcon({ item, size = 24 }) {
   const isGoal = item.kind === 'goal';
   return (
     <span className={`home-item-icon ${isGoal ? 'is-goal' : ''}`} style={{ width: size, height: size, fontSize: size * 0.55 }}>
@@ -97,15 +97,15 @@ function ItemIcon({ item, size = 24 }) {
   );
 }
 
-function formatDate(value, locale) {
+export function formatDate(value, locale) {
   if (!value) return '';
   return new Date(value).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
-const toInputDate = (value) => (value ? String(value).slice(0, 10) : '');
-const fromInputDate = (value) => (value ? `${value}T00:00:00Z` : null);
+export const toInputDate = (value) => (value ? String(value).slice(0, 10) : '');
+export const fromInputDate = (value) => (value ? `${value}T00:00:00Z` : null);
 
-function usePeople() {
+export function usePeople() {
   const { user } = useAuth();
   const [list, setList] = useState([]);
   useEffect(() => {
@@ -117,7 +117,7 @@ function usePeople() {
   }, [list, user]);
 }
 
-function useMyTeams() {
+export function useMyTeams() {
   const [list, setList] = useState([]);
   useEffect(() => {
     teamsApi.getMyTeamsWithBoards()
@@ -138,7 +138,7 @@ function useHomeList(kind, archived = false) {
   return { items, setItems, error, reload: load };
 }
 
-function useOutsideClose(open, onClose) {
+export function useOutsideClose(open, onClose) {
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return undefined;
@@ -208,7 +208,7 @@ function ColumnsMenu({ columns, onChange }) {
   );
 }
 
-function FollowButton({ item, onChanged, compact = false }) {
+export function FollowButton({ item, onChanged, compact = false }) {
   const { t } = useLocalization();
   const [busy, setBusy] = useState(false);
   const toggle = async (e) => {
@@ -242,7 +242,7 @@ function LastUpdate({ item }) {
   return <span className="home-muted">{item.lastUpdateAt ? timeAgo(item.lastUpdateAt, locale) : '—'}</span>;
 }
 
-function Progress({ done, total }) {
+export function Progress({ done, total }) {
   const { t } = useLocalization();
   if (!total) return <span className="home-muted">{t('Нет задач')}</span>;
   const pct = Math.round((done / total) * 100);
@@ -476,9 +476,9 @@ export function HomeDirectoryPage({ kind, view: fixedView }) {
   );
 }
 
-const ICONS = ['', '🚀', '🎯', '📈', '🛠️', '💡', '📦', '🌱', '🔒', '🧭', '⭐', '🏁'];
+export const ICONS = ['', '🚀', '🎯', '📈', '🛠️', '💡', '📦', '🌱', '🔒', '🧭', '⭐', '🏁'];
 
-function TagInput({ value, onChange, id }) {
+export function TagInput({ value, onChange, id }) {
   const { t } = useLocalization();
   const [draft, setDraft] = useState('');
   const add = () => {
@@ -507,120 +507,87 @@ export function CreateHomeItemDialog({ open, ...props }) {
   return open ? <CreateHomeItemForm {...props} /> : null;
 }
 
-function CreateHomeItemForm({ kind, goals, onClose, onCreated }) {
+export const DEFAULT_ICON = { projects: '😎', goals: '🎯' };
+
+/** Atlassian-style quick create: name, emoji and access; everything else is filled in on the item page. */
+function CreateHomeItemForm({ kind, onClose, onCreated }) {
   const cfg = HOME_KINDS[kind];
   const { t } = useLocalization();
-  const { user } = useAuth();
-  const peopleList = usePeople();
-  const myTeams = useMyTeams();
-  const [form, setForm] = useState(() => ({
-    name: '', icon: '', ownerUserId: user?.id || '', teamId: '', targetDate: '', startDate: '', goalId: '', tags: [], isPrivate: false,
-  }));
+  const [name, setName] = useState('');
+  const [icon, setIcon] = useState(DEFAULT_ICON[kind] || '');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e?.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e }));
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [onClose]);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!name.trim()) return;
     setSaving(true);
     setError('');
     try {
-      const created = await homeApi.create(kind, {
-        name: form.name.trim(),
-        icon: form.icon || null,
-        ownerUserId: form.ownerUserId || null,
-        teamId: form.teamId || null,
-        targetDate: fromInputDate(form.targetDate),
-        startDate: kind === 'projects' ? fromInputDate(form.startDate) : null,
-        parentId: kind === 'goals' ? form.goalId || null : null,
-        goalId: kind === 'projects' ? form.goalId || null : null,
-        tags: form.tags,
-        isPrivate: form.isPrivate,
-      });
-      onCreated(created);
+      onCreated(await homeApi.create(kind, { name: name.trim(), icon: icon || null, isPrivate, tags: [] }));
     } catch (err) {
       setError(err.message || t('Не удалось сохранить'));
       setSaving(false);
-      return;
     }
-    setSaving(false);
   };
 
   return (
-    <div className="app-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <form className="app-modal home-modal" role="dialog" aria-modal="true" aria-label={t(cfg.create)} onSubmit={submit}>
-        <div className="app-modal-header">
-          <h2>{t(cfg.create)}</h2>
-          <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={onClose}><NavIcon name="close" /></button>
+    <form ref={ref} className="home-create-pop" role="dialog" aria-modal="true" aria-label={t(cfg.create)} onSubmit={submit}>
+      <div className="home-create-head">
+        <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={onClose}><NavIcon name="chevronLeft" size={14} /></button>
+        <NavIcon name={cfg.icon} size={16} />
+        <strong>{t(kind === 'goals' ? 'Цель' : 'Проект')}</strong>
+      </div>
+      <p className="home-muted">{t('Обязательные поля отмечены звездочкой')} <span className="app-required">*</span></p>
+      <label className="app-field">
+        <span>{t('Имя')} <span className="app-required">*</span></span>
+        <input autoFocus value={name} maxLength={200} onChange={(e) => setName(e.target.value)} />
+      </label>
+      <div className="app-field">
+        <span>{t('Выберите эмодзи')}</span>
+        <div className="home-create-emoji">
+          <span className="home-create-emoji-current" aria-hidden="true">{icon || <NavIcon name={cfg.icon} size={16} />}</span>
+          <button type="button" className="app-icon-btn" aria-label={t('Выберите эмодзи')} aria-expanded={pickerOpen} onClick={() => setPickerOpen((v) => !v)}>☺</button>
         </div>
-        <div className="app-modal-body">
-          <label className="app-field">
-            <span>{t('Название')} <span className="app-required">*</span></span>
-            <input autoFocus value={form.name} maxLength={200} onChange={set('name')} placeholder={t(kind === 'goals' ? 'Например, Увеличить удержание клиентов' : 'Например, Новое мобильное приложение')} />
-          </label>
-          <div className="app-field">
-            <span>{t('Значок')}</span>
-            <div className="home-icon-picker">
-              {ICONS.map((icon) => (
-                <button key={icon || 'none'} type="button" className={`home-icon-option ${form.icon === icon ? 'is-selected' : ''}`} aria-pressed={form.icon === icon} onClick={() => set('icon')(icon)}>
-                  {icon || <NavIcon name={cfg.icon} size={16} />}
-                </button>
-              ))}
-            </div>
+        {pickerOpen && (
+          <div className="home-icon-picker">
+            {ICONS.map((option) => (
+              <button key={option || 'none'} type="button" className={`home-icon-option ${icon === option ? 'is-selected' : ''}`} aria-pressed={icon === option}
+                onClick={() => { setIcon(option); setPickerOpen(false); }}>
+                {option || <NavIcon name={cfg.icon} size={16} />}
+              </button>
+            ))}
           </div>
-          <div className="home-form-grid">
-            <label className="app-field">
-              <span>{t('Владелец')}</span>
-              <select value={form.ownerUserId} onChange={set('ownerUserId')}>
-                {peopleList.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
-              </select>
-            </label>
-            <label className="app-field">
-              <span>{t('Команда')}</span>
-              <select value={form.teamId} onChange={set('teamId')}>
-                <option value="">{t('Без команды')}</option>
-                {myTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-              </select>
-            </label>
-            {kind === 'projects' && (
-              <label className="app-field">
-                <span>{t('Дата начала')}</span>
-                <input type="date" value={form.startDate} onChange={set('startDate')} />
-              </label>
-            )}
-            <label className="app-field">
-              <span>{t('Срок')}</span>
-              <input type="date" value={form.targetDate} min={form.startDate || undefined} onChange={set('targetDate')} />
-            </label>
-          </div>
-          <label className="app-field">
-            <span>{t(kind === 'goals' ? 'Родительская цель' : 'Цель, на которую работает проект')}</span>
-            <select value={form.goalId} onChange={set('goalId')}>
-              <option value="">{t('Не выбрано')}</option>
-              {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
-          </label>
-          <div className="app-field">
-            <label htmlFor="home-create-tags">{t('Теги')}</label>
-            <TagInput id="home-create-tags" value={form.tags} onChange={set('tags')} />
-          </div>
-          <label className="home-toggle">
-            <input type="checkbox" checked={form.isPrivate} onChange={set('isPrivate')} />
-            {t('Частный: видят только владелец, участники, подписчики и команда')}
-          </label>
-          {error && <p className="app-modal-error" role="alert">{error}</p>}
-        </div>
-        <div className="app-modal-footer">
-          <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Отмена')}</button>
-          <button type="submit" className="app-btn app-btn-primary" disabled={saving || !form.name.trim()}>{saving ? '…' : t('Создать')}</button>
-        </div>
-      </form>
-    </div>
+        )}
+      </div>
+      <label className="app-field">
+        <span>{t('Доступ')}</span>
+        <select value={isPrivate ? 'private' : 'open'} onChange={(e) => setIsPrivate(e.target.value === 'private')}>
+          <option value="open">{t('Открытый')}</option>
+          <option value="private">{t('Частный')}</option>
+        </select>
+      </label>
+      {error && <p className="app-modal-error" role="alert">{error}</p>}
+      <div className="home-create-actions">
+        <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Отмена')}</button>
+        <button type="submit" className="app-btn app-btn-primary" disabled={saving || !name.trim()}>{saving ? '…' : t('Создать')}</button>
+      </div>
+    </form>
   );
 }
 
-function StatusUpdateComposer({ item, onPosted, onCancel }) {
+export function StatusUpdateComposer({ item, onPosted, onCancel }) {
   const { t } = useLocalization();
   const isGoal = item.kind === 'goal';
   const [status, setStatus] = useState(item.status === 'pending' ? 'on_track' : item.status);
@@ -681,7 +648,7 @@ function StatusUpdateComposer({ item, onPosted, onCancel }) {
   );
 }
 
-function UpdateCard({ update, kind, item, canDelete, onDelete }) {
+export function UpdateCard({ update, kind, item, canDelete, onDelete }) {
   const { t, locale } = useLocalization();
   const statusChanged = update.previousStatus && update.previousStatus !== update.status;
   const dateChanged = toInputDate(update.previousTargetDate) !== toInputDate(update.targetDate);
@@ -705,335 +672,6 @@ function UpdateCard({ update, kind, item, canDelete, onDelete }) {
       </div>
       <p className="home-update-text">{update.summary}</p>
     </article>
-  );
-}
-
-function PersonPicker({ people, exclude, onPick, label }) {
-  const { t } = useLocalization();
-  const options = people.filter((p) => !exclude.includes(p.id));
-  if (!options.length) return null;
-  return (
-    <select className="home-inline-select" value="" aria-label={t(label)} onChange={(e) => e.target.value && onPick(e.target.value)}>
-      <option value="">{t(label)}</option>
-      {options.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
-    </select>
-  );
-}
-
-export function HomeItemPage({ kind }) {
-  const cfg = HOME_KINDS[kind];
-  const { itemId } = useParams();
-  const { t, locale } = useLocalization();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const peopleList = usePeople();
-  const myTeams = useMyTeams();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
-  const [tab, setTab] = useState('overview');
-  const [composing, setComposing] = useState(() => new URLSearchParams(location.search).get('update') === '1');
-  const [editingAbout, setEditingAbout] = useState(false);
-  const [about, setAbout] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [workKey, setWorkKey] = useState('');
-  const [actionError, setActionError] = useState('');
-  const [relatedOptions, setRelatedOptions] = useState([]);
-  const [goalOptions, setGoalOptions] = useState([]);
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
-  const menuRef = useOutsideClose(menuOpen, closeMenu);
-
-  const load = useCallback(() => {
-    homeApi.get(itemId).then((d) => { setData(d); setError(''); }).catch((e) => setError(e.message));
-  }, [itemId]);
-  useEffect(() => { setData(null); load(); }, [load]);
-  useEffect(() => {
-    homeApi.list(cfg.other).then((list) => setRelatedOptions(Array.isArray(list) ? list : [])).catch(() => setRelatedOptions([]));
-    if (kind === 'goals') homeApi.list('goals').then((list) => setGoalOptions(Array.isArray(list) ? list : [])).catch(() => setGoalOptions([]));
-  }, [cfg.other, kind]);
-
-  const run = async (action) => {
-    setActionError('');
-    try { await action(); load(); } catch (e) { setActionError(e.message || t('Не удалось сохранить')); }
-  };
-  const save = (patch) => run(() => homeApi.update(itemId, patch));
-
-  if (error) {
-    return (
-      <div className="settings-shell"><section className="settings-content">
-        <div className="settings-breadcrumbs"><Link to={`/${kind}`}>{t(cfg.title)}</Link></div>
-        <p className="settings-save-status is-error">{error}</p>
-      </section></div>
-    );
-  }
-  if (!data) return <div className="settings-shell"><section className="settings-content"><p className="settings-empty">{t('Загрузка...')}</p></section></div>;
-
-  const item = data.item;
-  const canEdit = item.canEdit;
-  const isGoal = item.kind === 'goal';
-  const contributorIds = data.contributors.map((c) => c.id);
-  const linkedIds = data.linked.map((l) => l.id);
-  const latest = data.updates[0];
-  const tabs = [
-    ['overview', 'Обзор'],
-    ['updates', `${t('Обновления')} (${data.updates.length})`],
-    isGoal ? ['children', `${t('Подцели')} (${data.children.length})`] : ['work', `${t('Работа')} (${data.work.total})`],
-    ['linked', `${t(isGoal ? 'Проекты' : 'Цели')} (${data.linked.length})`],
-  ];
-
-  const descendantIds = new Set([item.id]);
-  for (let grew = true; grew;) {
-    grew = false;
-    goalOptions.forEach((g) => {
-      if (g.parentId && descendantIds.has(g.parentId) && !descendantIds.has(g.id)) { descendantIds.add(g.id); grew = true; }
-    });
-  }
-  const parentChoices = goalOptions.filter((g) => !descendantIds.has(g.id));
-
-  return (
-    <div className="settings-shell">
-      <section className="settings-content is-wide home-page">
-        <div className="settings-breadcrumbs">
-          <Link to={`/${kind}`}>{t(cfg.title)}</Link>
-          {data.parent && <><span>/</span><Link to={`/goals/${data.parent.id}`}>{data.parent.name}</Link></>}
-          <span>/</span><span>{item.name}</span>
-        </div>
-        <div className="home-item-head">
-          <ItemIcon item={item} size={40} />
-          <div className="home-item-title">
-            <h1 className="settings-title">{item.name}</h1>
-            <div className="home-item-sub">
-              <HomeStatus status={item.status} score={item.score} kind={item.kind} />
-              {item.targetDate && <span className="home-muted">{t('Срок')}: {formatDate(item.targetDate, locale)}</span>}
-              {item.isArchived && <span className="settings-lozenge">{t('В архиве')}</span>}
-              {item.isPrivate && <span className="settings-lozenge">{t('Частный')}</span>}
-            </div>
-          </div>
-          <div className="settings-actions">
-            <FollowButton item={item} onChanged={load} />
-            {canEdit && !item.isArchived && <button type="button" className="app-btn app-btn-primary" onClick={() => { setTab('overview'); setComposing(true); }}>{t('Написать обновление')}</button>}
-            {canEdit && (
-              <div className="home-chip-wrap" ref={menuRef}>
-                <button type="button" className="app-icon-btn" aria-label={t('Ещё')} aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}><NavIcon name="more" /></button>
-                {menuOpen && (
-                  <div className="home-popover is-right" role="menu">
-                    <button type="button" role="menuitem" className="home-popover-item" onClick={() => { setMenuOpen(false); run(() => homeApi.archive(item.id, !item.isArchived)); }}>
-                      {t(item.isArchived ? 'Восстановить из архива' : 'Архивировать')}
-                    </button>
-                    {data.canDelete && (
-                      <button type="button" role="menuitem" className="home-popover-item is-danger" onClick={async () => {
-                        setMenuOpen(false);
-                        if (!window.confirm(t('Удалить без возможности восстановления?'))) return;
-                        try { await homeApi.delete(item.id); navigate(`/${kind}`); } catch (e) { setActionError(e.message); }
-                      }}>{t('Удалить')}</button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        {actionError && <p className="settings-save-status is-error" role="alert">{actionError}</p>}
-        {item.updateDue && canEdit && !composing && (
-          <div className="home-due-banner">
-            <span>{t(item.lastUpdateAt ? 'Пора написать еженедельное обновление статуса.' : 'Напишите первое обновление статуса, чтобы подписчики знали, как идут дела.')}</span>
-            <button type="button" className="app-btn app-btn-subtle" onClick={() => { setTab('overview'); setComposing(true); }}>{t('Написать обновление')}</button>
-          </div>
-        )}
-
-        <div className="home-detail">
-          <div className="home-main">
-            <div className="home-tabs" role="tablist">
-              {tabs.map(([id, label]) => (
-                <button key={id} type="button" role="tab" aria-selected={tab === id} className={`home-tab ${tab === id ? 'is-active' : ''}`} onClick={() => setTab(id)}>{t(label)}</button>
-              ))}
-            </div>
-
-            {tab === 'overview' && (
-              <>
-                {composing && canEdit && <StatusUpdateComposer item={item} onCancel={() => setComposing(false)} onPosted={() => { setComposing(false); load(); }} />}
-                <div className="home-card">
-                  <div className="home-card-head">
-                    <h3>{t(cfg.about)}</h3>
-                    {canEdit && !editingAbout && <button type="button" className="app-btn app-btn-subtle" onClick={() => { setAbout(data.description || ''); setEditingAbout(true); }}>{t('Изменить')}</button>}
-                  </div>
-                  {editingAbout ? (
-                    <>
-                      <textarea className="home-textarea" rows={6} value={about} onChange={(e) => setAbout(e.target.value)} placeholder={t('Зачем это нужно, что входит в работу и как понять, что всё готово')} aria-label={t(cfg.about)} />
-                      <div className="home-composer-actions">
-                        <button type="button" className="app-btn app-btn-subtle" onClick={() => setEditingAbout(false)}>{t('Отмена')}</button>
-                        <button type="button" className="app-btn app-btn-primary" onClick={() => { setEditingAbout(false); save({ description: about }); }}>{t('Сохранить')}</button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="home-update-text">{data.description || <span className="home-muted">{t('Описание пока не добавлено.')}</span>}</p>
-                  )}
-                </div>
-                <h3 className="home-section-title">{t('Последнее обновление')}</h3>
-                {latest
-                  ? <UpdateCard update={latest} kind={item.kind} canDelete={latest.author?.id === user?.id} onDelete={() => run(() => homeApi.deleteUpdate(item.id, latest.id))} />
-                  : <p className="home-muted">{t('Обновлений пока нет.')}</p>}
-              </>
-            )}
-
-            {tab === 'updates' && (
-              <>
-                {canEdit && !composing && <button type="button" className="app-btn app-btn-subtle" onClick={() => setComposing(true)}>{t('Написать обновление')}</button>}
-                {composing && canEdit && <StatusUpdateComposer item={item} onCancel={() => setComposing(false)} onPosted={() => { setComposing(false); load(); }} />}
-                {data.updates.map((u) => (
-                  <UpdateCard key={u.id} update={u} kind={item.kind} canDelete={u.author?.id === user?.id || item.owner?.id === user?.id} onDelete={() => run(() => homeApi.deleteUpdate(item.id, u.id))} />
-                ))}
-                {data.updates.length === 0 && <p className="home-muted">{t('Обновлений пока нет.')}</p>}
-              </>
-            )}
-
-            {tab === 'work' && (
-              <div className="home-card">
-                <div className="home-card-head">
-                  <h3>{t('Связанные задачи')}</h3>
-                  <Progress done={data.work.done} total={data.work.total} />
-                </div>
-                {canEdit && (
-                  <form className="home-inline-form" onSubmit={(e) => { e.preventDefault(); if (workKey.trim()) run(async () => { await homeApi.addWork(item.id, { issueKey: workKey.trim() }); setWorkKey(''); }); }}>
-                    <input value={workKey} onChange={(e) => setWorkKey(e.target.value)} placeholder={t('Ключ задачи или эпика, например ABC-12')} aria-label={t('Ключ задачи')} />
-                    <button type="submit" className="app-btn app-btn-subtle" disabled={!workKey.trim()}>{t('Добавить')}</button>
-                  </form>
-                )}
-                <ul className="home-list">
-                  {data.work.items.map((w) => (
-                    <li key={w.id}>
-                      <IssueTypeIcon issueType={w.issueType} size={14} />
-                      <Link to={`/board/${w.boardId}/issue/${w.id}`} className="home-key">{w.issueKey}</Link>
-                      <span className="home-list-title">{w.title}</span>
-                      <span className={`tpl-status tpl-status-${w.statusCategory}`}>{w.status}</span>
-                      {canEdit && <button type="button" className="app-icon-btn" aria-label={t('Убрать')} onClick={() => run(() => homeApi.removeWork(item.id, w.id))}><NavIcon name="close" size={12} /></button>}
-                    </li>
-                  ))}
-                </ul>
-                {data.work.items.length < data.work.total && <p className="home-muted">{t('Часть задач скрыта: у вас нет доступа к их разделам.')}</p>}
-                {data.work.total === 0 && <p className="home-muted">{t('Добавьте задачи или эпики, чтобы видеть прогресс работы.')}</p>}
-              </div>
-            )}
-
-            {tab === 'children' && (
-              <div className="home-card">
-                <div className="home-card-head"><h3>{t('Подцели')}</h3></div>
-                <ul className="home-list">
-                  {data.children.map((c) => (
-                    <li key={c.id}>
-                      <Link to={`/goals/${c.id}`} className="home-name is-inline"><ItemIcon item={c} size={20} />{c.name}</Link>
-                      <HomeStatus status={c.status} score={c.score} kind="goal" />
-                    </li>
-                  ))}
-                </ul>
-                {data.children.length === 0 && <p className="home-muted">{t('Подцелей нет. Укажите эту цель как родительскую при создании новой цели.')}</p>}
-              </div>
-            )}
-
-            {tab === 'linked' && (
-              <div className="home-card">
-                <div className="home-card-head">
-                  <h3>{t(isGoal ? 'Проекты, которые работают на цель' : 'Цели, на которые работает проект')}</h3>
-                  {canEdit && (
-                    <select className="home-inline-select" value="" aria-label={t(isGoal ? 'Связать проект' : 'Связать с целью')} onChange={(e) => e.target.value && run(() => homeApi.link(item.id, e.target.value))}>
-                      <option value="">{t(isGoal ? 'Связать проект' : 'Связать с целью')}</option>
-                      {relatedOptions.filter((o) => !linkedIds.includes(o.id)).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                    </select>
-                  )}
-                </div>
-                <ul className="home-list">
-                  {data.linked.map((l) => (
-                    <li key={l.id}>
-                      <Link to={`/${l.kind === 'goal' ? 'goals' : 'projects'}/${l.id}`} className="home-name is-inline"><ItemIcon item={l} size={20} />{l.name}</Link>
-                      <HomeStatus status={l.status} score={l.score} kind={l.kind} />
-                      {canEdit && <button type="button" className="app-icon-btn" aria-label={t('Убрать связь')} onClick={() => run(() => homeApi.unlink(item.id, l.id))}><NavIcon name="close" size={12} /></button>}
-                    </li>
-                  ))}
-                </ul>
-                {data.linked.length === 0 && <p className="home-muted">{t('Связей пока нет.')}</p>}
-              </div>
-            )}
-          </div>
-
-          <aside className="home-side">
-            <div className="home-side-field">
-              <span className="home-side-label">{t('Владелец')}</span>
-              {canEdit ? (
-                <select className="home-inline-select" value={item.owner?.id || ''} onChange={(e) => save({ ownerUserId: e.target.value })} aria-label={t('Владелец')}>
-                  {!peopleList.some((p) => p.id === item.owner?.id) && item.owner && <option value={item.owner.id}>{item.owner.displayName}</option>}
-                  {peopleList.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
-                </select>
-              ) : <span className="home-person"><Avatar user={item.owner} />{item.owner?.displayName}</span>}
-            </div>
-            <div className="home-side-field">
-              <span className="home-side-label">{t('Команда')}</span>
-              {canEdit ? (
-                <select className="home-inline-select" value={item.team?.id || ''} onChange={(e) => save(e.target.value ? { teamId: e.target.value } : { clearTeam: true })} aria-label={t('Команда')}>
-                  <option value="">{t('Без команды')}</option>
-                  {item.team && !myTeams.some((tm) => tm.id === item.team.id) && <option value={item.team.id}>{item.team.name}</option>}
-                  {myTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-                </select>
-              ) : <span>{item.team?.name || '—'}</span>}
-            </div>
-            {!isGoal && (
-              <div className="home-side-field">
-                <span className="home-side-label">{t('Дата начала')}</span>
-                {canEdit
-                  ? <input type="date" className="home-inline-select" value={toInputDate(item.startDate ?? data.startDate)} aria-label={t('Дата начала')} onChange={(e) => save(e.target.value ? { startDate: fromInputDate(e.target.value) } : { clearStartDate: true })} />
-                  : <span>{formatDate(data.startDate, locale) || '—'}</span>}
-              </div>
-            )}
-            <div className="home-side-field">
-              <span className="home-side-label">{t('Срок')}</span>
-              {canEdit
-                ? <input type="date" className="home-inline-select" value={toInputDate(item.targetDate)} aria-label={t('Срок')} onChange={(e) => save(e.target.value ? { targetDate: fromInputDate(e.target.value) } : { clearTargetDate: true })} />
-                : <span>{formatDate(item.targetDate, locale) || '—'}</span>}
-            </div>
-            {isGoal && (
-              <div className="home-side-field">
-                <span className="home-side-label">{t('Родительская цель')}</span>
-                {canEdit ? (
-                  <select className="home-inline-select" value={item.parentId || ''} aria-label={t('Родительская цель')} onChange={(e) => save(e.target.value ? { parentId: e.target.value } : { clearParent: true })}>
-                    <option value="">{t('Нет')}</option>
-                    {data.parent && !parentChoices.some((g) => g.id === data.parent.id) && <option value={data.parent.id}>{data.parent.name}</option>}
-                    {parentChoices.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
-                ) : data.parent ? <Link to={`/goals/${data.parent.id}`}>{data.parent.name}</Link> : <span>—</span>}
-              </div>
-            )}
-            <div className="home-side-field">
-              <span className="home-side-label">{t('Участники')}</span>
-              <ul className="home-people">
-                {data.contributors.map((c) => (
-                  <li key={c.id}>
-                    <span className="home-person"><Avatar user={c} />{c.displayName}</span>
-                    {(canEdit || c.id === user?.id) && <button type="button" className="app-icon-btn" aria-label={`${t('Убрать')} ${c.displayName}`} onClick={() => run(() => homeApi.removeContributor(item.id, c.id))}><NavIcon name="close" size={12} /></button>}
-                  </li>
-                ))}
-              </ul>
-              {canEdit && <PersonPicker people={peopleList} exclude={contributorIds} label="Добавить участника" onPick={(id) => run(() => homeApi.addContributor(item.id, id))} />}
-            </div>
-            <div className="home-side-field">
-              <span className="home-side-label">{t('Подписчики')} · {data.followers.length}</span>
-              <span className="home-avatars">{data.followers.slice(0, 12).map((f) => <Avatar key={f.id} user={f} />)}</span>
-            </div>
-            <div className="home-side-field">
-              <label className="home-side-label" htmlFor="home-item-tags">{t('Теги')}</label>
-              {canEdit
-                ? <TagInput id="home-item-tags" value={item.tags} onChange={(tags) => save({ tags })} />
-                : <span className="home-tags">{item.tags.map((tag) => <span key={tag} className="home-tag">{tag}</span>)}</span>}
-            </div>
-            {canEdit && (
-              <label className="home-toggle">
-                <input type="checkbox" checked={item.isPrivate} onChange={(e) => save({ isPrivate: e.target.checked })} />
-                {t('Частный')}
-              </label>
-            )}
-            <p className="home-muted home-side-meta">{t('Создано')} {timeAgo(item.createdAt, locale)}</p>
-          </aside>
-        </div>
-      </section>
-    </div>
   );
 }
 

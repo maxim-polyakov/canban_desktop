@@ -7,7 +7,14 @@ public class HomeItem
     /// <summary>"project" or "goal".</summary>
     public string Kind { get; set; } = "project";
     public string Name { get; set; } = "";
+    /// <summary>Sequential number per kind, shown as the item key (e.g. PROJ-12).</summary>
+    public int Number { get; set; }
+    /// <summary>"What are we doing".</summary>
     public string? Description { get; set; }
+    /// <summary>"Why are we doing it".</summary>
+    public string? Why { get; set; }
+    /// <summary>"How will we measure success".</summary>
+    public string? Success { get; set; }
     public string Icon { get; set; } = "";
     public Guid OwnerUserId { get; set; }
     public Guid CreatedByUserId { get; set; }
@@ -57,6 +64,24 @@ public class HomeItemWork
     public Guid QuestId { get; set; }
     public DateTime CreatedAt { get; set; }
     public Quest Quest { get; set; } = null!;
+}
+
+/// <summary>Learning, risk, decision, comment, web link or related item attached to a project or goal.</summary>
+public class HomeEntry
+{
+    public Guid Id { get; set; }
+    public Guid ItemId { get; set; }
+    /// <summary>learning, risk, decision, comment, link, related.</summary>
+    public string Type { get; set; } = "comment";
+    public Guid AuthorUserId { get; set; }
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+    public string? Url { get; set; }
+    public Guid? TargetItemId { get; set; }
+    /// <summary>Risks only: the risk no longer applies.</summary>
+    public bool Resolved { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
 public class HomeStatusUpdate

@@ -1,8 +1,8 @@
 export const HOME_STATUSES = [
   ['on_track', 'По графику', 'is-success'],
-  ['at_risk', 'Под угрозой', 'is-warning'],
-  ['off_track', 'Отстает', 'is-danger'],
-  ['pending', 'Ожидание', ''],
+  ['at_risk', 'В зоне риска', 'is-warning'],
+  ['off_track', 'С отставанием от графика', 'is-danger'],
+  ['pending', 'В ожидании', ''],
   ['paused', 'Приостановлено', 'is-paused'],
   ['done', 'Выполнено', 'is-info'],
   ['cancelled', 'Отменено', 'is-muted'],

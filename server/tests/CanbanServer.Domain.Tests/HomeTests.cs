@@ -21,4 +21,23 @@ public class HomeTests
         Assert.Equal("goal", HomeService.NormalizeKind("goal"));
         Assert.Throws<KeyNotFoundException>(() => HomeService.NormalizeKind("teams"));
     }
+
+    [Fact]
+    public void LinksMustBeHttp()
+    {
+        Assert.Equal("https://example.com/docs", HomeService.NormalizeUrl(" example.com/docs "));
+        Assert.Equal("http://intra.local/", HomeService.NormalizeUrl("http://intra.local"));
+        Assert.Throws<ArgumentException>(() => HomeService.NormalizeUrl("javascript:alert(1)"));
+        Assert.Throws<ArgumentException>(() => HomeService.NormalizeUrl("ftp://example.com"));
+        Assert.Throws<ArgumentException>(() => HomeService.NormalizeUrl(""));
+    }
+
+    [Fact]
+    public void KeysAndCloneNames()
+    {
+        Assert.Equal("PROJ-12", HomeService.KeyOf("project", 12));
+        Assert.Equal("GOAL-3", HomeService.KeyOf("goal", 3));
+        Assert.Equal("Копия Запуск", HomeService.CloneName("Запуск"));
+        Assert.Equal("Копия Запуск", HomeService.CloneName("Копия Запуск"));
+    }
 }

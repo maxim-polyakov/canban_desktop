@@ -235,8 +235,8 @@ function ShareDialog({ data, kind, people, onClose, run, link }) {
                 ))}
               </ul>
               {data.followers.length <= 1 && (
-                <div className="home-empty">
-                  <div className="home-empty-art" aria-hidden="true">👥</div>
+                <div className="home-blank">
+                  <div className="home-blank-art" aria-hidden="true">👥</div>
                   <h3>{t('Добавьте подписчиков, чтобы делиться обновлениями')}</h3>
                   <p>{t('Подписчики видят обновления статуса в ленте «Обновления статуса» по всем элементам, которые они отслеживают.')}</p>
                   {canEdit && <button type="button" className="app-btn app-btn-primary" onClick={() => followersSearch.current?.focus()}>{t('Добавить подписчиков')}</button>}
@@ -246,11 +246,11 @@ function ShareDialog({ data, kind, people, onClose, run, link }) {
           )}
 
           {tab === 'channels' && (
-            <div className="home-empty">
-              <div className="home-empty-art" aria-hidden="true">📣</div>
+            <div className="home-blank">
+              <div className="home-blank-art" aria-hidden="true">📣</div>
               <h3>{t('Добавьте канал, чтобы расширить свою аудиторию')}</h3>
               <p>{t('Обновления передаются во все подключенные каналы сразу после публикации.')}</p>
-              <div className="home-empty-actions">
+              <div className="home-blank-actions">
                 <button type="button" className="app-btn app-btn-subtle" disabled title={t('Скоро')}>{t('Подключить Slack')}</button>
                 <button type="button" className="app-btn app-btn-subtle" disabled title={t('Скоро')}>{t('Подключить Teams')}</button>
               </div>
@@ -377,8 +377,8 @@ function EntryTab({ tabId, itemId, entries, canEdit, run }) {
 
   if (!entries.length && !adding) {
     return (
-      <div className="home-card home-empty is-wide">
-        <div className="home-empty-art" aria-hidden="true">{config.art}</div>
+      <div className="home-card home-blank is-wide">
+        <div className="home-blank-art" aria-hidden="true">{config.art}</div>
         <div>
           <h3>{t(config.title)}</h3>
           <p>{t(config.text)}</p>
@@ -668,8 +668,8 @@ export function HomeItemPage({ kind }) {
                   <UpdateCard key={u.id} update={u} kind={item.kind} canDelete={u.author?.id === user?.id || item.owner?.id === user?.id} onDelete={() => run(() => homeApi.deleteUpdate(item.id, u.id))} />
                 ))}
                 {data.updates.length === 0 && (
-                  <div className="home-card home-empty is-wide">
-                    <div className="home-empty-art" aria-hidden="true">🗓️</div>
+                  <div className="home-card home-blank is-wide">
+                    <div className="home-blank-art" aria-hidden="true">🗓️</div>
                     <div>
                       <h3>{t('Обновлений пока нет')}</h3>
                       <p>{t('Раз в неделю рассказывайте, что сделано, что дальше и есть ли риски. Подписчики увидят обновление в ленте.')}</p>

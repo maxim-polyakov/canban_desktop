@@ -132,7 +132,7 @@
 .home-create-head { display: flex; align-items: center; gap: 8px; font-size: 15px; }
 .home-create-emoji { display: flex; align-items: center; gap: 6px; }
 .home-create-emoji-current { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; background: var(--chip-bg); font-size: 18px; }
-.home-create-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.home-quick-create-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* Item page */
 .home-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
@@ -176,12 +176,12 @@
 .home-comment-placeholder:hover { background: var(--surface-hover); }
 .home-update-prompt { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; }
 
-.home-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 16px; text-align: center; }
-.home-empty.is-wide { flex-direction: row; justify-content: center; gap: 28px; text-align: left; padding: 32px 24px; }
-.home-empty h3 { margin: 0 0 6px; font-size: 15px; }
-.home-empty p { margin: 0 0 12px; max-width: 420px; color: var(--text-subtle); font-size: 13px; line-height: 1.5; }
-.home-empty-art { font-size: 56px; line-height: 1; }
-.home-empty-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+.home-blank { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 16px; text-align: center; }
+.home-blank.is-wide { flex-direction: row; justify-content: center; gap: 28px; text-align: left; padding: 32px 24px; }
+.home-blank h3 { margin: 0 0 6px; font-size: 15px; }
+.home-blank p { margin: 0 0 12px; max-width: 420px; color: var(--text-subtle); font-size: 13px; line-height: 1.5; }
+.home-blank-art { font-size: 56px; line-height: 1; }
+.home-blank-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
 
 .home-entry-form .app-field { margin: 0 0 8px; }
 .home-entry.is-resolved { opacity: .75; }
@@ -220,7 +220,7 @@
 
 @media (max-width: 900px) {
   .home-detail { grid-template-columns: minmax(0, 1fr); }
-  .home-empty.is-wide { flex-direction: column; text-align: center; }
+  .home-blank.is-wide { flex-direction: column; text-align: center; }
   .home-item-actions { padding-top: 0; }
   .home-form-grid { grid-template-columns: minmax(0, 1fr); }
   .home-banner { flex-direction: column; align-items: flex-start; }

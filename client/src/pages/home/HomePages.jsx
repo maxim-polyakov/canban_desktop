@@ -579,7 +579,7 @@ function CreateHomeItemForm({ kind, onClose, onCreated }) {
         </select>
       </label>
       {error && <p className="app-modal-error" role="alert">{error}</p>}
-      <div className="home-create-actions">
+      <div className="home-quick-create-actions">
         <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Отмена')}</button>
         <button type="submit" className="app-btn app-btn-primary" disabled={saving || !name.trim()}>{saving ? '…' : t('Создать')}</button>
       </div>

@@ -64,6 +64,7 @@ function normalizeTeams(list) {
         template: b.template ?? b.Template ?? 'kanban',
         access: b.access ?? b.Access ?? 'private',
         features: b.features ?? b.Features ?? '',
+        avatarUrl: b.avatarUrl ?? b.AvatarUrl ?? null,
       })),
     };
   });
@@ -298,7 +299,7 @@ export default function Layout() {
     if (!boardId || memberBoard || !teamsLoaded) return undefined;
     let alive = true;
     boardsApi.getById(boardId)
-      .then((b) => { if (alive && b) setOutsideBoard({ id: b.id, name: b.name, keyPrefix: b.keyPrefix, template: b.template, access: b.access, features: b.features }); })
+      .then((b) => { if (alive && b) setOutsideBoard({ id: b.id, name: b.name, keyPrefix: b.keyPrefix, template: b.template, access: b.access, features: b.features, avatarUrl: b.avatarUrl }); })
       .catch(() => {});
     return () => { alive = false; };
   }, [boardId, memberBoard, teamsLoaded]);

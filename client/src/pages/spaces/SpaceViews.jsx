@@ -90,7 +90,7 @@ function Donut({ parts, total }) {
   return (
     <div className="sv-donut">
       <svg viewBox="0 0 140 140" width="140" height="140" role="img" aria-label={t('Обзор статусов')}>
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="var(--chip-bg)" strokeWidth="18" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="var(--border-strong, #DCDFE4)" strokeWidth="18" />
         {total > 0 && parts.map((part) => {
           const length = (part.count / total) * circumference;
           const circle = (

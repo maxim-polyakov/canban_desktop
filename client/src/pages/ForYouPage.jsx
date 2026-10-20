@@ -22,7 +22,7 @@ function normalizeTeams(list) {
     const team = item.team ?? item.Team ?? {};
     return {
       team: { id: team.id ?? team.Id, name: team.name ?? team.Name ?? '' },
-      boards: (item.boards ?? item.Boards ?? []).map((b) => ({ id: b.id ?? b.Id, name: b.name ?? b.Name ?? '', description: b.description ?? b.Description ?? '' })),
+      boards: (item.boards ?? item.Boards ?? []).map((b) => ({ id: b.id ?? b.Id, name: b.name ?? b.Name ?? '', description: b.description ?? b.Description ?? '', avatarUrl: b.avatarUrl ?? b.AvatarUrl ?? null })),
     };
   });
 }

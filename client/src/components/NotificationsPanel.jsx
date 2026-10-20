@@ -118,7 +118,7 @@ export default function NotificationsPanel({ open, onClose, onUnreadChange }) {
             {group.items.map((item) => (
               <button key={item.id} type="button" className={`app-notification ${item.read ? '' : 'is-unread'}`} onClick={() => openItem(item)}>
                 <span className="app-notification-icon">
-                  {item.issueType != null ? <IssueTypeIcon issueType={item.issueType} size={20} /> : <NavIcon name="bell" size={18} />}
+                  {item.issueType != null ? <IssueTypeIcon issueType={item.issueType} typeId={item.issueTypeId} size={20} /> : <NavIcon name="bell" size={18} />}
                 </span>
                 <span className="app-notification-main">
                   <span className="app-notification-title">{t(item.title)}</span>

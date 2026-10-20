@@ -21,6 +21,7 @@ public class QuestService : IQuestService
     private readonly IJiraPlatformService _jira;
     private readonly IProjectAccessService _access;
     private readonly CacheService _cache;
+    private readonly IssueFieldService _fields;
 
     public QuestService(
         CanbanDbContext db,
@@ -34,7 +35,8 @@ public class QuestService : IQuestService
         IQuestNotificationService notificationService,
         IJiraPlatformService jira,
         IProjectAccessService access,
-        CacheService cache)
+        CacheService cache,
+        IssueFieldService fields)
     {
         _db = db;
         _activityFeed = activityFeed;
@@ -48,6 +50,7 @@ public class QuestService : IQuestService
         _jira = jira;
         _access = access;
         _cache = cache;
+        _fields = fields;
     }
 
     public async Task<QuestDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -93,7 +96,9 @@ public class QuestService : IQuestService
         }
         var maxOrder = await _db.Quests.Where(q => q.ColumnId == request.ColumnId).MaxAsync(q => (int?)q.Order, ct) ?? -1;
         var issueType = request.IssueType ?? (request.IsEpic ? IssueType.Epic : IssueType.Task);
-        var isEpic = request.IsEpic || issueType == IssueType.Epic;
+        var prepared = await _fields.PrepareNewIssueAsync(col.Board.TeamId, col.BoardId, request.IssueTypeId, issueType, request.CustomFields, ct);
+        issueType = prepared.BaseType;
+        var isEpic = (request.IsEpic && request.IssueTypeId == null) || issueType == IssueType.Epic;
         var issueNumber = col.Board.NextIssueNumber++;
         if (string.IsNullOrWhiteSpace(col.Board.KeyPrefix))
             col.Board.KeyPrefix = string.IsNullOrWhiteSpace(col.Board.Team?.Key) ? "KAN" : col.Board.Team.Key;
@@ -122,6 +127,8 @@ public class QuestService : IQuestService
             IssueKey = issueKey,
             IssueNumber = issueNumber,
             IssueType = issueType,
+            IssueTypeId = prepared.TypeId,
+            CustomFieldsJson = prepared.Json,
             Priority = request.Priority ?? IssuePriority.Medium,
             Labels = NormalizeLabels(request.Labels),
             SprintId = request.SprintId,
@@ -168,6 +175,13 @@ public class QuestService : IQuestService
             .Include(x => x.QuestReleases)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (q == null) return null;
+        if (request.IssueTypeIdSet && request.IssueTypeId.HasValue)
+        {
+            var teamId = await _db.Boards.Where(b => b.Id == q.BoardId).Select(b => b.TeamId).FirstAsync(ct);
+            var definition = await _fields.RequireTypeAsync(teamId, request.IssueTypeId.Value, ct);
+            request = request with { IssueType = definition.BaseType, IsEpic = definition.BaseType == IssueType.Epic };
+        }
+        var typeIdChanged = (request.IssueTypeIdSet || request.IssueType != null) && request.IssueTypeId != q.IssueTypeId;
         var requestedAssigneeIds = GetUpdatedAssigneeIds(request);
         if (requestedAssigneeIds != null)
             await ValidateAssigneesAsync(
@@ -183,7 +197,7 @@ public class QuestService : IQuestService
         if (assigneesChanged) changes.Add("изменены исполнители");
         if (request.DueDate != null && request.DueDate != q.DueDate) changes.Add("изменён срок");
         if (request.XpReward != null && request.XpReward != q.XpReward) changes.Add("изменена награда XP");
-        if (request.IssueType != null && request.IssueType != q.IssueType) changes.Add("изменён тип задачи");
+        if ((request.IssueType != null && request.IssueType != q.IssueType) || typeIdChanged) changes.Add("изменён тип задачи");
         if (request.Priority != null && request.Priority != q.Priority) changes.Add("изменён приоритет");
         if (request.Labels != null && NormalizeLabels(request.Labels) != (q.Labels ?? string.Empty)) changes.Add("изменены метки");
         if (request.StoryPointsSet && NormalizeStoryPoints(request.StoryPoints) != q.StoryPoints) changes.Add("изменена оценка");
@@ -214,6 +228,11 @@ public class QuestService : IQuestService
         {
             q.IsEpic = request.IsEpic.Value;
             if (request.IsEpic.Value) q.IssueType = IssueType.Epic;
+        }
+        if (typeIdChanged)
+        {
+            auditChanges.Add(("issuetype", q.IssueTypeId?.ToString(), request.IssueTypeId?.ToString()));
+            q.IssueTypeId = request.IssueTypeId;
         }
         if (request.Priority != null) q.Priority = request.Priority.Value;
         if (request.Labels != null) q.Labels = NormalizeLabels(request.Labels);

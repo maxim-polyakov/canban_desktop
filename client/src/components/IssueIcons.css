@@ -7,6 +7,12 @@
   vertical-align: middle;
 }
 
+.issue-type-icon-custom {
+  border-radius: 3px;
+  line-height: 1;
+  overflow: hidden;
+}
+
 .issue-type-icon svg,
 .priority-icon svg {
   display: block;

@@ -128,7 +128,7 @@ export default function PersonalNotificationsPage() {
               <tbody>
                 {watching.map((item) => (
                   <tr key={item.questId}>
-                    <td><IssueTypeIcon issueType={item.issueType} size={16} /></td>
+                    <td><IssueTypeIcon issueType={item.issueType} typeId={item.issueTypeId} size={16} /></td>
                     <td className="is-narrow"><Link to={`/board/${item.boardId}/issue/${item.questId}`}>{item.issueKey}</Link></td>
                     <td><Link to={`/board/${item.boardId}/issue/${item.questId}`}>{item.title}</Link></td>
                     <td className="hide-mobile">{item.boardName}</td>

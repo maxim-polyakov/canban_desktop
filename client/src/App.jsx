@@ -40,6 +40,7 @@ import { AssetObjectPage, AssetSchemaPage, AssetSearchPage, AssetsHomePage } fro
 import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
 import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
 import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
+import { CustomFieldsPage } from './pages/settings/IssueConfigPages.jsx';
 import SpaceSettingsPage from './pages/settings/SpaceSettingsPage.jsx';
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
 import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
@@ -115,6 +116,7 @@ export default function App() {
           <Route path="settings/personal/general" element={<PersonalGeneralPage />} />
           <Route path="settings/personal/notifications" element={<PersonalNotificationsPage />} />
           <Route path="settings/issues/issue-types" element={<IssueTypesPage />} />
+          <Route path="settings/issues/fields" element={<CustomFieldsPage />} />
           <Route path="notifications-settings" element={<Navigate to="/settings/personal/notifications" replace />} />
           <Route path="admin" element={<AdminOverviewPage />} />
           <Route path="admin/system" element={<AdminSystemPage />} />

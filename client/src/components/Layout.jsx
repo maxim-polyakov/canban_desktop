@@ -25,6 +25,7 @@ import { IssueTypeIcon } from './IssueIcons.jsx';
 import { isBoardStarred, rememberBoard, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { ALL_TAB_KEYS, BOARD_CHANGED_EVENT, firstSpacePath, spaceTabs, startOnboarding } from '../utils/spaceFeatures.js';
 import OnboardingButton from './SpaceOnboarding.jsx';
+import { loadIssueCatalog } from '../utils/issueConfig.js';
 import './Layout.css';
 
 const BOARD_ROUTE_RE = /^\/board\/([^/]+)(?:\/([^/]+))?/;
@@ -140,7 +141,7 @@ function GlobalSearch({ inputRef, boardsById, onDone }) {
           {issues.length > 0 && <div className="app-flyout-section">{t('Недавно просмотренные задачи')}</div>}
           {issues.map((issue) => (
             <button key={issue.id} type="button" className="app-search-item" onClick={() => go(`/board/${issue.boardId}/issue/${issue.id}`)}>
-              <IssueTypeIcon issueType={issue.issueType} size={16} />
+              <IssueTypeIcon issueType={issue.issueType} typeId={issue.issueTypeId} size={16} />
               <span className="app-nav-text">
                 <span className="app-nav-label">{issue.title}</span>
                 <span className="app-nav-sub">{[issue.issueKey, boardsById.get(issue.boardId)?.name].filter(Boolean).join(' • ')}</span>
@@ -272,6 +273,7 @@ export default function Layout() {
   useEffect(() => {
     loadTeams();
     characterApi.getMe().then(setCharacter).catch(() => {});
+    loadIssueCatalog().catch(() => {});
   }, [loadTeams]);
 
   useEffect(() => {

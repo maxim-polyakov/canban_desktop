@@ -271,3 +271,15 @@ export const dashboards = {
 export const permissions = {
   getByBoard: (boardId) => apiJson(`/api/permissions/board/${boardId}`),
 };
+
+export const issueConfig = {
+  catalog: () => apiJson('/api/issue-config'),
+  forBoard: (boardId) => apiJson(`/api/boards/${boardId}/issue-config`),
+  createType: (data) => apiJson('/api/issue-config/types', json('POST', data)),
+  updateType: (id, data) => apiJson(`/api/issue-config/types/${id}`, json('PUT', data)),
+  deleteType: (id) => remove(`/api/issue-config/types/${id}`),
+  createField: (data) => apiJson('/api/issue-config/fields', json('POST', data)),
+  updateField: (id, data) => apiJson(`/api/issue-config/fields/${id}`, json('PUT', data)),
+  deleteField: (id) => remove(`/api/issue-config/fields/${id}`),
+  setValue: (questId, fieldId, value) => apiJson(`/api/quests/${questId}/fields/${fieldId}`, json('PUT', { value })),
+};

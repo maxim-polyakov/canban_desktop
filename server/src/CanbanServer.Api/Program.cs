@@ -157,6 +157,7 @@ builder.Services.AddScoped<IJqlQueryService, JqlService>();
 builder.Services.AddScoped<AssetService>();
 builder.Services.AddScoped<PlanService>();
 builder.Services.AddScoped<HomeService>();
+builder.Services.AddScoped<IssueFieldService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHttpClient("outbox");

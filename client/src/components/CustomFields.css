@@ -1,0 +1,19 @@
+.custom-fields-panel { display: flex; flex-direction: column; gap: 8px; }
+.custom-field-row { display: grid; grid-template-columns: minmax(110px, 38%) 1fr; gap: 8px; align-items: start; }
+.custom-field-row > label { padding-top: 6px; font-size: 12px; font-weight: 600; color: var(--text-subtle); overflow-wrap: anywhere; }
+.custom-field-control { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.custom-field-control input:not([type="checkbox"]),
+.custom-field-control select,
+.custom-field-control textarea,
+.create-issue-custom input:not([type="checkbox"]),
+.create-issue-custom select,
+.create-issue-custom textarea { width: 100%; box-sizing: border-box; }
+.custom-field-options { display: flex; flex-wrap: wrap; gap: 4px 12px; padding-top: 4px; }
+.custom-field-option { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+.custom-field-summary { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; font-size: 12px; }
+.custom-field-summary dt { color: var(--text-subtle); }
+.custom-field-summary dd { margin: 0; }
+@media (max-width: 480px) {
+  .custom-field-row { grid-template-columns: 1fr; gap: 4px; }
+  .custom-field-row > label { padding-top: 0; }
+}

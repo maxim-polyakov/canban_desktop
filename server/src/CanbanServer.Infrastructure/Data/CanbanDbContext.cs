@@ -71,6 +71,8 @@ public class CanbanDbContext : DbContext
     public DbSet<HomeEntry> HomeEntries => Set<HomeEntry>();
     public DbSet<BillingSubscription> BillingSubscriptions => Set<BillingSubscription>();
     public DbSet<BillingPlanChange> BillingPlanChanges => Set<BillingPlanChange>();
+    public DbSet<IssueTypeDefinition> IssueTypeDefinitions => Set<IssueTypeDefinition>();
+    public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

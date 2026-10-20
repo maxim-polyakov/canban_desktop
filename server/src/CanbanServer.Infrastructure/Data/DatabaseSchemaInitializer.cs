@@ -18,6 +18,7 @@ public static partial class DatabaseSchemaInitializer
         await EnsureBillingSchemaAsync(db, ct);
         await EnsureDashboardsSchemaAsync(db, ct);
         await EnsureSpaceContentSchemaAsync(db, ct);
+        await EnsureIssueFieldsSchemaAsync(db, ct);
 
         await db.Database.ExecuteSqlRawAsync(
             """

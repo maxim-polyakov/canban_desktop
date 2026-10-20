@@ -370,7 +370,7 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
       <div className="app-flyout-section">{t('Задачи')}</div>
       {viewedIssues.slice(0, 6).map((issue) => (
         <Link key={issue.id} to={`/board/${issue.boardId}/issue/${issue.id}`} className="app-nav-item app-nav-link" onClick={navigate} title={issue.title}>
-          <IssueTypeIcon issueType={issue.issueType} size={16} />
+          <IssueTypeIcon issueType={issue.issueType} typeId={issue.issueTypeId} size={16} />
           <span className="app-nav-text">
             <span className="app-nav-label">{issue.title}</span>
             <span className="app-nav-sub">{[issue.issueKey, boardById.get(issue.boardId)?.name].filter(Boolean).join(' • ')}</span>

@@ -9,6 +9,7 @@ import {
   buildJql, defaultFilterJql, emptyCriteria, getDefaultFilter, ISSUE_TYPES, parseBasicJql, periodLabel,
   RELATIVE_PERIODS, STATUS_CATEGORIES,
 } from '../utils/issueFilters.js';
+import { loadIssueCatalog } from '../utils/issueConfig.js';
 import './IssueNavigator.css';
 
 const PAGE_SIZE = 50;
@@ -93,6 +94,8 @@ export default function IssueNavigatorPage() {
   const [saved, setSaved] = useState(null);
   const [spaceList, setSpaceList] = useState([]);
   const [peopleList, setPeopleList] = useState([]);
+  const [customTypes, setCustomTypes] = useState([]);
+  useEffect(() => { loadIssueCatalog().then((c) => setCustomTypes(c?.types || [])).catch(() => {}); }, []);
   const wantsSaved = !defaultFilter && Boolean(filterParam);
   const savedFilter = wantsSaved ? (saved || []).find((f) => f.id === filterParam) : null;
   const missingFilter = wantsSaved && saved !== null && !savedFilter;
@@ -229,7 +232,13 @@ export default function IssueNavigatorPage() {
     { id: 'empty', label: t('Не назначено') },
     ...peopleList.map((p) => ({ id: p.id, label: p.displayName || p.email })),
   ];
-  const typeOptions = ISSUE_TYPES.map((name, i) => ({ id: name, label: t(getIssueTypeMeta(i).label), icon: <IssueTypeIcon issueType={i} size={14} /> }));
+  const typeOptions = [
+    ...ISSUE_TYPES.map((name, i) => ({ id: name, label: t(getIssueTypeMeta(i).label), icon: <IssueTypeIcon issueType={i} size={14} /> })),
+    ...[...new Set(customTypes.map((type) => type.name))].map((name) => {
+      const type = customTypes.find((x) => x.name === name);
+      return { id: name, label: name, icon: <IssueTypeIcon issueType={type.baseType} typeId={type.id} size={14} /> };
+    }),
+  ];
   const statusOptions = STATUS_CATEGORIES.map((s) => ({ id: s.id, label: t(s.label) }));
   const summarize = (options, selected) => {
     const first = options.find((o) => o.id === selected[0])?.label || selected[0];
@@ -370,7 +379,7 @@ export default function IssueNavigatorPage() {
                     <tr key={issue.id}>
                       <td className="is-wide">
                         <span className="inav-issue">
-                          <IssueTypeIcon issueType={issue.issueType} size={16} />
+                          <IssueTypeIcon issueType={issue.issueType} typeId={issue.issueTypeId} size={16} />
                           <Link to={`/board/${issue.boardId}/issue/${issue.id}`} className="inav-key">{issue.issueKey}</Link>
                           <span className="inav-summary" title={issue.title}>{issue.title}</span>
                         </span>

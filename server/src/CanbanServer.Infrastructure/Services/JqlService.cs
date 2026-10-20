@@ -33,7 +33,11 @@ public sealed class JqlService : IJqlQueryService
             .GroupBy(c => c.QuestId)
             .Select(g => new { g.Key, At = g.Max(c => c.CreatedAt) })
             .ToDictionaryAsync(x => x.Key, x => x.At, ct);
-        var context = new JqlContext(userId, DateTime.UtcNow, q => lastChanges.TryGetValue(q.Id, out var at) && at > q.CreatedAt ? at : q.CreatedAt);
+        var teamIds = values.Select(q => q.Board.TeamId).Distinct().ToList();
+        var custom = new JqlCustomFields(
+            await _db.CustomFieldDefinitions.AsNoTracking().Where(f => teamIds.Contains(f.TeamId)).ToListAsync(ct),
+            await _db.IssueTypeDefinitions.AsNoTracking().Where(t => teamIds.Contains(t.TeamId)).ToDictionaryAsync(t => t.Id, t => t.Name, ct));
+        var context = new JqlContext(userId, DateTime.UtcNow, q => lastChanges.TryGetValue(q.Id, out var at) && at > q.CreatedAt ? at : q.CreatedAt, custom);
         var filtered = ast.Where == null ? values : values.Where(q => Match(ast.Where, q, context)).ToList();
         IOrderedEnumerable<Quest>? ordered = null;
         foreach (var item in ast.OrderBy)
@@ -58,7 +62,7 @@ public sealed class JqlService : IJqlQueryService
         return new JqlSearchResult(pageItems.Select(BoardService.MapQuest).ToList(), result.Count, page, pageSize, details);
     }
 
-    public sealed record JqlContext(Guid UserId, DateTime Now, Func<Quest, DateTime> UpdatedAt);
+    public sealed record JqlContext(Guid UserId, DateTime Now, Func<Quest, DateTime> UpdatedAt, JqlCustomFields? Custom = null);
 
     public static bool Matches(JqlQuery query, Quest q, JqlContext context) => query.Where == null || Match(query.Where, q, context);
 
@@ -135,7 +139,7 @@ public sealed class JqlService : IJqlQueryService
         "status" or "column" => q.Column?.Title,
         "statuscategory" or "category" => StatusCategory(q.Column?.Kind),
         "statusid" or "columnid" => q.ColumnId,
-        "type" or "issuetype" => q.IssueType.ToString(),
+        "type" or "issuetype" => q.IssueTypeId is Guid typeId && context.Custom?.TypeName(typeId) is string typeName ? typeName : q.IssueType.ToString(),
         "priority" => q.Priority.ToString(),
         "assignee" => q.Assignees.Count > 0 ? string.Join(",", q.Assignees.OrderBy(a => a.Order).Select(a => a.UserId)) : q.AssigneeId,
         "reporter" => q.ReporterId,
@@ -151,7 +155,7 @@ public sealed class JqlService : IJqlQueryService
         "board" or "boardid" => q.BoardId,
         // Key prefixes aren't unique across spaces, so the id is matched too.
         "project" or "space" => $"{q.Board?.KeyPrefix},{q.BoardId}",
-        _ => throw new ArgumentException($"Unsupported JQL field '{field}'")
+        _ => context.Custom != null && context.Custom.TryGetValue(q, field, out var value) ? value : throw new ArgumentException($"Unsupported JQL field '{field}'")
     };
 
     private static object? SortKey(Quest q, string field, JqlContext context) => field.ToLowerInvariant() switch

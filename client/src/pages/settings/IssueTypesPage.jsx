@@ -5,6 +5,7 @@ import { search } from '../../api.js';
 import NavIcon from '../../components/NavIcons.jsx';
 import { getIssueTypeMeta, IssueTypeIcon } from '../../components/IssueIcons.jsx';
 import SettingsShell, { ADMIN_NAV } from './SettingsShell.jsx';
+import { CustomIssueTypesSection, TeamPicker, useIssueCatalog, useTeamSelection } from './IssueConfigPages.jsx';
 
 export const ISSUE_TYPE_ROWS = [
   { type: 0, jql: 'Epic', level: 1, description: 'Большой объём работы, который объединяет истории, задачи и ошибки.' },
@@ -20,6 +21,8 @@ export default function IssueTypesPage() {
   const { t } = useLocalization();
   const [query, setQuery] = useState('');
   const [counts, setCounts] = useState({});
+  const { catalog, reload } = useIssueCatalog();
+  const [teamId, setTeamId, team] = useTeamSelection(catalog?.teams);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +83,12 @@ export default function IssueTypesPage() {
         </table>
         {rows.length === 0 && <p className="settings-empty">{t('Нет типов задач, соответствующих фильтру.')}</p>}
       </div>
+      {catalog?.teams?.length > 0 && (
+        <>
+          <div className="settings-toolbar"><TeamPicker teams={catalog.teams} value={teamId} onChange={setTeamId} /></div>
+          <CustomIssueTypesSection catalog={catalog} teamId={teamId} canManage={!!team?.canManage} onChanged={reload} />
+        </>
+      )}
     </SettingsShell>
   );
 }

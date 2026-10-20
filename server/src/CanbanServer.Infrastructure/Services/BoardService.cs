@@ -187,7 +187,9 @@ public class BoardService : IBoardService
         q.RemainingEstimateMinutes,
         q.DescriptionDocumentJson,
         q.QuestComponents.Select(x => x.ComponentId).ToList(),
-        q.QuestReleases.Select(x => x.ReleaseId).ToList());
+        q.QuestReleases.Select(x => x.ReleaseId).ToList(),
+        q.IssueTypeId,
+        IssueFieldService.ReadValues(q.CustomFieldsJson));
 
     private static string NormalizeKey(string? key)
     {

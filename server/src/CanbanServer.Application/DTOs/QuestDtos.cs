@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CanbanServer.Domain.Entities;
 
 namespace CanbanServer.Application.DTOs;
@@ -41,7 +42,9 @@ public record QuestDto(
     int? RemainingEstimateMinutes = null,
     string? DescriptionDocumentJson = null,
     List<Guid>? ComponentIds = null,
-    List<Guid>? ReleaseIds = null
+    List<Guid>? ReleaseIds = null,
+    Guid? IssueTypeId = null,
+    Dictionary<string, JsonElement>? CustomFields = null
 );
 
 public record CreateQuestRequest(
@@ -69,7 +72,9 @@ public record CreateQuestRequest(
     int? RemainingEstimateMinutes = null,
     string? DescriptionDocumentJson = null,
     List<Guid>? ComponentIds = null,
-    List<Guid>? ReleaseIds = null
+    List<Guid>? ReleaseIds = null,
+    Guid? IssueTypeId = null,
+    Dictionary<string, JsonElement>? CustomFields = null
 );
 
 /// <summary>AssigneeIds имеет приоритет над legacy AssigneeId. Set-флаги позволяют явно очистить список.</summary>
@@ -107,7 +112,9 @@ public record UpdateQuestRequest(
     List<Guid>? ComponentIds = null,
     bool ComponentIdsSet = false,
     List<Guid>? ReleaseIds = null,
-    bool ReleaseIdsSet = false
+    bool ReleaseIdsSet = false,
+    Guid? IssueTypeId = null,
+    bool IssueTypeIdSet = false
 );
 
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>

@@ -40,7 +40,7 @@ export default function KanbanQuestItem({ quest, onDeleteQuest, onQuestClick, hi
     >
       <div className="quest-card-top">
         {onSelect && <input className="quest-card-select" type="checkbox" checked={selected} aria-label={`Select ${quest.issueKey}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} onChange={(e) => onSelect(quest.id, e.target.checked)} />}
-        <IssueTypeIcon issueType={quest.issueType} size={16} />
+        <IssueTypeIcon issueType={quest.issueType} typeId={quest.issueTypeId} size={16} />
         {quest.parentId && <span title="Subtask">↳</span>}
         <span className="quest-card-title" title={quest.title}>{quest.title}</span>
         {onDeleteQuest && (

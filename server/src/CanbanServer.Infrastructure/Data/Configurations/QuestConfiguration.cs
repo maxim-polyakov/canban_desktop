@@ -14,6 +14,8 @@ public class QuestConfiguration : IEntityTypeConfiguration<Quest>
         builder.Property(q => q.Component).HasMaxLength(200);
         builder.Property(q => q.FixVersion).HasMaxLength(200);
         builder.Property(q => q.DescriptionDocumentJson).HasColumnType("text");
+        builder.Property(q => q.CustomFieldsJson).HasColumnType("text");
+        builder.HasOne<IssueTypeDefinition>().WithMany().HasForeignKey(q => q.IssueTypeId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(q => q.Column).WithMany(c => c.Quests).HasForeignKey(q => q.ColumnId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(q => q.Board).WithMany().HasForeignKey(q => q.BoardId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(q => q.Assignee).WithMany(u => u.AssignedQuests).HasForeignKey(q => q.AssigneeId).OnDelete(DeleteBehavior.SetNull);

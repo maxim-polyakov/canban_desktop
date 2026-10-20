@@ -12,6 +12,8 @@ import AssigneeSelect from './AssigneeSelect.jsx';
 import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
 import IssueAssetsField from './IssueAssetsField.jsx';
 import CreateBranchPanel from './CreateBranchPanel.jsx';
+import CustomFieldsPanel from './CustomFields.jsx';
+import { typeChoice, useBoardIssueConfig } from '../utils/issueConfig.js';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
@@ -72,6 +74,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [xpReward, setXpReward] = useState(0);
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [issueType, setIssueType] = useState(2);
+  const [issueTypeId, setIssueTypeId] = useState(null);
   const [priority, setPriority] = useState(2);
   const [labels, setLabels] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -136,6 +139,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       setXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);
       setAssigneeIds(q?.assigneeIds ?? []);
       setIssueType(q?.issueType ?? 2);
+      setIssueTypeId(q?.issueTypeId ?? null);
       setPriority(q?.priority ?? 2);
       setLabels(q?.labels ?? '');
       setDueDate(q?.dueDate ? String(q.dueDate).slice(0, 10) : '');
@@ -198,6 +202,13 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
+  const issueConfig = useBoardIssueConfig(quest?.boardId);
+  const chooseIssueType = (value) => {
+    const custom = issueConfig.types.find((type) => type.id === value);
+    if (custom) { setIssueTypeId(custom.id); setIssueType(custom.baseType); }
+    else { setIssueTypeId(null); setIssueType(Number(value)); }
+  };
+
   const handleSave = async () => {
     if (!questId) return;
     setSaving(true);
@@ -211,6 +222,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
         assigneeIds,
         assigneeIdsSet: true,
         issueType,
+        issueTypeId,
+        issueTypeIdSet: true,
         priority,
         labels: labels.trim(),
         sprintId: sprintId || null,
@@ -481,9 +494,10 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
               <label className="issue-drawer-field">
                 <span>Тип</span>
                 <div className="issue-drawer-select-wrap">
-                  <IssueTypeIcon issueType={issueType} size={16} />
-                  <select value={issueType} onChange={(e) => setIssueType(Number(e.target.value))}>
-                    {ISSUE_TYPE_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  <IssueTypeIcon issueType={issueType} typeId={issueTypeId} size={16} />
+                  <select value={typeChoice(issueType, issueTypeId)} onChange={(e) => chooseIssueType(e.target.value)}>
+                    {ISSUE_TYPE_OPTIONS.map((opt) => <option key={opt.value} value={String(opt.value)}>{t(opt.label)}</option>)}
+                    {issueConfig.types.map((type) => <option key={type.id} value={type.id}>{type.icon} {type.name}</option>)}
                   </select>
                 </div>
               </label>
@@ -515,6 +529,13 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
               <span>Метки</span>
               <input value={labels} onChange={(e) => setLabels(e.target.value)} placeholder="метка1, метка2" />
             </label>
+
+            <CustomFieldsPanel
+              quest={quest}
+              fields={issueConfig.fields}
+              people={members}
+              onSaved={(values) => { setQuest((current) => (current ? { ...current, customFields: values } : current)); onChanged?.(); }}
+            />
 
             <div className="issue-drawer-row">
                   <label className="issue-drawer-field">

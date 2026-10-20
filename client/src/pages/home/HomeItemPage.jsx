@@ -782,7 +782,7 @@ export function HomeItemPage({ kind }) {
                 {data.work.items.map((w) => (
                   <li key={w.id}>
                     <span className="home-side-work">
-                      <IssueTypeIcon issueType={w.issueType} size={14} />
+                      <IssueTypeIcon issueType={w.issueType} typeId={w.issueTypeId} size={14} />
                       <Link to={`/board/${w.boardId}/issue/${w.id}`} className="home-key">{w.issueKey}</Link>
                       <span className="home-list-title" title={w.title}>{w.title}</span>
                     </span>

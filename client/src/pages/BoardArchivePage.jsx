@@ -59,7 +59,7 @@ export default function BoardArchivePage() {
           {archiveQuests.map((quest) => (
             <li key={quest.id} className="board-archive-item">
               <div className="board-archive-item-main">
-                <IssueTypeIcon issueType={quest.issueType} size={16} />
+                <IssueTypeIcon issueType={quest.issueType} typeId={quest.issueTypeId} size={16} />
                 <span className="board-archive-item-key">{quest.issueKey}</span>
                 <span className="board-archive-item-title">{quest.title}</span>
                 <PriorityIcon priority={quest.priority} size={14} />

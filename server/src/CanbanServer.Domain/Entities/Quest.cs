@@ -30,6 +30,10 @@ public class Quest
     public string IssueKey { get; set; } = string.Empty;
     public int IssueNumber { get; set; }
     public IssueType IssueType { get; set; } = IssueType.Task;
+    /// <summary>Team-defined issue type; IssueType then holds its hierarchy level.</summary>
+    public Guid? IssueTypeId { get; set; }
+    /// <summary>Custom field values keyed by CustomFieldDefinition id.</summary>
+    public string CustomFieldsJson { get; set; } = "{}";
     public IssuePriority Priority { get; set; } = IssuePriority.Medium;
     /// <summary>Comma-separated labels for filtering.</summary>
     public string Labels { get; set; } = string.Empty;

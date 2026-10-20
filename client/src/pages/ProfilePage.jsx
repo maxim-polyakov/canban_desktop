@@ -69,7 +69,7 @@ function LevelCard({ char, progress, t }) {
 function WorkRow({ item, language, t }) {
   return (
     <Link to={`/board/${item.boardId}/issue/${item.questId}`} className="foryou-row">
-      <IssueTypeIcon issueType={item.issueType} size={16} />
+      <IssueTypeIcon issueType={item.issueType} typeId={item.issueTypeId} size={16} />
       <span className="foryou-row-main">
         <span className={`foryou-row-title ${item.done ? 'is-done' : ''}`}>{item.title}</span>
         <span className="foryou-row-meta">{[t(getIssueTypeMeta(item.issueType).label), item.issueKey, item.boardName].filter(Boolean).join(' • ')}</span>

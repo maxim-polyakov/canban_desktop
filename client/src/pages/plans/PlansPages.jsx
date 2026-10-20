@@ -470,7 +470,7 @@ function SettingsView({ plan, canEdit, excludedItems, onSaved, onInclude, onDele
         <ul className="plan-excluded">
           {excludedItems.map((item) => (
             <li key={item.id}>
-              <span className="sv-inline"><IssueTypeIcon issueType={item.issueType} size={14} /><Link to={`/board/${item.boardId}/issue/${item.id}`}>{item.issueKey} {item.title}</Link></span>
+              <span className="sv-inline"><IssueTypeIcon issueType={item.issueType} typeId={item.issueTypeId} size={14} /><Link to={`/board/${item.boardId}/issue/${item.id}`}>{item.issueKey} {item.title}</Link></span>
               <button type="button" className="app-btn app-btn-subtle" onClick={() => onInclude(item.id)}>{t('Вернуть в план')}</button>
             </li>
           ))}

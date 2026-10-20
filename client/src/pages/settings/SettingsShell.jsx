@@ -24,6 +24,7 @@ export const ADMIN_NAV = {
     { title: 'Система', items: [
       ['/admin/system', 'system', 'Системные настройки'],
       ['/settings/issues/issue-types', 'issues', 'Типы задач'],
+      ['/settings/issues/fields', 'forms', 'Поля задач'],
     ] },
     { title: 'Разделы', items: [['/spaces', 'spaces', 'Управление разделами']] },
     { title: 'Приложения', items: [['/admin/apps', 'appsAdd', 'Подключённые приложения']] },

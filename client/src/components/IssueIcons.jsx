@@ -1,4 +1,5 @@
 import React from 'react';
+import { getCustomIssueType, useIssueTypeRegistry } from '../utils/issueConfig.js';
 import './IssueIcons.css';
 
 // Original (non-Atlassian) iconography that follows familiar Jira-like conventions:
@@ -73,7 +74,21 @@ export function getIssueTypeMeta(issueType) {
   return ISSUE_TYPE_META[issueType] ?? ISSUE_TYPE_META[2];
 }
 
-export function IssueTypeIcon({ issueType = 2, size = 16, className = '', title }) {
+export function IssueTypeIcon({ issueType = 2, typeId, size = 16, className = '', title }) {
+  useIssueTypeRegistry();
+  const custom = getCustomIssueType(typeId);
+  if (custom) {
+    return (
+      <span
+        className={`issue-type-icon issue-type-icon-custom ${className}`.trim()}
+        style={{ width: size, height: size, background: custom.color, fontSize: Math.round(size * 0.68) }}
+        title={title ?? custom.name}
+        aria-hidden={title ? undefined : 'true'}
+      >
+        {custom.icon}
+      </span>
+    );
+  }
   const meta = getIssueTypeMeta(issueType);
   const Glyph = GLYPHS[issueType] ?? GLYPHS[2];
   return (

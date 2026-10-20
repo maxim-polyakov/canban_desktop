@@ -73,7 +73,7 @@ export function SpaceFormsListPage() {
             {forms.map((form) => (
               <div key={form.id} className="sc-form-card">
                 <div className="sc-form-card-head">
-                  <IssueTypeIcon issueType={form.issueType} size={16} />
+                  <IssueTypeIcon issueType={form.issueType} typeId={form.issueTypeId} size={16} />
                   <Link to={`/board/${boardId}/forms/${form.id}/submit`} className="sc-form-card-title">{form.title}</Link>
                   <span className={`settings-lozenge ${form.isOpen ? 'is-success' : ''}`}>{t(form.isOpen ? 'Открыта' : 'Закрыта')}</span>
                 </div>

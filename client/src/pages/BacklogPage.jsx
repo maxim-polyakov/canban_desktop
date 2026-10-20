@@ -29,7 +29,7 @@ function IssueRow({ quest, onOpen, sprintOptions, onMoveToSprint, onMoveToBacklo
       {...listeners}
     >
       <input className="backlog-issue-checkbox" type="checkbox" checked={selected} aria-label={`Select ${quest.issueKey}`} onPointerDown={(e) => e.stopPropagation()} onChange={(e) => onSelect?.(quest.id, e.target.checked)} />
-      <IssueTypeIcon issueType={quest.issueType} size={16} />
+      <IssueTypeIcon issueType={quest.issueType} typeId={quest.issueTypeId} size={16} />
       {quest.parentId && <span title="Subtask">↳</span>}
       <button type="button" className="backlog-issue-key" onClick={() => onOpen(quest.id)}>{quest.issueKey}</button>
       <button type="button" className="backlog-issue-title" onClick={() => onOpen(quest.id)} title={quest.title}>
@@ -423,7 +423,7 @@ export default function BacklogPage() {
         <DragOverlay>
           {draggedQuest ? (
             <div className="backlog-issue-row backlog-issue-row-overlay">
-              <IssueTypeIcon issueType={draggedQuest.issueType} size={16} />
+              <IssueTypeIcon issueType={draggedQuest.issueType} typeId={draggedQuest.issueTypeId} size={16} />
               <span className="backlog-issue-title">{draggedQuest.title}</span>
             </div>
           ) : null}

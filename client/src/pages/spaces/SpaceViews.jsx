@@ -348,7 +348,7 @@ export function SpaceListPage() {
               const overdue = q.dueDate && q.statusKind !== 3 && new Date(q.dueDate).getTime() < Date.now();
               return (
                 <tr key={q.id} className="sv-row" onClick={() => navigate(`/board/${boardId}/issue/${q.id}`)}>
-                  <td><IssueTypeIcon issueType={q.issueType} size={16} /></td>
+                  <td><IssueTypeIcon issueType={q.issueType} typeId={q.issueTypeId} size={16} /></td>
                   <td><Link to={`/board/${boardId}/issue/${q.id}`} onClick={(e) => e.stopPropagation()}>{q.issueKey}</Link></td>
                   <td>{q.title}</td>
                   <td><StatusLozenge issue={q} /></td>
@@ -423,7 +423,7 @@ export function SpaceCalendarPage() {
               <span className="sv-day-num">{d.getDate()}</span>
               {items.slice(0, 4).map((q) => (
                 <Link key={q.id} to={`/board/${boardId}/issue/${q.id}`} className={`sv-event ${q.statusKind === 3 ? 'is-done' : ''}`} title={`${q.issueKey} ${q.title}`}>
-                  <IssueTypeIcon issueType={q.issueType} size={12} />
+                  <IssueTypeIcon issueType={q.issueType} typeId={q.issueTypeId} size={12} />
                   <span>{q.title}</span>
                 </Link>
               ))}

@@ -30,7 +30,7 @@ function normalizeTeams(list) {
 function IssueRow({ issue, language, t }) {
   return (
     <Link to={`/board/${issue.boardId}/issue/${issue.questId}`} className="foryou-row">
-      <IssueTypeIcon issueType={issue.issueType} size={16} />
+      <IssueTypeIcon issueType={issue.issueType} typeId={issue.issueTypeId} size={16} />
       <span className="foryou-row-main">
         <span className={`foryou-row-title ${issue.done ? 'is-done' : ''}`}>{issue.title}</span>
         <span className="foryou-row-meta">

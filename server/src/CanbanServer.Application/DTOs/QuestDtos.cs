@@ -118,7 +118,9 @@ public record UpdateQuestRequest(
 );
 
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>
-public record MoveQuestRequest(Guid QuestId, Guid TargetColumnId, int NewOrder);
+/// <param name="Fields">Values from the transition screen: system field keys or "cf:{id}".</param>
+public record MoveQuestRequest(Guid QuestId, Guid TargetColumnId, int NewOrder, string? Transition = null,
+    Dictionary<string, System.Text.Json.JsonElement>? Fields = null, string? Comment = null);
 public record ReorderQuestsRequest(Guid ColumnId, List<Guid> QuestIdsInOrder);
 public record ArchiveCompletedQuestsResult(int ArchivedCount);
 public record UpdateQuestNotificationRecipientsRequest(List<Guid> UserIds, List<ExternalNotificationRecipientDto>? ExternalNotificationRecipients);

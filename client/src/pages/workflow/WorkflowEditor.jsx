@@ -1,19 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { boards, columns as columnsApi, teams as teamsApi, workflows } from '../../api.js';
 import { useLocalization } from '../../i18n/LocalizationContext.jsx';
 import NavIcon from '../../components/NavIcons.jsx';
 import { IssueTypeIcon, getPriorityMeta } from '../../components/IssueIcons.jsx';
 import { BASE_TYPES, useBoardIssueConfig } from '../../utils/issueConfig.js';
+import { STATUS_KINDS } from '../../utils/workflow.js';
+import { SpaceWorkflowScheme } from '../settings/WorkflowPages.jsx';
 import './WorkflowEditor.css';
 
-export const STATUS_KINDS = [
-  { value: 0, label: 'К выполнению', category: 'todo' },
-  { value: 1, label: 'В работе', category: 'progress' },
-  { value: 2, label: 'На проверке', category: 'progress' },
-  { value: 3, label: 'Готово', category: 'done' },
-  { value: 4, label: 'Другое', category: 'todo' },
-  { value: 5, label: 'Архив', category: 'done' },
-];
+export { STATUS_KINDS };
 const ROLES = [
   { value: '', label: 'Любой участник с правом работы' },
   { value: 'Manage', label: 'Руководитель проекта и выше' },
@@ -298,16 +293,24 @@ export default function WorkflowEditor({ boardId }) {
   const [error, setError] = useState('');
   const [spaces, setSpaces] = useState([]);
   const [copyFrom, setCopyFrom] = useState('');
+  const [teamId, setTeamId] = useState(null);
+  const [schemeId, setSchemeId] = useState(undefined);
   const config = useBoardIssueConfig(boardId);
 
   const load = useCallback(async () => {
     try {
       const [board, list] = await Promise.all([boards.getById(boardId), workflows.getByBoard(boardId)]);
+      setTeamId(board?.teamId ?? null);
       setStatuses([...(board?.columns || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
       setItems(Array.isArray(list) ? list : []);
     } catch (e) { setError(e.message); }
   }, [boardId]);
   useEffect(() => { load(); }, [load]);
+  const previousScheme = useRef(undefined);
+  useEffect(() => {
+    if (previousScheme.current !== undefined && previousScheme.current !== schemeId) load();
+    previousScheme.current = schemeId;
+  }, [schemeId, load]);
   useEffect(() => {
     teamsApi.getMyTeamsWithBoards().then((list) => {
       const all = (Array.isArray(list) ? list : []).flatMap((entry) => (entry.boards ?? []).map((b) => ({ id: b.id, name: b.name, team: entry.team?.name ?? '' })));
@@ -335,11 +338,14 @@ export default function WorkflowEditor({ boardId }) {
     <div className="wf-editor">
       <div className="jira-header wf-header">
         <h1>{t('Редактор workflow')}</h1>
-        <button type="button" className="app-btn app-btn-primary" onClick={() => setEditing({})} disabled={statuses.length < 1}>{t('Добавить переход')}</button>
+        {!schemeId && <button type="button" className="app-btn app-btn-primary" onClick={() => setEditing({})} disabled={statuses.length < 1}>{t('Добавить переход')}</button>}
       </div>
       <p className="wf-muted">{t('Workflow определяет, между какими статусами можно перемещать задачи, кто это может делать и что происходит после перехода. Если переходов нет, задачи можно перемещать между любыми статусами.')}</p>
       {error && <p className="jira-error" role="alert">{error}</p>}
 
+      <SpaceWorkflowScheme boardId={boardId} teamId={teamId} onSchemeChange={setSchemeId} />
+
+      {!schemeId && <>
       <section className="wf-section">
         <h2>{t('Статусы')}</h2>
         <p className="wf-muted">{t('Категория статуса определяет цвет на досках и то, считается ли задача решённой.')}</p>
@@ -418,6 +424,7 @@ export default function WorkflowEditor({ boardId }) {
           </div>
         </section>
       )}
+      </>}
 
       {editing && (
         <TransitionDialog

@@ -22,6 +22,7 @@ public class QuestService : IQuestService
     private readonly IProjectAccessService _access;
     private readonly CacheService _cache;
     private readonly IssueFieldService _fields;
+    private readonly WorkflowSchemeService _workflows;
 
     public QuestService(
         CanbanDbContext db,
@@ -36,7 +37,8 @@ public class QuestService : IQuestService
         IJiraPlatformService jira,
         IProjectAccessService access,
         CacheService cache,
-        IssueFieldService fields)
+        IssueFieldService fields,
+        WorkflowSchemeService workflows)
     {
         _db = db;
         _activityFeed = activityFeed;
@@ -51,6 +53,7 @@ public class QuestService : IQuestService
         _access = access;
         _cache = cache;
         _fields = fields;
+        _workflows = workflows;
     }
 
     public async Task<QuestDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -94,10 +97,12 @@ public class QuestService : IQuestService
             var sprintOk = await _db.Sprints.AnyAsync(s => s.Id == request.SprintId && s.BoardId == col.BoardId, ct);
             if (!sprintOk) throw new ArgumentException("Sprint not found on this board");
         }
-        var maxOrder = await _db.Quests.Where(q => q.ColumnId == request.ColumnId).MaxAsync(q => (int?)q.Order, ct) ?? -1;
         var issueType = request.IssueType ?? (request.IsEpic ? IssueType.Epic : IssueType.Task);
         var prepared = await _fields.PrepareNewIssueAsync(col.Board.TeamId, col.BoardId, request.IssueTypeId, issueType, request.CustomFields, ct);
         issueType = prepared.BaseType;
+        var columnId = col.Kind == ColumnKind.Archive ? col.Id
+            : await _workflows.InitialColumnAsync(col.BoardId, IssueLayoutService.TypeToken(issueType, prepared.TypeId), ct) ?? col.Id;
+        var maxOrder = await _db.Quests.Where(q => q.ColumnId == columnId).MaxAsync(q => (int?)q.Order, ct) ?? -1;
         if (request.CustomFields != null)
         {
             await _fields.EnsureRequiredSystemFieldsAsync(col.BoardId, issueType, prepared.TypeId, key => key switch
@@ -126,7 +131,7 @@ public class QuestService : IQuestService
         var quest = new Quest
         {
             Id = Guid.NewGuid(),
-            ColumnId = request.ColumnId,
+            ColumnId = columnId,
             BoardId = col.BoardId,
             Title = request.Title,
             Description = request.Description,
@@ -368,14 +373,35 @@ public class QuestService : IQuestService
 
         var (_, permission) = await _access.GetBoardAccessAsync(quest.BoardId, userId, ct);
         if (permission == null) return null;
-        var transition = await _jira.ValidateTransitionAsync(quest, request.TargetColumnId, permission.Value, ct, userId);
+        var shared = quest.ColumnId == targetColumn.Id || quest.Column.Kind == ColumnKind.Archive || targetColumn.Kind == ColumnKind.Archive
+            ? null : await _workflows.ResolveAsync(quest.BoardId, ct);
+        string? postFunctions;
+        if (shared != null)
+        {
+            if (permission.Value < BoardPermission.Work) throw new UnauthorizedAccessException("Нет права перемещать задачи");
+            var match = await _workflows.MatchAsync(shared, quest, targetColumn.Id, permission.Value, userId, request.Transition, ct);
+            await ApplyTransitionFieldsAsync(quest, match.ScreenFields, request.Fields, userId, ct);
+            await _workflows.ValidateAsync(match, quest, ct);
+            postFunctions = match.PostFunctionsJson;
+        }
+        else
+        {
+            if (request.Fields?.Count > 0) throw new ArgumentException("У этого перехода нет экрана");
+            postFunctions = (await _jira.ValidateTransitionAsync(quest, request.TargetColumnId, permission.Value, ct, userId))?.PostFunctionsJson;
+        }
+        var comment = request.Comment?.Trim();
+        if (!string.IsNullOrEmpty(comment))
+        {
+            if (comment.Length > 10000) throw new ArgumentException("Комментарий — не больше 10000 символов");
+            _db.QuestComments.Add(new QuestComment { Id = Guid.NewGuid(), QuestId = quest.Id, AuthorUserId = userId, Text = comment, CreatedAt = DateTime.UtcNow });
+        }
 
         var oldColumnId = quest.ColumnId;
         var oldColumnTitle = quest.Column.Title;
         quest.ColumnId = request.TargetColumnId;
         quest.Order = request.NewOrder;
-        if (oldColumnId != quest.ColumnId && !string.IsNullOrWhiteSpace(transition?.PostFunctionsJson))
-            await ApplyPostFunctionsAsync(quest, transition.PostFunctionsJson, userId, ct);
+        if (oldColumnId != quest.ColumnId && !string.IsNullOrWhiteSpace(postFunctions))
+            await ApplyPostFunctionsAsync(quest, postFunctions, userId, ct);
         if (oldColumnId != quest.ColumnId)
         {
             await _jira.AddChangeAsync(quest.Id, userId, "status", "status", oldColumnTitle, targetColumn.Title, ct);
@@ -677,6 +703,107 @@ public class QuestService : IQuestService
         {
             await _jira.AddChangeAsync(quest.Id, userId, "updated", "priority", quest.Priority.ToString(), ((IssuePriority)priority).ToString(), ct);
             quest.Priority = (IssuePriority)priority;
+        }
+    }
+
+    /// <summary>Applies transition screen values to the tracked issue; only fields on the screen are accepted.</summary>
+    private async Task ApplyTransitionFieldsAsync(Quest quest, HashSet<string> screen, Dictionary<string, JsonElement>? fields, Guid userId, CancellationToken ct)
+    {
+        if (fields == null || fields.Count == 0) return;
+        var teamId = quest.Board.TeamId;
+        static bool Empty(JsonElement v) => v.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined || (v.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(v.GetString()));
+        static string? Text(JsonElement v) => v.ValueKind == JsonValueKind.String ? v.GetString()?.Trim() : v.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? null
+            : throw new ArgumentException("Неверное значение поля");
+        static int? Number(JsonElement v, string what) => Empty(v) ? null
+            : v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n) ? n
+            : v.ValueKind == JsonValueKind.String && int.TryParse(v.GetString(), out var s) ? s
+            : throw new ArgumentException($"{what}: введите целое число");
+        foreach (var (rawKey, value) in fields)
+        {
+            var key = rawKey.Trim().ToLowerInvariant();
+            if (!screen.Contains(key)) throw new ArgumentException($"Поля «{IssueFieldService.SystemFieldName(key)}» нет на экране перехода");
+            switch (key)
+            {
+                case "summary":
+                {
+                    var title = Text(value);
+                    if (string.IsNullOrEmpty(title)) throw new ArgumentException("Сводка не может быть пустой");
+                    if (title.Length > 500) throw new ArgumentException("Сводка — не больше 500 символов");
+                    if (title != quest.Title) await _jira.AddChangeAsync(quest.Id, userId, "updated", "title", quest.Title, title, ct);
+                    quest.Title = title;
+                    break;
+                }
+                case "description":
+                {
+                    var text = Text(value);
+                    if (text != quest.Description) await _jira.AddChangeAsync(quest.Id, userId, "updated", "description", null, null, ct);
+                    quest.Description = string.IsNullOrEmpty(text) ? null : text;
+                    quest.DescriptionDocumentJson = null;
+                    break;
+                }
+                case "assignee":
+                {
+                    Guid? id = Empty(value) ? null : Guid.TryParse(value.GetString(), out var g) ? g : throw new ArgumentException("Неверный исполнитель");
+                    if (id is Guid assigneeId) await ValidateAssigneesAsync(teamId, new[] { assigneeId }, ct);
+                    var before = quest.Assignees.OrderBy(x => x.Order).Select(x => x.UserId).ToList();
+                    if (before.Count == (id.HasValue ? 1 : 0) && (id == null || before[0] == id)) break;
+                    _db.QuestAssignees.RemoveRange(quest.Assignees.ToList());
+                    quest.Assignees.Clear();
+                    quest.AssigneeId = id;
+                    if (id is Guid newId)
+                    {
+                        var user = await _db.Users.FirstAsync(u => u.Id == newId, ct);
+                        _db.QuestAssignees.Add(new QuestAssignee { Id = Guid.NewGuid(), QuestId = quest.Id, UserId = newId, User = user, Order = 0 });
+                    }
+                    await _jira.AddChangeAsync(quest.Id, userId, "updated", "assignee", string.Join(",", before), id?.ToString(), ct);
+                    break;
+                }
+                case "priority":
+                {
+                    var priority = Number(value, "Приоритет") ?? throw new ArgumentException("Выберите приоритет");
+                    if (!Enum.IsDefined(typeof(IssuePriority), priority)) throw new ArgumentException("Неверный приоритет");
+                    if (quest.Priority != (IssuePriority)priority)
+                        await _jira.AddChangeAsync(quest.Id, userId, "updated", "priority", quest.Priority.ToString(), ((IssuePriority)priority).ToString(), ct);
+                    quest.Priority = (IssuePriority)priority;
+                    break;
+                }
+                case "duedate":
+                {
+                    DateTime? due = Empty(value) ? null : DateTime.TryParse(value.GetString(), null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var d)
+                        ? DateTime.SpecifyKind(d, DateTimeKind.Utc) : throw new ArgumentException("Неверная дата");
+                    if (due != quest.DueDate) await _jira.AddChangeAsync(quest.Id, userId, "updated", "duedate", quest.DueDate?.ToString("yyyy-MM-dd"), due?.ToString("yyyy-MM-dd"), ct);
+                    quest.DueDate = due;
+                    break;
+                }
+                case "labels":
+                {
+                    var raw = value.ValueKind == JsonValueKind.Array ? string.Join(",", value.EnumerateArray().Select(x => x.GetString())) : Text(value);
+                    var labels = NormalizeLabels(raw);
+                    if (labels != quest.Labels) await _jira.AddChangeAsync(quest.Id, userId, "updated", "labels", quest.Labels, labels, ct);
+                    quest.Labels = labels;
+                    break;
+                }
+                case "storypoints":
+                {
+                    var points = NormalizeStoryPoints(Number(value, "Story points"));
+                    if (points != quest.StoryPoints) await _jira.AddChangeAsync(quest.Id, userId, "updated", "storypoints", quest.StoryPoints?.ToString(), points?.ToString(), ct);
+                    quest.StoryPoints = points;
+                    break;
+                }
+                case "originalestimate":
+                {
+                    var minutes = Number(value, "Оценка");
+                    if (minutes is < 0 or > 100000) throw new ArgumentException("Неверная оценка");
+                    if (minutes != quest.OriginalEstimateMinutes) await _jira.AddChangeAsync(quest.Id, userId, "updated", "originalestimate", quest.OriginalEstimateMinutes?.ToString(), minutes?.ToString(), ct);
+                    quest.OriginalEstimateMinutes = minutes;
+                    break;
+                }
+                case var cf when cf.StartsWith("cf:", StringComparison.Ordinal) && Guid.TryParse(cf[3..], out var fieldId):
+                    await _fields.ApplyTransitionValueAsync(quest, teamId, fieldId, value, userId, ct);
+                    break;
+                default:
+                    throw new ArgumentException($"Поле «{IssueFieldService.SystemFieldName(key)}» нельзя изменить при переходе");
+            }
         }
     }
 

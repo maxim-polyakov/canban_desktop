@@ -20,14 +20,18 @@ public sealed class JiraPlatformService : IJiraPlatformService
     private readonly CacheService _cache;
     private readonly IGitHubAppClient _gitHub;
 
+    private readonly WorkflowSchemeService _workflows;
+
     public JiraPlatformService(
         CanbanDbContext db,
         IProjectAccessService access,
         IConfiguration configuration,
         IBoardHub boardHub,
         CacheService cache,
-        IGitHubAppClient gitHub)
+        IGitHubAppClient gitHub,
+        WorkflowSchemeService workflows)
     {
+        _workflows = workflows;
         _db = db;
         _access = access;
         _configuration = configuration;
@@ -506,7 +510,17 @@ public sealed class JiraPlatformService : IJiraPlatformService
 
     public async Task<BulkEditResult> BulkEditAsync(Guid boardId, Guid userId, BulkEditQuestsRequest request, CancellationToken ct)
     {
-        var quests = await _db.Quests.Where(q => q.BoardId == boardId && request.QuestIds.Contains(q.Id)).ToListAsync(ct);
+        var quests = await _db.Quests.Include(q => q.Assignees).Where(q => q.BoardId == boardId && request.QuestIds.Contains(q.Id)).ToListAsync(ct);
+        var shared = request.ColumnId.HasValue ? await _workflows.ResolveAsync(boardId, ct) : null;
+        if (shared != null)
+        {
+            var (_, permission) = await _access.GetBoardAccessAsync(boardId, userId, ct);
+            foreach (var quest in quests.Where(q => q.ColumnId != request.ColumnId))
+            {
+                var match = await _workflows.MatchAsync(shared, quest, request.ColumnId!.Value, permission ?? BoardPermission.View, userId, null, ct);
+                await _workflows.ValidateAsync(match, quest, ct);
+            }
+        }
         foreach (var quest in quests)
         {
             if (request.SprintIdSet) quest.SprintId = request.SprintId;

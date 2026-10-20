@@ -295,6 +295,17 @@ export const issueLayouts = {
   assign: (boardId, data) => apiJson(`/api/boards/${boardId}/issue-layout`, json('PUT', data)),
 };
 
+export const sharedWorkflows = {
+  catalog: (teamId) => apiJson(`/api/shared-workflows${buildQuery({ teamId })}`),
+  get: (id) => apiJson(`/api/shared-workflows/item/${id}`),
+  create: (kind, data) => apiJson(`/api/shared-workflows/${kind}`, json('POST', data)),
+  update: (id, data) => apiJson(`/api/shared-workflows/item/${id}`, json('PUT', data)),
+  remove: (id) => remove(`/api/shared-workflows/item/${id}`),
+  fromBoard: (boardId, name) => apiJson(`/api/boards/${boardId}/shared-workflow`, json('POST', { name })),
+  preview: (boardId, schemeId) => apiJson(`/api/boards/${boardId}/workflow-scheme/preview${buildQuery({ schemeId })}`),
+  assign: (boardId, data) => apiJson(`/api/boards/${boardId}/workflow-scheme`, json('PUT', data)),
+};
+
 export const userGroups = {
   list: (teamId) => apiJson(`/api/groups${buildQuery({ teamId })}`),
   create: (data) => apiJson('/api/groups', json('POST', data)),

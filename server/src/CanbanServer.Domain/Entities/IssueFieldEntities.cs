@@ -57,6 +57,8 @@ public class BoardIssueLayout
     public Guid BoardId { get; set; }
     public Guid? FieldConfigurationSchemeId { get; set; }
     public Guid? IssueTypeScreenSchemeId { get; set; }
+    /// <summary>Shared workflows by issue type; null keeps the space's own transitions.</summary>
+    public Guid? WorkflowSchemeId { get; set; }
 }
 
 public class UserGroup

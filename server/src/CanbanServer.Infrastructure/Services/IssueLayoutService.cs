@@ -118,6 +118,8 @@ public class IssueLayoutService
     {
         var canManage = await TeamAccessAsync(teamId, userId, ct);
         var objects = await _db.IssueLayoutObjects.AsNoTracking().Where(o => o.TeamId == teamId).OrderBy(o => o.Name).ToListAsync(ct);
+        var all = objects;
+        objects = objects.Where(o => Kinds.Contains(o.Kind)).ToList();
         var boards = await _db.Boards.AsNoTracking().Where(b => b.TeamId == teamId).OrderBy(b => b.Name)
             .Select(b => new { b.Id, b.Name, b.KeyPrefix }).ToListAsync(ct);
         var boardIds = boards.Select(b => b.Id).ToList();
@@ -127,7 +129,7 @@ public class IssueLayoutService
             teamId,
             canManage,
             systemFields = SystemFields,
-            objects = objects.Select(o => Dto(o, UsedBy(o, objects, assignments.Values))),
+            objects = objects.Select(o => Dto(o, UsedBy(o, all, assignments.Values))),
             boards = boards.Select(b => new
             {
                 id = b.Id,
@@ -368,6 +370,7 @@ public class IssueLayoutService
                     && (m.Default == item.Id || m.Types.ContainsValue(item.Id)),
                 FieldConfigScheme when item.Kind == FieldConfig => Parse<TypeMappingData>(other.DataJson) is { } m
                     && (m.Default == item.Id || m.Types.ContainsValue(item.Id)),
+                WorkflowSchemeService.Workflow when item.Kind == Screen => WorkflowSchemeService.UsesScreen(other, item.Id),
                 _ => false,
             };
             if (refs) result.Add(new { kind = other.Kind, id = other.Id, name = other.Name });
@@ -407,7 +410,7 @@ public class IssueLayoutService
     }
 
     private async Task<IssueLayoutObject> FindAsync(Guid id, CancellationToken ct) =>
-        await _db.IssueLayoutObjects.FirstOrDefaultAsync(o => o.Id == id, ct) ?? throw new KeyNotFoundException("Not found");
+        await _db.IssueLayoutObjects.FirstOrDefaultAsync(o => o.Id == id && Kinds.Contains(o.Kind), ct) ?? throw new KeyNotFoundException("Not found");
 
     private async Task<bool> TeamAccessAsync(Guid teamId, Guid userId, CancellationToken ct)
     {

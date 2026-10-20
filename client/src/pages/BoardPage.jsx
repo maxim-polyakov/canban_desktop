@@ -9,6 +9,9 @@ import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import { buildQuestFilter } from '../utils/jqlFilter.js';
 import { moveQuestInColumns } from '../utils/boardMoves.js';
 import useMediaQuery from '../utils/useMediaQuery.js';
+import { useBoardIssueConfig } from '../utils/issueConfig.js';
+import { issueWorkflow, needsTransitionDialog, transitionsTo } from '../utils/workflow.js';
+import TransitionScreenDialog from '../components/TransitionScreenDialog.jsx';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -39,6 +42,8 @@ export default function BoardPage() {
   const { t } = useLocalization();
   const [board, setBoard] = useState(null);
   const [members, setMembers] = useState([]);
+  const [pendingTransition, setPendingTransition] = useState(null);
+  const issueConfig = useBoardIssueConfig(boardId);
   const [boardSprints, setBoardSprints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -145,6 +150,24 @@ export default function BoardPage() {
       reordered.splice(Math.min(newOrder, reordered.length), 0, questIdMoved);
       if (reordered.every((id, i) => id === questIds[i])) return;
     }
+    let transition;
+    if (!sameColumn && issueConfig.workflow) {
+      const issue = { ...fromCol.quests.find((q) => q.id === questIdMoved), columnId: fromCol.id };
+      const options = transitionsTo(issueConfig.workflow, issue, targetColumnId);
+      if (options) {
+        const own = issueWorkflow(issueConfig.workflow, issue);
+        const toInitial = !own.statuses.includes(fromCol.id) && own.initial === targetColumnId;
+        if (options.length === 0 && !toInitial) {
+          window.alert(t('Этот переход запрещён workflow.'));
+          return;
+        }
+        if (needsTransitionDialog(options)) {
+          setPendingTransition({ issue, transitions: options, targetColumnId, newOrder, targetName: col?.title });
+          return;
+        }
+        transition = options[0]?.key;
+      }
+    }
 
     setBoard((current) => current && { ...current, columns: moveQuestInColumns(current.columns, questIdMoved, targetColumnId, newOrder) });
     pendingMovesRef.current += 1;
@@ -152,11 +175,12 @@ export default function BoardPage() {
       if (sameColumn) {
         await quests.reorder({ columnId: targetColumnId, questIdsInOrder: reordered });
       } else {
-        await quests.move({ questId: questIdMoved, targetColumnId, newOrder });
+        await quests.move({ questId: questIdMoved, targetColumnId, newOrder, transition });
       }
     } catch (e) {
       console.error(e);
       if (/not allowed/i.test(e.message)) window.alert(t('Этот переход запрещён workflow.'));
+      else if (issueConfig.workflow) window.alert(t(e.message));
     } finally {
       pendingMovesRef.current -= 1;
       if (pendingMovesRef.current === 0) loadBoard();
@@ -456,6 +480,22 @@ export default function BoardPage() {
           columns={boardColumns}
           onClose={closeIssue}
           onChanged={loadBoard}
+        />
+      )}
+      {pendingTransition && (
+        <TransitionScreenDialog
+          issue={pendingTransition.issue}
+          transitions={pendingTransition.transitions}
+          targetName={pendingTransition.targetName}
+          config={issueConfig}
+          people={members}
+          onCancel={() => setPendingTransition(null)}
+          onSubmit={async (choice) => {
+            const { issue, targetColumnId, newOrder } = pendingTransition;
+            await quests.move({ questId: issue.id, targetColumnId, newOrder, ...choice });
+            setPendingTransition(null);
+            loadBoard();
+          }}
         />
       )}
     </div>

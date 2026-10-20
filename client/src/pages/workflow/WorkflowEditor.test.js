@@ -1,12 +1,15 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import WorkflowEditor, { describeTransition, formToTransition, transitionToForm } from './WorkflowEditor.jsx';
 
 jest.mock('../../i18n/LocalizationContext.jsx', () => ({
   useLocalization: () => ({ t: (s) => s, locale: 'ru', language: 'ru' }),
 }));
 
-const calls = { save: [], update: [], copy: [], column: [] };
+const calls = { save: [], update: [], copy: [], column: [], assign: [] };
+let mockSchemeId = null;
+let mockMigrations = [];
 const columns = [
   { id: 'c1', title: 'К выполнению', order: 0, kind: 0 },
   { id: 'c2', title: 'В работе', order: 1, kind: 1 },
@@ -18,7 +21,7 @@ const transitions = [
 ];
 
 jest.mock('../../api.js', () => ({
-  boards: { getById: () => Promise.resolve({ columns }) },
+  boards: { getById: () => Promise.resolve({ teamId: 'team', columns }) },
   columns: { update: (id, data) => { calls.column.push({ id, data }); return Promise.resolve({}); } },
   teams: { getMyTeamsWithBoards: () => Promise.resolve([{ team: { name: 'Команда' }, boards: [{ id: 'b1', name: 'Этот' }, { id: 'b2', name: 'Другой' }] }]) },
   workflows: {
@@ -28,7 +31,19 @@ jest.mock('../../api.js', () => ({
     remove: () => Promise.resolve(true),
     copy: (boardId, source) => { calls.copy.push(source); return Promise.resolve([]); },
   },
-  issueConfig: { forBoard: () => Promise.resolve({ types: [{ id: 'inc', name: 'Инцидент', baseType: 3, icon: '🔥', color: '#e5493a' }], fields: [{ id: 'f1', name: 'Критичность' }] }) },
+  sharedWorkflows: {
+    catalog: () => Promise.resolve({
+      teamId: 'team', canManage: true, screens: [], groups: [],
+      boards: [{ id: 'b1', name: 'Этот', workflowSchemeId: mockSchemeId }],
+      objects: [
+        { id: 'w1', kind: 'workflow', name: 'Разработка', usedBy: [], data: { initial: 's1', statuses: [{ key: 's1', name: 'Новая', kind: 0, x: 40, y: 40 }, { key: 's2', name: 'Готово', kind: 3, x: 300, y: 40 }], transitions: [{ key: 't1', name: 'Сделано', from: ['s1'], to: 's2' }] } },
+        { id: 'ws1', kind: 'workflowscheme', name: 'Схема', usedBy: [], data: { default: 'w1', types: {} } },
+      ],
+    }),
+    preview: () => Promise.resolve({ migrations: mockMigrations }),
+    assign: (boardId, data) => { calls.assign.push(data); mockSchemeId = data.workflowSchemeId; return Promise.resolve({}); },
+  },
+  issueConfig: { catalog: () => Promise.resolve({ teams: [{ id: 'team', name: 'Команда', canManage: true }], types: [], fields: [] }), forBoard: () => Promise.resolve({ types: [{ id: 'inc', name: 'Инцидент', baseType: 3, icon: '🔥', color: '#e5493a' }], fields: [{ id: 'f1', name: 'Критичность' }] }) },
 }));
 
 let container;
@@ -36,6 +51,8 @@ let root;
 beforeAll(() => { global.IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
   Object.keys(calls).forEach((k) => { calls[k] = []; });
+  mockSchemeId = null;
+  mockMigrations = [];
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -73,7 +90,7 @@ test('transition forms round-trip conditions and post functions', () => {
 });
 
 test('editor shows statuses, diagram and transitions, and adds a global transition', async () => {
-  await act(async () => { root.render(<WorkflowEditor boardId="b1" />); });
+  await act(async () => { root.render(<MemoryRouter><WorkflowEditor boardId="b1" /></MemoryRouter>); });
   await flush();
   expect(container.querySelectorAll('.wf-status-card')).toHaveLength(3);
   expect(container.querySelectorAll('.wf-diagram .wf-edge')).toHaveLength(2);
@@ -100,11 +117,29 @@ test('editor shows statuses, diagram and transitions, and adds a global transiti
 
 test('workflow can be copied from another space', async () => {
   window.confirm = () => true;
-  await act(async () => { root.render(<WorkflowEditor boardId="b1" />); });
+  await act(async () => { root.render(<MemoryRouter><WorkflowEditor boardId="b1" /></MemoryRouter>); });
   await flush();
   const select = container.querySelector('select[aria-label="Пространство-источник"]');
   expect([...select.options].map((o) => o.value)).toEqual(['', 'b2']);
   await change(select, 'b2');
   await click(button('Скопировать workflow'));
   expect(calls.copy).toEqual(['b2']);
+});
+
+test('space switches to a shared workflow scheme, migrating issues whose status is missing', async () => {
+  mockMigrations = [{ issueType: '2', columnId: 'c2', columnTitle: 'В работе', count: 3, statuses: ['Новая', 'Готово'] }];
+  await act(async () => { root.render(<MemoryRouter><WorkflowEditor boardId="b1" /></MemoryRouter>); });
+  await flush();
+  await change(container.querySelector('select[aria-label="Схема workflow"]'), 'ws1');
+  const dialog = container.querySelector('form[aria-label="Перенос задач в новый workflow"]');
+  expect(dialog.textContent).toContain('Задача');
+  await change(dialog.querySelector('select[aria-label="Новый статус: В работе"]'), 'Готово');
+  await act(async () => { dialog.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+  await flush();
+  await flush();
+  expect(calls.assign).toEqual([{ workflowSchemeId: 'ws1', migrations: [{ issueType: '2', columnId: 'c2', status: 'Готово' }] }]);
+  expect(container.querySelector('.wf-status-card')).toBeNull();
+  expect(container.querySelector('select[aria-label="Пространство-источник"]')).toBeNull();
+  expect(container.textContent).toContain('Разработка');
+  expect(container.querySelector('g[aria-label="Статус Новая"]')).not.toBeNull();
 });

@@ -4,7 +4,7 @@ export { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/tra
 export {
   adminInfo, apiTokens, assets, audit, automations, billing, bulk, clone, home, kudos, people, personalSettings, spaces, components, dashboards, history, importExport,
   integrations, issueConfig, issueLayouts, myWork, notifications, permissions, plans, questHierarchy, questLinks,
-  releases, reports, savedFilters, search, spaceContent, userGroups, workflows, worklogs,
+  releases, reports, savedFilters, search, sharedWorkflows, spaceContent, userGroups, workflows, worklogs,
 } from './api/jira.js';
 
 export const auth = {

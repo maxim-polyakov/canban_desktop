@@ -19,21 +19,21 @@ export const LAYOUT_KINDS = {
 const OPERATIONS = [['create', 'Создание задачи'], ['edit', 'Редактирование задачи'], ['view', 'Просмотр задачи']];
 
 /** Every field a screen or configuration can arrange, with display names. */
-function useFieldChoices(catalog, teamId) {
+export function useFieldChoices(catalog, teamId) {
   return useMemo(() => [
     ...SYSTEM_FIELDS.map(([key, label]) => ({ key, label, system: true })),
     ...(catalog?.fields || []).filter((f) => f.teamId === teamId).map((f) => ({ key: fieldKey(f.id), label: f.name, system: false })),
   ], [catalog, teamId]);
 }
 
-function issueTypeOptions(catalog, teamId) {
+export function issueTypeOptions(catalog, teamId) {
   return [
     ...BASE_TYPES.map((type) => ({ value: String(type.value), label: type.label })),
     ...(catalog?.types || []).filter((type) => type.teamId === teamId).map((type) => ({ value: type.id, label: `${type.icon} ${type.name}` })),
   ];
 }
 
-function LayoutModal({ title, onClose, onSubmit, saving, error, children, wide }) {
+export function LayoutModal({ title, onClose, onSubmit, saving, error, children, wide }) {
   const { t } = useLocalization();
   return (
     <div className="app-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -128,7 +128,7 @@ function ScreenSchemeEditor({ data, onChange, screens }) {
   );
 }
 
-function TypeMappingEditor({ data, onChange, targets, typeOptions, defaultLabel, defaultEmpty, required }) {
+export function TypeMappingEditor({ data, onChange, targets, typeOptions, defaultLabel, defaultEmpty, required }) {
   const { t } = useLocalization();
   const types = data.types || {};
   return (

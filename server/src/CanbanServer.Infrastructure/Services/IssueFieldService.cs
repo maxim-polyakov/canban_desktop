@@ -30,11 +30,14 @@ public partial class IssueFieldService
     private readonly IBoardHub _boardHub;
     private readonly CacheService _cache;
     private readonly IssueLayoutService _layouts;
+    private readonly WorkflowSchemeService _workflows;
 
     public IssueFieldService(
-        CanbanDbContext db, IProjectAccessService access, IJiraPlatformService jira, IBoardHub boardHub, CacheService cache, IssueLayoutService layouts)
+        CanbanDbContext db, IProjectAccessService access, IJiraPlatformService jira, IBoardHub boardHub, CacheService cache, IssueLayoutService layouts,
+        WorkflowSchemeService workflows)
     {
         _layouts = layouts;
+        _workflows = workflows;
         _db = db;
         _access = access;
         _jira = jira;
@@ -98,6 +101,7 @@ public partial class IssueFieldService
             versions,
             groups,
             layout = await _layouts.ResolveAsync(boardId, ct),
+            workflow = await _workflows.BoardConfigAsync(boardId, ct),
         };
     }
 
@@ -219,6 +223,32 @@ public partial class IssueFieldService
         await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(quest.BoardId, ct);
         return values;
+    }
+
+    /// <summary>Sets a custom field value from a transition screen on a tracked issue; the caller saves.</summary>
+    public async Task ApplyTransitionValueAsync(Quest quest, Guid teamId, Guid fieldId, JsonElement value, Guid userId, CancellationToken ct)
+    {
+        var field = await _db.CustomFieldDefinitions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == fieldId && x.TeamId == teamId, ct)
+            ?? throw new KeyNotFoundException("Field not found");
+        var context = ResolveContext(field, quest.BoardId);
+        if (context == null || !AppliesToType(context, quest.IssueType, quest.IssueTypeId))
+            throw new ArgumentException("Поле не используется в задачах этого типа");
+        var layout = await _layouts.ResolveAsync(quest.BoardId, ct);
+        var rule = layout.Rule(IssueLayoutService.TypeToken(quest.IssueType, quest.IssueTypeId), IssueLayoutService.FieldKey(field.Id));
+        if (rule.Hidden) throw new ArgumentException($"Поле «{field.Name}» скрыто в конфигурации полей");
+        var normalized = Normalize(field, value, context);
+        if (normalized is JsonElement user && field.FieldType == "user")
+            await EnsureTeamUserAsync(teamId, Guid.Parse(user.GetString()!), ct);
+        if (normalized is JsonElement reference) await EnsureReferencesAsync(field, teamId, quest.BoardId, reference, ct);
+        if (normalized == null && (field.Required || rule.Required)) throw new ArgumentException($"Поле «{field.Name}» обязательно");
+        var values = ReadValues(quest.CustomFieldsJson);
+        var key = fieldId.ToString();
+        var old = values.TryGetValue(key, out var previous) ? Display(previous) : null;
+        if (normalized is JsonElement element) values[key] = element;
+        else values.Remove(key);
+        quest.CustomFieldsJson = JsonSerializer.Serialize(values);
+        var updated = normalized is JsonElement e ? Display(e) : null;
+        if (old != updated) await _jira.AddChangeAsync(quest.Id, userId, "updated", "customfield:" + field.Name, old, updated, ct);
     }
 
     /// <summary>Resolves a custom type and validates initial field values for a new issue on the board.</summary>

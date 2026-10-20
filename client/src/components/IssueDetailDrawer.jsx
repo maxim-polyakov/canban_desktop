@@ -15,6 +15,8 @@ import CreateBranchPanel from './CreateBranchPanel.jsx';
 import CustomFieldsPanel from './CustomFields.jsx';
 import { typeChoice, useBoardIssueConfig } from '../utils/issueConfig.js';
 import { fieldRule } from '../utils/issueLayout.js';
+import { issueWorkflow, needsTransitionDialog, reachableColumns, transitionsTo } from '../utils/workflow.js';
+import TransitionScreenDialog from './TransitionScreenDialog.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
@@ -89,6 +91,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [movingColumn, setMovingColumn] = useState(false);
   const [saving, setSaving] = useState(false);
   const [transitions, setTransitions] = useState([]);
+  const [pendingTransition, setPendingTransition] = useState(null);
   const [hierarchy, setHierarchy] = useState(null);
   const [links, setLinks] = useState([]);
   const [worklogList, setWorklogList] = useState([]);
@@ -281,13 +284,26 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     persistWatchers(next);
   };
 
-  const handleMoveColumn = async (targetColumnId) => {
+  const sharedTransitions = issueConfig.workflow && quest
+    ? (issueWorkflow(issueConfig.workflow, quest)?.transitions || []).filter((x) => x.to !== quest.columnId && (x.any || x.from.includes(quest.columnId)))
+    : null;
+  const reachable = quest ? reachableColumns(issueConfig.workflow, quest) : null;
+
+  const handleMoveColumn = async (targetColumnId, choice) => {
     if (!questId || !targetColumnId || targetColumnId === quest?.columnId || movingColumn) return;
+    if (!choice && sharedTransitions) {
+      const options = transitionsTo(issueConfig.workflow, quest, targetColumnId) || [];
+      if (needsTransitionDialog(options)) {
+        setPendingTransition({ transitions: options, targetColumnId });
+        return;
+      }
+      choice = { transition: options[0]?.key };
+    }
     setMovingColumn(true);
     try {
       const targetColumn = columns.find((c) => c.id === targetColumnId);
       const newOrder = (targetColumn?.quests ?? targetColumn?.Quests ?? []).length;
-      await quests.move({ questId, targetColumnId, newOrder });
+      await quests.move({ questId, targetColumnId, newOrder, ...choice });
       const updated = await quests.get(questId);
       setQuest(updated);
       onChanged?.();
@@ -478,11 +494,21 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                   disabled={movingColumn}
                   onChange={(e) => handleMoveColumn(e.target.value)}
                 >
-                  {columns.map((c) => <option key={c.id} value={c.id}>{c.title || 'Колонка'}</option>)}
+                  {columns.filter((c) => !reachable || c.id === quest.columnId || reachable.has(c.id)).map((c) => <option key={c.id} value={c.id}>{c.title || 'Колонка'}</option>)}
                 </select>
               </label>
             )}
-            {transitions.length > 0 && (
+            {sharedTransitions?.length > 0 && (
+              <div className="issue-drawer-transitions" role="group" aria-label={t('Переходы')}>
+                {sharedTransitions.map((x) => (
+                  <button key={x.key} type="button" className="app-btn app-btn-subtle" disabled={movingColumn}
+                    onClick={() => (needsTransitionDialog([x]) ? setPendingTransition({ transitions: [x], targetColumnId: x.to }) : handleMoveColumn(x.to, { transition: x.key }))}>
+                    {x.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!sharedTransitions && transitions.length > 0 && (
               <label className="issue-drawer-field issue-drawer-field-block">
                 <span>{t('Workflow переход')}</span>
                 <select defaultValue="" onChange={(e) => { handleTransition(e.target.value); e.target.value = ''; }}>
@@ -783,6 +809,23 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
           </div>
         )}
       </aside>
+      {pendingTransition && quest && (
+        <TransitionScreenDialog
+          issue={quest}
+          transitions={pendingTransition.transitions}
+          targetName={columns.find((c) => c.id === pendingTransition.targetColumnId)?.title}
+          config={issueConfig}
+          people={members}
+          onCancel={() => setPendingTransition(null)}
+          onSubmit={async (choice) => {
+            const target = columns.find((c) => c.id === pendingTransition.targetColumnId);
+            await quests.move({ questId, targetColumnId: pendingTransition.targetColumnId, newOrder: (target?.quests ?? []).length, ...choice });
+            setPendingTransition(null);
+            setQuest(await quests.get(questId));
+            onChanged?.();
+          }}
+        />
+      )}
     </div>
   );
 }

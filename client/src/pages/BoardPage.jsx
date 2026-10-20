@@ -506,6 +506,7 @@ export default function BoardPage() {
           boardId={boardId}
           columns={viewColumns}
           members={members}
+          issueTypes={issueConfig.types}
           onMoveQuest={moveOnBoard}
           onAddColumn={layoutMode ? undefined : handleAddColumn}
           onColumnReorder={layoutMode ? undefined : handleColumnReorder}

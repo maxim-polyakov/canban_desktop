@@ -116,9 +116,12 @@ public class JiraPlatformController : ControllerBase
         var children = await _db.Quests.AsNoTracking()
             .Where(q => q.ParentQuestId == questId || q.ParentEpicId == questId)
             .OrderBy(q => q.IssueNumber)
-            .Select(q => new { q.Id, q.IssueKey, q.Title, q.IssueType })
+            .Select(q => new { q.Id, q.IssueKey, q.Title, q.IssueType, q.IssueTypeId, q.ColumnId, Status = q.Column.Title, StatusKind = q.Column.Kind })
             .ToListAsync(ct);
-        return Ok(new { parent, children });
+        var reporter = quest.ReporterId.HasValue
+            ? await _db.Users.AsNoTracking().Where(u => u.Id == quest.ReporterId).Select(u => new { u.Id, u.DisplayName, u.AvatarUrl }).FirstOrDefaultAsync(ct)
+            : null;
+        return Ok(new { parent, children, reporter });
     }
 
     [HttpGet("quests/{questId:guid}/links")]

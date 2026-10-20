@@ -1,0 +1,721 @@
+.iv-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3.5rem 1.5rem 1.5rem;
+  background: rgba(9, 30, 66, 0.54);
+}
+
+.iv-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1100px, 100%);
+  max-height: calc(100vh - 5rem);
+  border-radius: var(--radius-lg, 8px);
+  background: var(--surface, #fff);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(9, 30, 66, 0.3);
+  overflow: hidden;
+}
+
+.iv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.5rem 1.5rem;
+}
+
+.iv-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.iv-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.iv-crumb-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.iv-crumb-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.iv-crumb-sep {
+  color: var(--text-subtle);
+}
+
+.iv-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.iv-saving {
+  margin-right: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+.iv-icon-btn,
+.iv-square-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.4rem;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.iv-icon-btn:hover,
+.iv-square-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.iv-square-btn {
+  border: 1px solid var(--border);
+  font-size: 1.1rem;
+}
+
+.iv-watch.is-on {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.iv-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.iv-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+}
+
+.iv-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  min-width: 13rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+  border-radius: var(--radius);
+  background: var(--surface-overlay, var(--surface));
+  box-shadow: 0 4px 8px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+}
+
+.iv-menu-left {
+  left: 0;
+}
+
+.iv-menu-right {
+  right: 0;
+}
+
+.iv-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.875rem;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.iv-menu-item:hover {
+  background: var(--hover);
+}
+
+.iv-menu-item.is-danger {
+  color: var(--danger);
+}
+
+.iv-watch-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 18rem;
+  padding: 0.25rem 0.75rem 0.5rem;
+}
+
+.iv-watch-panel .iv-menu-item {
+  margin: 0 -0.75rem;
+}
+
+.iv-placeholder {
+  padding: 2rem 1.5rem;
+  color: var(--text-muted);
+}
+
+.iv-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 2rem;
+  min-height: 0;
+  padding: 0 1.5rem 1.5rem;
+  overflow-y: auto;
+}
+
+.iv-main,
+.iv-side {
+  min-width: 0;
+}
+
+.iv-side {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.iv-title {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.25rem -0.4rem;
+  padding: 0.25rem 0.4rem;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.iv-title:hover {
+  background: var(--hover);
+}
+
+.iv-title:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.iv-quick-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.iv-section {
+  margin-bottom: 1.5rem;
+}
+
+.iv-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.iv-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.iv-section-head h3 {
+  margin: 0;
+}
+
+.iv-count {
+  color: var(--text-subtle);
+  font-weight: 400;
+}
+
+.iv-inline-edit {
+  display: block;
+  width: 100%;
+  margin-left: -0.4rem;
+  padding: 0.35rem 0.4rem;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.iv-inline-edit:hover {
+  background: var(--hover);
+}
+
+.iv-placeholder-text {
+  color: var(--text-subtle);
+}
+
+.iv-editor textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.iv-editor-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.iv-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.iv-inline-form input,
+.iv-inline-form select {
+  flex: 1 1 10rem;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.iv-inline-form input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.iv-issue-list {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.iv-issue-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.iv-issue-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.iv-issue-key {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.iv-issue-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iv-link-type {
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.iv-lozenge {
+  flex-shrink: 0;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.iv-lozenge.is-todo {
+  background: #dfe1e6;
+  color: #42526e;
+}
+
+.iv-lozenge.is-progress {
+  background: #deebff;
+  color: #0747a6;
+}
+
+.iv-lozenge.is-done {
+  background: #e3fcef;
+  color: #006644;
+}
+
+.iv-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.iv-tabs button {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.iv-tabs button.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.iv-composer {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.iv-composer-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.iv-composer textarea {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.iv-composer textarea:focus {
+  border: 2px solid var(--accent);
+  outline: none;
+}
+
+.iv-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.iv-starters button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.iv-starters button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.iv-hint {
+  margin: 0.5rem 0 0;
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+
+.iv-hint kbd {
+  padding: 0 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface-sunken);
+  font-size: 0.7rem;
+}
+
+.iv-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iv-activity-item {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.iv-activity-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.iv-activity-body p {
+  margin: 0.2rem 0 0;
+}
+
+.iv-activity-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.iv-activity-head span {
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+}
+
+.iv-comment-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.iv-history-change {
+  display: block;
+  color: var(--text-muted);
+}
+
+.iv-link-btn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.iv-link-btn:hover {
+  text-decoration: underline;
+}
+
+.iv-status-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.iv-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.iv-status-btn.is-todo {
+  background: #dfe1e6;
+  color: #172b4d;
+}
+
+.iv-status-btn.is-progress {
+  background: #0c66e4;
+  color: #fff;
+}
+
+.iv-status-btn.is-done {
+  background: #1f845a;
+  color: #fff;
+}
+
+.iv-status-btn:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.iv-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.iv-panel > summary {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.iv-panel[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.iv-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.65rem 0.85rem;
+}
+
+.iv-row {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+  min-height: 2rem;
+}
+
+.iv-row-label {
+  padding-top: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.iv-row-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.iv-row-value > * {
+  max-width: 100%;
+}
+
+.iv-input,
+.iv-select select {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.iv-input:hover,
+.iv-select select:hover {
+  background: var(--hover);
+}
+
+.iv-input:focus,
+.iv-select select:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  outline: none;
+}
+
+.iv-input::placeholder {
+  color: var(--text-subtle);
+}
+
+.iv-select {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.iv-parent,
+.iv-person {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+  padding-top: 0.3rem;
+}
+
+.iv-panel-body .issue-drawer-section {
+  margin: 0.5rem 0 0;
+}
+
+.iv-meta {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .iv-overlay {
+    padding: 0;
+  }
+
+  .iv-dialog {
+    width: 100%;
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .iv-body {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0 1rem 1rem;
+  }
+
+  .iv-side {
+    position: static;
+  }
+
+  .iv-title {
+    font-size: 1.25rem;
+  }
+
+  .iv-composer textarea,
+  .iv-inline-form input,
+  .iv-input {
+    font-size: 16px;
+  }
+}

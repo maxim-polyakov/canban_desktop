@@ -5,17 +5,9 @@ import { CSS } from '@dnd-kit/utilities';
 import KanbanColumn from './KanbanColumn.jsx';
 import AssigneeSummary from './AssigneeSummary.jsx';
 import { quests } from '../api.js';
-import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import './KanbanBoard.css';
 
 const COLUMN_PREFIX = 'col-';
-const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 1024;
-
-function formatFileSize(sizeBytes) {
-  if (sizeBytes < 1024) return `${sizeBytes} Б`;
-  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} КБ`;
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
-}
 
 function SortableColumn({ column, onColumnReorder, children }) {
   const { setNodeRef, listeners, transform, transition, isDragging } = useSortable({
@@ -39,18 +31,9 @@ function SortableColumn({ column, onColumnReorder, children }) {
   );
 }
 
-export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick, questFilter, selectedQuestIds = [], onSelectQuest, sprintId }) {
-  const { t } = useLocalization();
+export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick, questFilter, selectedQuestIds = [], onSelectQuest, sprintId, issueTypes = [] }) {
   const [activeId, setActiveId] = useState(null);
   const [newQuestColumnId, setNewQuestColumnId] = useState(null);
-  const [newQuestTitle, setNewQuestTitle] = useState('');
-  const [newQuestDescription, setNewQuestDescription] = useState('');
-  const [newQuestAssigneeIds, setNewQuestAssigneeIds] = useState([]);
-  const [newQuestXpReward, setNewQuestXpReward] = useState(10);
-  const [newQuestFiles, setNewQuestFiles] = useState([]);
-  const [newQuestRecipientIds, setNewQuestRecipientIds] = useState([]);
-  const [newQuestFileError, setNewQuestFileError] = useState('');
-  const [creatingQuest, setCreatingQuest] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [newColumnIsDone, setNewColumnIsDone] = useState(false);
@@ -99,73 +82,18 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
     }
   };
 
-  const handleAddQuest = async (columnId) => {
-    if (!newQuestTitle.trim() || creatingQuest) return;
-    setCreatingQuest(true);
-    setNewQuestFileError('');
-    try {
-      const xp = Math.max(0, Math.min(9999, Number(newQuestXpReward) || 0));
-      const createdQuest = await quests.create({
-        title: newQuestTitle.trim(),
-        description: newQuestDescription.trim() || null,
-        columnId,
-        assigneeIds: newQuestAssigneeIds,
-        category: 0,
-        xpReward: xp,
-        isEpic: false,
-        notificationRecipientIds: [...new Set([...newQuestRecipientIds, ...newQuestAssigneeIds])],
-        ...(sprintId ? { sprintId } : {}),
-      });
-      const failedFiles = [];
-      for (const file of newQuestFiles) {
-        try {
-          await quests.uploadAttachment(createdQuest.id, file);
-        } catch (error) {
-          console.error(error);
-          failedFiles.push(file.name);
-        }
-      }
-      setNewQuestTitle('');
-      setNewQuestDescription('');
-      setNewQuestAssigneeIds([]);
-      setNewQuestXpReward(10);
-      setNewQuestFiles([]);
-      setNewQuestRecipientIds([]);
-      setNewQuestColumnId(null);
-      if (onRefreshColumnQuests) onRefreshColumnQuests(columnId);
-      else onRefresh();
-      if (failedFiles.length > 0) {
-        window.alert(t('Задача создана, но не удалось загрузить: ${failedFiles.join(\', \')}', { "failedFiles.join(', ')": failedFiles.join(', ') }));
-      }
-    } catch (e) {
-      console.error(e);
-      setNewQuestFileError(e.message || 'Не удалось создать задачу.');
-    } finally {
-      setCreatingQuest(false);
-    }
-  };
-
-  const handleNewQuestFiles = (selectedFiles) => {
-    const files = Array.from(selectedFiles || []);
-    const oversized = files.filter((file) => file.size > MAX_ATTACHMENT_SIZE);
-    const valid = files.filter((file) => file.size <= MAX_ATTACHMENT_SIZE);
-    setNewQuestFiles((current) => [...current, ...valid]);
-    setNewQuestFileError(
-      oversized.length > 0
-        ? `Файлы больше 1 ГБ не добавлены: ${oversized.map((file) => file.name).join(', ')}`
-        : ''
-    );
-  };
-
-  const handleCancelAddQuest = () => {
-    setNewQuestColumnId(null);
-    setNewQuestTitle('');
-    setNewQuestDescription('');
-    setNewQuestAssigneeIds([]);
-    setNewQuestXpReward(10);
-    setNewQuestFiles([]);
-    setNewQuestRecipientIds([]);
-    setNewQuestFileError('');
+  const handleAddQuest = async (columnId, values) => {
+    await quests.create({
+      ...values,
+      columnId,
+      category: 0,
+      xpReward: 10,
+      isEpic: false,
+      notificationRecipientIds: values.assigneeIds,
+      ...(sprintId ? { sprintId } : {}),
+    });
+    if (onRefreshColumnQuests) onRefreshColumnQuests(columnId);
+    else onRefresh();
   };
 
   const handleSubmitNewColumn = () => {
@@ -189,27 +117,9 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                     members={members || []}
                     onStartAddQuest={() => setNewQuestColumnId(col.id)}
                     isAdding={newQuestColumnId === col.id}
-                    newQuestTitle={newQuestTitle}
-                    onNewQuestTitleChange={setNewQuestTitle}
-                    newQuestDescription={newQuestDescription}
-                    onNewQuestDescriptionChange={setNewQuestDescription}
-                    newQuestAssigneeIds={newQuestAssigneeIds}
-                    onNewQuestAssigneesChange={(assigneeIds) => {
-                      setNewQuestAssigneeIds(assigneeIds);
-                      setNewQuestRecipientIds((current) => [...new Set([...current, ...assigneeIds])]);
-                    }}
-                    newQuestRecipientIds={newQuestRecipientIds}
-                    onNewQuestRecipientsChange={setNewQuestRecipientIds}
-                    newQuestXpReward={newQuestXpReward}
-                    onNewQuestXpRewardChange={setNewQuestXpReward}
-                    newQuestFiles={newQuestFiles}
-                    onNewQuestFilesChange={handleNewQuestFiles}
-                    onRemoveNewQuestFile={(index) => setNewQuestFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                    newQuestFileError={newQuestFileError}
-                    formatFileSize={formatFileSize}
-                    creatingQuest={creatingQuest}
-                    onSubmitNewQuest={() => handleAddQuest(col.createColumnId ?? col.id)}
-                    onCancelAdd={handleCancelAddQuest}
+                    issueTypes={issueTypes}
+                    onCreateQuest={(values) => handleAddQuest(col.createColumnId ?? col.id, values)}
+                    onCancelAdd={() => setNewQuestColumnId(null)}
                     onUpdateColumn={onUpdateColumn}
                     onUpdateColumnKind={onUpdateColumnKind}
                     onRefreshColumn={onRefreshColumn}

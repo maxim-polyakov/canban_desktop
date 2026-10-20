@@ -6,7 +6,7 @@ import {
 } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { IssueTypeIcon, PriorityIcon, WatcherBadge } from './IssueIcons.jsx';
+import { IssueTypeIcon, PriorityIcon } from './IssueIcons.jsx';
 import AssigneeAvatar from './AssigneeAvatar.jsx';
 import AssigneeSelect from './AssigneeSelect.jsx';
 import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
@@ -14,24 +14,19 @@ import IssueVotes from './IssueVotes.jsx';
 import IssueAssetsField from './IssueAssetsField.jsx';
 import CreateBranchPanel from './CreateBranchPanel.jsx';
 import CustomFieldsPanel from './CustomFields.jsx';
-import { typeChoice, useBoardIssueConfig } from '../utils/issueConfig.js';
+import { BASE_TYPES, typeChoice, useBoardIssueConfig } from '../utils/issueConfig.js';
 import { fieldRule } from '../utils/issueLayout.js';
 import { issueWorkflow, needsTransitionDialog, reachableColumns, transitionsTo } from '../utils/workflow.js';
+import { statusTone } from '../utils/boardColumnLayout.js';
 import TransitionScreenDialog from './TransitionScreenDialog.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
+import './IssueView.css';
 
 const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 1024;
 const LINK_TYPE_LABELS = ['блокирует', 'зависит от', 'дублирует', 'связана с'];
 const DEVELOPMENT_ICONS = { pull_request: 'PR', branch: '⑂', commit: '●', check_run: '✓' };
-const ISSUE_TYPE_OPTIONS = [
-  { value: 0, label: 'Эпик' },
-  { value: 1, label: 'История' },
-  { value: 2, label: 'Задача' },
-  { value: 3, label: 'Ошибка' },
-  { value: 4, label: 'Подзадача' },
-];
 const PRIORITY_OPTIONS = [
   { value: 4, label: 'Высший' },
   { value: 3, label: 'Высокий' },
@@ -39,6 +34,10 @@ const PRIORITY_OPTIONS = [
   { value: 1, label: 'Низкий' },
   { value: 0, label: 'Низший' },
 ];
+const COMMENT_STARTERS = ['Кто работает над этим...?', 'Можно ли узнать подробнее...?', 'Обновление статуса...'];
+const ACTIVITY_TABS = [['all', 'Все'], ['comments', 'Комментарии'], ['history', 'История'], ['worklog', 'Журнал работ']];
+
+const isTyping = (target) => !!target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable);
 
 function RichTextPreview({ value }) {
   const blocks = parseRichText(value);
@@ -55,9 +54,28 @@ function formatFileSize(sizeBytes) {
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
 }
 
+function Menu({ open, onClose, children, align = 'left', label }) {
+  if (!open) return null;
+  return (
+    <>
+      <div className="iv-menu-backdrop" onMouseDown={onClose} />
+      <div className={`iv-menu iv-menu-${align}`} role="menu" aria-label={label}>{children}</div>
+    </>
+  );
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="iv-row">
+      <div className="iv-row-label">{label}</div>
+      <div className="iv-row-value">{children}</div>
+    </div>
+  );
+}
+
 /**
- * Jira-like issue detail: desktop right-hand drawer, mobile fullscreen sheet.
- * Self-contained data loading/saving so it can be reused from the board and the backlog.
+ * Jira-like issue view: a large dialog with the summary, description and activity on the left
+ * and the status and details on the right; every field saves as soon as it changes.
  */
 export default function IssueDetailDrawer({ questId, members = [], columns = [], onClose, onChanged, canDelete = true }) {
   const { user } = useAuth();
@@ -73,8 +91,10 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight + 2}px`;
-  }, [title]);
+  }, [title, quest]);
   const [description, setDescription] = useState('');
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionPreview, setDescriptionPreview] = useState(false);
   const [xpReward, setXpReward] = useState(0);
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [issueType, setIssueType] = useState(2);
@@ -86,6 +106,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [component, setComponent] = useState('');
   const [fixVersion, setFixVersion] = useState('');
   const [storyPoints, setStoryPoints] = useState('');
+  const [originalEstimate, setOriginalEstimate] = useState('');
+  const [remainingEstimate, setRemainingEstimate] = useState('');
   const [notificationRecipientIds, setNotificationRecipientIds] = useState([]);
   const [watcherSaving, setWatcherSaving] = useState(false);
   const [watcherError, setWatcherError] = useState('');
@@ -105,12 +127,18 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [componentOptions, setComponentOptions] = useState([]);
   const [releaseOptions, setReleaseOptions] = useState([]);
   const [worklogMinutes, setWorklogMinutes] = useState('');
-  const [originalEstimate, setOriginalEstimate] = useState('');
-  const [remainingEstimate, setRemainingEstimate] = useState('');
   const [linkQuestId, setLinkQuestId] = useState('');
   const [linkType, setLinkType] = useState(3);
+  const [addingLink, setAddingLink] = useState(false);
+  const [addingChild, setAddingChild] = useState(false);
+  const [childTitle, setChildTitle] = useState('');
+  const [editingParent, setEditingParent] = useState(false);
+  const [parentKey, setParentKey] = useState('');
   const [auxError, setAuxError] = useState('');
-  const [descriptionPreview, setDescriptionPreview] = useState(false);
+  const [menu, setMenu] = useState(null);
+  const [activityTab, setActivityTab] = useState('comments');
+  const [commentFocused, setCommentFocused] = useState(false);
+  const commentRef = useRef(null);
 
   // Backend contract fields are optional during rollout: only show/send them when present on the quest.
   const supportsComponent = !!quest && Object.prototype.hasOwnProperty.call(quest, 'component');
@@ -132,36 +160,45 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const questIdRef = useRef(questId);
   questIdRef.current = questId;
 
+  const applyQuest = useCallback((q) => {
+    setQuest(q);
+    setTitle(q?.title ?? '');
+    setDescription(richTextToPlainText(q?.descriptionDocument || q?.description || ''));
+    setXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);
+    setAssigneeIds(q?.assigneeIds ?? []);
+    setIssueType(q?.issueType ?? 2);
+    setIssueTypeId(q?.issueTypeId ?? null);
+    setPriority(q?.priority ?? 2);
+    setLabels(q?.labels ?? '');
+    setDueDate(q?.dueDate ? String(q.dueDate).slice(0, 10) : '');
+    setSprintId(q?.sprintId ?? '');
+    setComponent(q?.componentId ?? q?.component ?? '');
+    setFixVersion(q?.fixVersionId ?? q?.fixVersion ?? '');
+    setStoryPoints(typeof q?.storyPoints === 'number' ? String(q.storyPoints) : '');
+    setOriginalEstimate(q?.originalEstimateMinutes ?? '');
+    setRemainingEstimate(q?.remainingEstimateMinutes ?? '');
+    setNotificationRecipientIds(q?.notificationRecipientIds ?? []);
+  }, []);
+
   const loadQuest = useCallback(() => {
     if (!questId) return;
     setLoading(true);
     quests.get(questId).then((q) => {
       if (questIdRef.current !== questId) return;
-      setQuest(q);
       if (q?.id) rememberIssue({ id: q.id, title: q.title, issueKey: q.issueKey, issueType: q.issueType, boardId: q.boardId });
-      setTitle(q?.title ?? '');
-      setDescription(richTextToPlainText(q?.descriptionDocument || q?.description || ''));
-      setXpReward(typeof q?.xpReward === 'number' ? q.xpReward : 0);
-      setAssigneeIds(q?.assigneeIds ?? []);
-      setIssueType(q?.issueType ?? 2);
-      setIssueTypeId(q?.issueTypeId ?? null);
-      setPriority(q?.priority ?? 2);
-      setLabels(q?.labels ?? '');
-      setDueDate(q?.dueDate ? String(q.dueDate).slice(0, 10) : '');
-      setSprintId(q?.sprintId ?? '');
-      setComponent(q?.componentId ?? q?.component ?? '');
-      setFixVersion(q?.fixVersionId ?? q?.fixVersion ?? '');
-      setStoryPoints(typeof q?.storyPoints === 'number' ? String(q.storyPoints) : '');
-      setOriginalEstimate(q?.originalEstimateMinutes ?? '');
-      setRemainingEstimate(q?.remainingEstimateMinutes ?? '');
-      setNotificationRecipientIds(q?.notificationRecipientIds ?? []);
+      applyQuest(q);
       setWatcherError('');
     }).catch(() => setQuest(null)).finally(() => {
       if (questIdRef.current === questId) setLoading(false);
     });
-  }, [questId]);
+  }, [questId, applyQuest]);
 
   useEffect(() => { loadQuest(); }, [loadQuest]);
+
+  const loadHierarchy = useCallback(() => {
+    if (!questId) return;
+    questHierarchy.get(questId).then(setHierarchy).catch(() => {});
+  }, [questId]);
 
   useEffect(() => {
     if (!questId) return;
@@ -202,60 +239,81 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   }, [questId]);
 
   useEffect(() => {
-    const onKeyDown = (e) => { if (e.key === 'Escape') onClose?.(); };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && !isTyping(e.target) && !pendingTransition) onClose?.();
+      if ((e.key === 'm' || e.key === 'M' || e.key === 'ь' || e.key === 'Ь') && !isTyping(e.target) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setActivityTab((tab) => (tab === 'comments' || tab === 'all' ? tab : 'comments'));
+        window.setTimeout(() => commentRef.current?.focus(), 0);
+      }
+    };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  }, [onClose, pendingTransition]);
 
   const issueConfig = useBoardIssueConfig(quest?.boardId);
   const shown = (key) => !fieldRule(issueConfig.layout, typeChoice(issueType, issueTypeId), key).hidden;
-  const chooseIssueType = (value) => {
-    const custom = issueConfig.types.find((type) => type.id === value);
-    if (custom) { setIssueTypeId(custom.id); setIssueType(custom.baseType); }
-    else { setIssueTypeId(null); setIssueType(Number(value)); }
-  };
 
-  const handleSave = async () => {
-    if (!questId) return;
+  const save = async (patch = {}) => {
+    if (!questId || !quest) return;
+    const s = {
+      title, description, xpReward, assigneeIds, issueType, issueTypeId, priority, labels, sprintId, dueDate,
+      component, fixVersion, storyPoints, originalEstimate, remainingEstimate, ...patch,
+    };
+    if (!String(s.title).trim()) { setTitle(quest.title ?? ''); return; }
     setSaving(true);
+    setAuxError('');
     try {
-      const xp = Math.max(0, Math.min(9999, Number(xpReward) || 0));
       const payload = {
-        title: title.trim(),
-        description: description.trim(),
-        descriptionDocument: serializeRichText(description.trim()),
-        xpReward: xp,
-        assigneeIds,
+        title: String(s.title).trim(),
+        description: s.description.trim(),
+        descriptionDocument: serializeRichText(s.description.trim()),
+        xpReward: Math.max(0, Math.min(9999, Number(s.xpReward) || 0)),
+        assigneeIds: s.assigneeIds,
         assigneeIdsSet: true,
-        issueType,
-        issueTypeId,
+        issueType: s.issueType,
+        issueTypeId: s.issueTypeId,
         issueTypeIdSet: true,
-        priority,
-        labels: labels.trim(),
-        sprintId: sprintId || null,
+        priority: s.priority,
+        labels: s.labels.trim(),
+        sprintId: s.sprintId || null,
         sprintIdSet: true,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-        originalEstimateMinutes: originalEstimate === '' ? null : Number(originalEstimate),
-        remainingEstimateMinutes: remainingEstimate === '' ? null : Number(remainingEstimate),
+        dueDate: s.dueDate ? new Date(s.dueDate).toISOString() : null,
+        originalEstimateMinutes: s.originalEstimate === '' ? null : Number(s.originalEstimate),
+        remainingEstimateMinutes: s.remainingEstimate === '' ? null : Number(s.remainingEstimate),
+        componentId: s.component || null,
+        fixVersionId: s.fixVersion || null,
       };
-      if (supportsComponent) payload.component = component.trim();
-      payload.componentId = component || null;
-      if (supportsFixVersion) payload.fixVersion = fixVersion.trim();
-      payload.fixVersionId = fixVersion || null;
+      if (supportsComponent) payload.component = String(s.component).trim();
+      if (supportsFixVersion) payload.fixVersion = String(s.fixVersion).trim();
       if (supportsStoryPoints) {
         payload.storyPointsSet = true;
-        payload.storyPoints = storyPoints === '' ? null : Math.max(0, Math.min(100, parseInt(storyPoints, 10) || 0));
+        payload.storyPoints = s.storyPoints === '' ? null : Math.max(0, Math.min(100, parseInt(s.storyPoints, 10) || 0));
+      }
+      if (patch.parentQuestId !== undefined) {
+        payload.parentQuestId = patch.parentQuestId;
+        payload.parentQuestIdSet = true;
       }
       await quests.update(questId, payload);
-      const updated = await quests.get(questId);
-      setQuest(updated);
+      applyQuest(await quests.get(questId));
+      if (patch.parentQuestId !== undefined) loadHierarchy();
+      historyApi.get(questId).then((value) => setHistoryItems(value?.items || value || [])).catch(() => {});
       onChanged?.();
     } catch (e) {
-      console.error(e);
-      window.alert(t(e.message || 'Не удалось сохранить задачу.'));
+      setAuxError(t(e.message || 'Не удалось сохранить задачу.'));
+      loadQuest();
     } finally {
       setSaving(false);
     }
+  };
+
+  const chooseIssueType = (value) => {
+    const custom = issueConfig.types.find((type) => type.id === value);
+    const next = custom ? { issueTypeId: custom.id, issueType: custom.baseType } : { issueTypeId: null, issueType: Number(value) };
+    setIssueTypeId(next.issueTypeId);
+    setIssueType(next.issueType);
+    setMenu(null);
+    save(next);
   };
 
   const persistWatchers = async (nextIds) => {
@@ -279,10 +337,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const isWatching = !!user && notificationRecipientIds.includes(user.id);
   const toggleWatching = () => {
     if (!user || watcherSaving) return;
-    const next = isWatching
-      ? notificationRecipientIds.filter((id) => id !== user.id)
-      : [...notificationRecipientIds, user.id];
-    persistWatchers(next);
+    persistWatchers(isWatching ? notificationRecipientIds.filter((id) => id !== user.id) : [...notificationRecipientIds, user.id]);
   };
 
   const sharedTransitions = issueConfig.workflow && quest
@@ -291,6 +346,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const reachable = quest ? reachableColumns(issueConfig.workflow, quest) : null;
 
   const handleMoveColumn = async (targetColumnId, choice) => {
+    setMenu(null);
     if (!questId || !targetColumnId || targetColumnId === quest?.columnId || movingColumn) return;
     if (!choice && sharedTransitions) {
       const options = transitionsTo(issueConfig.workflow, quest, targetColumnId) || [];
@@ -305,8 +361,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       const targetColumn = columns.find((c) => c.id === targetColumnId);
       const newOrder = (targetColumn?.quests ?? targetColumn?.Quests ?? []).length;
       await quests.move({ questId, targetColumnId, newOrder, ...choice });
-      const updated = await quests.get(questId);
-      setQuest(updated);
+      applyQuest(await quests.get(questId));
       onChanged?.();
     } catch (e) {
       window.alert(t(e.message || 'Не удалось переместить задачу.'));
@@ -315,7 +370,18 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     }
   };
 
+  const handleTransition = async (transitionId) => {
+    setMenu(null);
+    if (!transitionId) return;
+    try {
+      await workflows.transition(questId, transitionId);
+      loadQuest();
+      onChanged?.();
+    } catch (e) { setAuxError(e.message); }
+  };
+
   const handleDelete = async () => {
+    setMenu(null);
     if (!questId || !window.confirm(t('Удалить квест?'))) return;
     try {
       const ok = await quests.delete(questId);
@@ -333,6 +399,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       const comment = await quests.addComment(questId, newComment.trim());
       if (comment) setComments((current) => [...current, comment]);
       setNewComment('');
+      setCommentFocused(false);
     } catch (e) {
       setCommentError(e.message || 'Не удалось добавить комментарий.');
     } finally {
@@ -395,15 +462,6 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     }
   };
 
-  const handleTransition = async (transitionId) => {
-    if (!transitionId) return;
-    try {
-      await workflows.transition(questId, transitionId);
-      loadQuest();
-      onChanged?.();
-    } catch (e) { setAuxError(e.message); }
-  };
-
   const handleAddLink = async (event) => {
     event.preventDefault();
     if (!linkQuestId.trim()) return;
@@ -411,7 +469,50 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       const created = await questLinks.create(questId, { target: linkQuestId.trim(), type: linkType });
       setLinks((current) => [...current, created]);
       setLinkQuestId('');
+      setAddingLink(false);
     } catch (e) { setAuxError(e.message); }
+  };
+
+  const handleDeleteLink = async (link) => {
+    try {
+      await questLinks.delete(questId, link.id);
+      setLinks((current) => current.filter((item) => item.id !== link.id));
+    } catch (e) { setAuxError(e.message); }
+  };
+
+  const childIssueType = issueType === 0 ? 2 : 4;
+  const handleAddChild = async (event) => {
+    event.preventDefault();
+    const summary = childTitle.trim();
+    if (!summary || !quest) return;
+    try {
+      await quests.create({
+        title: summary,
+        columnId: columns[0]?.id ?? quest.columnId,
+        category: 0,
+        xpReward: 10,
+        isEpic: false,
+        issueType: childIssueType,
+        parentQuestId: questId,
+        ...(quest.sprintId ? { sprintId: quest.sprintId } : {}),
+      });
+      setChildTitle('');
+      loadHierarchy();
+      onChanged?.();
+    } catch (e) { setAuxError(t(e.message || 'Не удалось создать задачу.')); }
+  };
+
+  const handleSetParent = async (event) => {
+    event.preventDefault();
+    const key = parentKey.trim().toUpperCase();
+    if (!key) { setEditingParent(false); return; }
+    try {
+      const parent = await quests.resolveKey(key);
+      if (!parent?.id) throw new Error(t('Задача {key} не найдена').replace('{key}', key));
+      setEditingParent(false);
+      setParentKey('');
+      await save({ parentQuestId: parent.id });
+    } catch (e) { setAuxError(t(e.message || 'Не удалось сохранить задачу.')); }
   };
 
   const handleLogWork = async (event) => {
@@ -449,6 +550,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   };
 
   const handleClone = async () => {
+    setMenu(null);
     try {
       const cloned = await cloneApi.quest(questId, { includeLinks: false, includeWatchers: true });
       window.alert(t('Задача клонирована: ${issueKey}', { issueKey: cloned.issueKey || cloned.id }));
@@ -456,362 +558,527 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     } catch (e) { setAuxError(e.message); }
   };
 
+  const toggle = (name) => setMenu((current) => (current === name ? null : name));
+  const formatDate = (value) => (value ? new Date(value).toLocaleString(locale) : '');
+  const currentStatus = quest ? columns.find((c) => c.id === quest.columnId) : null;
+  const typeOptions = [
+    ...BASE_TYPES.map((x) => ({ value: String(x.value), issueType: x.value, typeId: null, label: t(x.label) })),
+    ...issueConfig.types.map((x) => ({ value: x.id, issueType: x.baseType, typeId: x.id, label: x.name })),
+  ];
+  const currentTypeLabel = typeOptions.find((x) => x.value === typeChoice(issueType, issueTypeId))?.label;
+  const statusItems = !quest ? [] : sharedTransitions
+    ? sharedTransitions.map((x) => ({
+      key: x.key,
+      label: x.name,
+      target: columns.find((c) => c.id === x.to),
+      run: () => { setMenu(null); if (needsTransitionDialog([x])) setPendingTransition({ transitions: [x], targetColumnId: x.to }); else handleMoveColumn(x.to, { transition: x.key }); },
+    }))
+    : [
+      ...columns.filter((c) => c.id !== quest.columnId && (!reachable || reachable.has(c.id))).map((c) => ({ key: c.id, label: c.title, target: c, run: () => handleMoveColumn(c.id) })),
+      ...transitions.map((x) => ({ key: `wf-${x.id}`, label: x.name, target: columns.find((c) => c.id === x.targetColumnId), run: () => handleTransition(x.id) })),
+    ];
+  const children = hierarchy?.children || [];
+  const reporter = hierarchy?.reporter;
+  const me = members.find((m) => m.userId === user?.id);
+  const activity = [
+    ...(activityTab === 'all' || activityTab === 'comments' ? comments.map((x) => ({ kind: 'comment', at: x.createdAt, item: x })) : []),
+    ...(activityTab === 'all' || activityTab === 'history' ? historyItems.map((x) => ({ kind: 'history', at: x.createdAt, item: x })) : []),
+    ...(activityTab === 'all' || activityTab === 'worklog' ? worklogList.map((x) => ({ kind: 'worklog', at: x.startedAt || x.createdAt, item: x })) : []),
+  ].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+
+  const renderActivity = ({ kind, item }, index) => {
+    if (kind === 'comment') {
+      return (
+        <li key={`c-${item.id}`} className="iv-activity-item">
+          <AssigneeAvatar userId={item.authorUserId} displayName={item.authorName} avatarUrl={item.authorAvatarUrl} size={32} />
+          <div className="iv-activity-body">
+            <div className="iv-activity-head"><strong>{item.authorName}</strong><span>{formatDate(item.createdAt)}</span></div>
+            <p className="iv-comment-text">{item.text}</p>
+            {item.authorUserId === user?.id && (
+              <button type="button" className="iv-link-btn" onClick={() => handleDeleteComment(item)}>{t('Удалить')}</button>
+            )}
+          </div>
+        </li>
+      );
+    }
+    if (kind === 'history') {
+      return (
+        <li key={`h-${item.id || index}`} className="iv-activity-item">
+          <AssigneeAvatar userId={item.userId} displayName={item.userName || t('Система')} size={32} />
+          <div className="iv-activity-body">
+            <div className="iv-activity-head"><strong>{item.userName || t('Система')}</strong><span>{formatDate(item.createdAt)}</span></div>
+            <p>
+              {t('изменил(а)')} <strong>{item.field || item.changeType}</strong>
+              {(item.oldValue || item.newValue) && <span className="iv-history-change">{item.oldValue ? `${item.oldValue} → ` : ''}{item.newValue || ''}</span>}
+            </p>
+          </div>
+        </li>
+      );
+    }
+    return (
+      <li key={`w-${item.id || index}`} className="iv-activity-item">
+        <AssigneeAvatar userId={item.userId} displayName={item.userName || item.authorName || t('Участник')} size={32} />
+        <div className="iv-activity-body">
+          <div className="iv-activity-head"><strong>{item.userName || item.authorName || t('Участник')}</strong><span>{formatDate(item.startedAt || item.createdAt)}</span></div>
+          <p>{t('Затрачено')}: {item.timeSpentMinutes ?? item.minutes} {t('мин.')}</p>
+        </div>
+      </li>
+    );
+  };
+
   return (
-    <div className="issue-drawer-overlay" onClick={onClose}>
-      <aside className="issue-drawer" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <header className="issue-drawer-header">
-          <button type="button" className="issue-drawer-back" onClick={onClose} title="Назад" aria-label="Назад">←</button>
-          <span className="issue-drawer-key">{quest?.issueKey || '…'}</span>
-          {quest?.issueKey && (
-            <button type="button" className="issue-drawer-copy-link" onClick={handleCopyLink}
-              title={linkCopied ? t('Ссылка скопирована') : t('Копировать ссылку')} aria-label={t('Копировать ссылку')}>
-              {linkCopied ? '✓' : '🔗'}
-            </button>
-          )}
-          <button type="button" className="issue-drawer-close" onClick={onClose} title="Закрыть" aria-label="Закрыть">✕</button>
+    <div className="iv-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
+      <div className="iv-dialog" role="dialog" aria-modal="true" aria-label={quest?.issueKey || t('Задача')}>
+        <header className="iv-header">
+          <nav className="iv-breadcrumbs" aria-label={t('Навигация')}>
+            {hierarchy?.parent ? (
+              <span className="iv-crumb" title={hierarchy.parent.title}>
+                <IssueTypeIcon issueType={hierarchy.parent.issueType} size={14} />
+                {hierarchy.parent.issueKey}
+              </span>
+            ) : quest && (
+              <button type="button" className="iv-crumb iv-crumb-btn" onClick={() => setEditingParent(true)}>
+                <span aria-hidden="true">✎</span> {t('Добавить родителя')}
+              </button>
+            )}
+            {quest && <span className="iv-crumb-sep">/</span>}
+            {quest && (
+              <span className="iv-anchor">
+                <button type="button" className="iv-crumb iv-crumb-btn" aria-label={t('Тип задачи')} title={currentTypeLabel} onClick={() => toggle('type')}>
+                  <IssueTypeIcon issueType={issueType} typeId={issueTypeId} size={14} />
+                </button>
+                <Menu open={menu === 'type'} onClose={() => setMenu(null)} label={t('Тип задачи')}>
+                  {typeOptions.map((x) => (
+                    <button key={x.value} type="button" role="menuitem" className="iv-menu-item" onClick={() => chooseIssueType(x.value)}>
+                      <IssueTypeIcon issueType={x.issueType} typeId={x.typeId} size={16} /> {x.label}
+                    </button>
+                  ))}
+                </Menu>
+              </span>
+            )}
+            {quest?.issueKey && (
+              <button type="button" className="iv-crumb iv-crumb-btn" onClick={handleCopyLink} title={linkCopied ? t('Ссылка скопирована') : t('Копировать ссылку')}>
+                {quest.issueKey}
+              </button>
+            )}
+          </nav>
+          <div className="iv-header-actions">
+            {saving && <span className="iv-saving">{t('Сохранение…')}</span>}
+            {quest && (
+              <span className="iv-anchor">
+                <button type="button" className={`iv-icon-btn iv-watch ${isWatching ? 'is-on' : ''}`} aria-label={t('Наблюдатели')} title={t('Наблюдатели')} onClick={() => toggle('watch')}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5c5 0 9 4.5 10 7-1 2.5-5 7-10 7S3 14.5 2 12c1-2.5 5-7 10-7zm0 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" /></svg>
+                  <span>{notificationRecipientIds.length}</span>
+                </button>
+                <Menu open={menu === 'watch'} onClose={() => setMenu(null)} align="right" label={t('Наблюдатели')}>
+                  <div className="iv-watch-panel">
+                    <button type="button" className="iv-menu-item" onClick={toggleWatching} disabled={!user || watcherSaving}>
+                      {isWatching ? t('Прекратить наблюдение') : t('Начать наблюдение')}
+                    </button>
+                    <p className="iv-hint">{t('Наблюдатели получают email-уведомления об изменениях задачи.')}</p>
+                    {watcherError && <p className="issue-drawer-error" role="alert">{watcherError}</p>}
+                    <NotificationRecipientPicker members={members} selectedIds={notificationRecipientIds} onChange={persistWatchers} disabled={watcherSaving} />
+                  </div>
+                </Menu>
+              </span>
+            )}
+            {quest?.issueKey && (
+              <button type="button" className="iv-icon-btn" onClick={handleCopyLink} aria-label={t('Копировать ссылку')} title={linkCopied ? t('Ссылка скопирована') : t('Копировать ссылку')}>
+                {linkCopied ? '✓' : (
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18 16a3 3 0 0 0-2.4 1.2l-6.7-3.4a3 3 0 0 0 0-1.6l6.7-3.4A3 3 0 1 0 15 7l-6.7 3.4a3 3 0 1 0 0 3.2L15 17a3 3 0 1 0 3-1z" /></svg>
+                )}
+              </button>
+            )}
+            {quest && (
+              <span className="iv-anchor">
+                <button type="button" className="iv-icon-btn" aria-label={t('Действия')} title={t('Действия')} onClick={() => toggle('more')}>⋯</button>
+                <Menu open={menu === 'more'} onClose={() => setMenu(null)} align="right" label={t('Действия')}>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setActivityTab('worklog'); }}>{t('Записать время')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={handleClone}>{t('Клонировать')}</button>
+                  {canDelete && <button type="button" role="menuitem" className="iv-menu-item is-danger" onClick={handleDelete}>{t('Удалить')}</button>}
+                </Menu>
+              </span>
+            )}
+            <button type="button" className="iv-icon-btn" onClick={onClose} aria-label={t('Закрыть')} title={t('Закрыть')}>✕</button>
+          </div>
         </header>
 
         {loading && !quest ? (
-          <div className="issue-drawer-body">Загрузка…</div>
+          <div className="iv-placeholder">{t('Загрузка…')}</div>
         ) : !quest ? (
-          <div className="issue-drawer-body">Задача не найдена.</div>
+          <div className="iv-placeholder">{t('Задача не найдена.')}</div>
         ) : (
-          <div className="issue-drawer-body">
-            <textarea
-              ref={titleRef}
-              className="issue-drawer-title"
-              rows={1}
-              value={title}
-              onChange={(e) => setTitle(e.target.value.replace(/\r?\n/g, ' '))}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-              placeholder="Название"
-            />
-
-            {columns.length > 0 && (
-              <label className="issue-drawer-field issue-drawer-field-block">
-                <span>Статус{movingColumn ? ' (перемещение…)' : ''}</span>
-                <select
-                  value={quest.columnId}
-                  disabled={movingColumn}
-                  onChange={(e) => handleMoveColumn(e.target.value)}
-                >
-                  {columns.filter((c) => !reachable || c.id === quest.columnId || reachable.has(c.id)).map((c) => <option key={c.id} value={c.id}>{c.title || 'Колонка'}</option>)}
-                </select>
-              </label>
-            )}
-            {sharedTransitions?.length > 0 && (
-              <div className="issue-drawer-transitions" role="group" aria-label={t('Переходы')}>
-                {sharedTransitions.map((x) => (
-                  <button key={x.key} type="button" className="app-btn app-btn-subtle" disabled={movingColumn}
-                    onClick={() => (needsTransitionDialog([x]) ? setPendingTransition({ transitions: [x], targetColumnId: x.to }) : handleMoveColumn(x.to, { transition: x.key }))}>
-                    {x.name}
-                  </button>
-                ))}
-              </div>
-            )}
-            {!sharedTransitions && transitions.length > 0 && (
-              <label className="issue-drawer-field issue-drawer-field-block">
-                <span>{t('Workflow переход')}</span>
-                <select defaultValue="" onChange={(e) => { handleTransition(e.target.value); e.target.value = ''; }}>
-                  <option value="" disabled>{t('Выберите переход…')}</option>
-                  {transitions.map((transition) => <option key={transition.id} value={transition.id}>{transition.name} → {columns.find((column) => column.id === transition.targetColumnId)?.title || ''}</option>)}
-                </select>
-              </label>
-            )}
-
-            <div className="issue-drawer-row">
-              <label className="issue-drawer-field">
-                <span>Тип</span>
-                <div className="issue-drawer-select-wrap">
-                  <IssueTypeIcon issueType={issueType} typeId={issueTypeId} size={16} />
-                  <select value={typeChoice(issueType, issueTypeId)} onChange={(e) => chooseIssueType(e.target.value)}>
-                    {ISSUE_TYPE_OPTIONS.map((opt) => <option key={opt.value} value={String(opt.value)}>{t(opt.label)}</option>)}
-                    {issueConfig.types.map((type) => <option key={type.id} value={type.id}>{type.icon} {type.name}</option>)}
-                  </select>
-                </div>
-              </label>
-              {shown('priority') && <label className="issue-drawer-field">
-                <span>Приоритет</span>
-                <div className="issue-drawer-select-wrap">
-                  <PriorityIcon priority={priority} size={14} />
-                  <select value={priority} onChange={(e) => setPriority(Number(e.target.value))}>
-                    {PRIORITY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                </div>
-              </label>}
-            </div>
-
-            {shown('description') && <label className="issue-drawer-field issue-drawer-field-block">
-              <span>{t('Описание')}</span>
-              <div className="issue-drawer-editor-toolbar">
-                <button type="button" onClick={() => setDescription((value) => `${value}${value ? '\n\n' : ''}# `)}>H</button>
-                <button type="button" onClick={() => setDescription((value) => `${value}${value ? '\n' : ''}- `)}>•</button>
-                <button type="button" onClick={() => setDescriptionPreview((value) => !value)}>{descriptionPreview ? t('Редактировать') : t('Предпросмотр')}</button>
-              </div>
-              {descriptionPreview ? <RichTextPreview value={serializeRichText(description)} /> : <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder={t('Описание задачи')} />}
-              {description.includes('@') && <div className="issue-drawer-mentions" aria-label={t('Упоминания')}>
-                {members.slice(0, 6).map((member) => <button key={member.userId} type="button" onClick={() => setDescription((value) => `${value}@${member.displayName} `)}>@{member.displayName}</button>)}
-              </div>}
-            </label>}
-
-            {shown('labels') && <label className="issue-drawer-field issue-drawer-field-block">
-              <span>Метки</span>
-              <input value={labels} onChange={(e) => setLabels(e.target.value)} placeholder="метка1, метка2" />
-            </label>}
-
-            <CustomFieldsPanel
-              quest={quest}
-              fields={issueConfig.fields}
-              people={members}
-              refs={issueConfig}
-              layout={issueConfig.layout}
-              onSaved={(values) => { setQuest((current) => (current ? { ...current, customFields: values } : current)); onChanged?.(); }}
-            />
-
-            <div className="issue-drawer-row">
-                  {shown('components') && <label className="issue-drawer-field">
-                    <span>Компонент</span>
-                    <select value={component} onChange={(e) => setComponent(e.target.value)}>
-                      <option value="">{t('Без компонента')}</option>
-                      {componentOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                    </select>
-                  </label>}
-                  {shown('fixversions') && <label className="issue-drawer-field">
-                    <span>Версия исправления</span>
-                    <select value={fixVersion} onChange={(e) => setFixVersion(e.target.value)}>
-                      <option value="">{t('Без версии')}</option>
-                      {releaseOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                    </select>
-                  </label>}
-            </div>
-
-            {supportsStoryPoints && shown('storypoints') && (
-              <label className="issue-drawer-field issue-drawer-field-block">
-                <span>Story Points</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={storyPoints}
-                  onChange={(e) => setStoryPoints(e.target.value === '' ? '' : String(Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0))))}
-                  placeholder="Оценка в story points"
-                />
-              </label>
-            )}
-
-            <div className="issue-drawer-row">
-              {shown('duedate') && <label className="issue-drawer-field">
-                <span>Срок</span>
-                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-              </label>}
-              {shown('sprint') && <label className="issue-drawer-field">
-                <span>Спринт</span>
-                <select value={sprintId} onChange={(e) => setSprintId(e.target.value)}>
-                  <option value="">— Бэклог —</option>
-                  {boardSprints.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}{s.status === 1 ? ' (активный)' : ''}</option>
-                  ))}
-                </select>
-              </label>}
-            </div>
-
-            {shown('assignee') && <label className="issue-drawer-field issue-drawer-field-block">
-              <span>Исполнители</span>
-              <AssigneeSelect value={assigneeIds} options={members} onChange={setAssigneeIds} placeholder="— не назначены —" />
-            </label>}
-
-            {assigneeIds.length > 0 && (
-              <div className="issue-drawer-assignee-avatars">
-                {assigneeIds.map((id) => {
-                  const member = members.find((m) => m.userId === id);
-                  if (!member) return null;
-                  return (
-                    <span key={id} className="issue-drawer-assignee-chip">
-                      <AssigneeAvatar userId={member.userId} displayName={member.displayName} avatarUrl={member.avatarUrl} size={20} />
-                      <span>{member.displayName}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            <label className="issue-drawer-field issue-drawer-field-block">
-              <span>Опыт (XP)</span>
-              <input
-                type="number"
-                min={0}
-                max={9999}
-                value={xpReward}
-                onChange={(e) => setXpReward(Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)))}
+          <div className="iv-body">
+            <main className="iv-main">
+              <textarea
+                ref={titleRef}
+                className="iv-title"
+                rows={1}
+                value={title}
+                aria-label={t('Название')}
+                onChange={(e) => setTitle(e.target.value.replace(/\r?\n/g, ' '))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+                  if (e.key === 'Escape') { setTitle(quest.title ?? ''); e.currentTarget.blur(); }
+                }}
+                onBlur={() => { if (title.trim() !== (quest.title ?? '')) save(); }}
               />
-            </label>
-
-            <fieldset className="issue-drawer-notifications">
-              <legend>
-                Наблюдатели <WatcherBadge count={notificationRecipientIds.length} />
-              </legend>
-              <button
-                type="button"
-                className={`issue-drawer-watch-toggle ${isWatching ? 'is-watching' : ''}`}
-                onClick={toggleWatching}
-                disabled={!user || watcherSaving}
-              >
-                {isWatching ? '✓ Вы наблюдаете' : '+ Наблюдать'}
-              </button>
-              <p className="issue-drawer-notifications-hint">Наблюдатели получают email-уведомления об изменениях задачи.</p>
-              {watcherError && <p className="issue-drawer-error" role="alert">{watcherError}</p>}
-              <NotificationRecipientPicker
-                members={members}
-                selectedIds={notificationRecipientIds}
-                onChange={persistWatchers}
-                disabled={watcherSaving}
-              />
-            </fieldset>
-
-            <IssueVotes questId={questId} statusKey={`${quest.columnId}:${quest.completedAt ?? ''}`} />
-
-            <section className="issue-drawer-section">
-              <h4>{t('Иерархия')}</h4>
-              {hierarchy?.parent ? <p>{t('Родитель')}: <strong>{hierarchy.parent.issueKey}</strong> {hierarchy.parent.title}</p> : <p className="issue-drawer-empty">{t('Родительская задача не задана.')}</p>}
-              {(hierarchy?.children || []).length > 0 && <ul className="issue-drawer-compact-list">{hierarchy.children.map((child) => <li key={child.id}><strong>{child.issueKey}</strong> {child.title}</li>)}</ul>}
-            </section>
-
-            <section className="issue-drawer-section">
-              <h4>{t('Оценка и учёт времени')}</h4>
-              <div className="issue-drawer-row">
-                <label className="issue-drawer-field"><span>{t('Первоначальная оценка, мин.')}</span><input type="number" min="0" value={originalEstimate} onChange={(e) => setOriginalEstimate(e.target.value)} /></label>
-                <label className="issue-drawer-field"><span>{t('Осталось, мин.')}</span><input type="number" min="0" value={remainingEstimate} onChange={(e) => setRemainingEstimate(e.target.value)} /></label>
-              </div>
-              <form className="issue-drawer-inline-form" onSubmit={handleLogWork}>
-                <input aria-label={t('Затрачено минут')} type="number" min="1" value={worklogMinutes} onChange={(e) => setWorklogMinutes(e.target.value)} placeholder={t('Затрачено минут')} />
-                <button type="submit" disabled={!Number(worklogMinutes)}>{t('Записать')}</button>
-              </form>
-              <ul className="issue-drawer-compact-list">{worklogList.map((item) => <li key={item.id}>{item.userName || item.authorName || t('Участник')} · {item.timeSpentMinutes ?? item.minutes} {t('мин.')}</li>)}</ul>
-            </section>
-
-            <section className="issue-drawer-section">
-              <h4>{t('Связи задач')}</h4>
-              <form className="issue-drawer-inline-form" onSubmit={handleAddLink}>
-                <select value={linkType} onChange={(e) => setLinkType(Number(e.target.value))}>{LINK_TYPE_LABELS.map((label, index) => <option key={label} value={index}>{t(label)}</option>)}</select>
-                <input value={linkQuestId} onChange={(e) => setLinkQuestId(e.target.value)} placeholder={t('Ключ задачи, например KAN-12')} />
-                <button type="submit">{t('Добавить')}</button>
-              </form>
-              <ul className="issue-drawer-compact-list">{links.map((link) => <li key={link.id}>⛓ {t(LINK_TYPE_LABELS[link.type] || 'связана с')} · <strong>{link.targetKey || link.targetQuestId}</strong> {link.targetTitle || ''}</li>)}</ul>
-            </section>
-
-            <IssueAssetsField questId={questId} />
-
-            <section className="issue-drawer-section">
-              <div className="issue-drawer-section-header">
-                <h4>{t('Разработка GitHub')}</h4>
-                <button type="button" onClick={handleSyncDevelopment} disabled={developmentSyncing}>{developmentSyncing ? '…' : t('Синхронизировать')}</button>
-              </div>
-              {quest.issueKey && <CreateBranchPanel questId={questId} issueKey={quest.issueKey} title={quest.title} onCreated={setDevelopment} />}
-              {developmentItems.length === 0 ? <p className="issue-drawer-empty">{t('Связанные ветки, коммиты и pull request не найдены.')}</p> : (
-                <ul className="issue-drawer-compact-list">
-                  {developmentItems.map((item) => <li key={item.id}>
-                    {DEVELOPMENT_ICONS[item.kind] || '•'} {item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
-                    {item.status ? ` · ${item.status}` : ''}
-                  </li>)}
-                </ul>
-              )}
-            </section>
-
-            {auxError && <p className="issue-drawer-error" role="alert">{auxError}</p>}
-
-            <div className="issue-drawer-actions">
-              <button type="button" className="issue-drawer-save" onClick={handleSave} disabled={saving || !title.trim()}>
-                {saving ? 'Сохранение…' : 'Сохранить'}
-              </button>
-              {canDelete && (
-                <button type="button" className="issue-drawer-delete" onClick={handleDelete}>Удалить</button>
-              )}
-              <button type="button" className="issue-drawer-delete" onClick={handleClone}>{t('Клонировать')}</button>
-            </div>
-
-            <p className="issue-drawer-meta">
-              Создан: {quest.createdAt ? new Date(quest.createdAt).toLocaleString(locale) : ''}
-              {quest.completedAt && <> · Выполнен: {new Date(quest.completedAt).toLocaleString(locale)}</>}
-            </p>
-
-            <section className="issue-drawer-section">
-              <h4>{t('История изменений')}</h4>
-              {historyItems.length === 0 ? <p className="issue-drawer-empty">{t('История пока пуста.')}</p> : <ul className="issue-drawer-compact-list">{historyItems.map((item, index) => <li key={item.id || index}><strong>{item.userName || t('Система')}</strong> {item.field || item.changeType}: {item.oldValue ? `${item.oldValue} → ` : ''}{item.newValue || ''}</li>)}</ul>}
-            </section>
-
-            <section className="issue-drawer-section">
-              <div className="issue-drawer-section-header">
-                <h4>Вложения</h4>
-                <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={attachmentUploading}>
-                  {attachmentUploading ? 'Загрузка…' : '+ Прикрепить файл'}
-                </button>
+              <div className="iv-quick-actions">
+                <span className="iv-anchor">
+                  <button type="button" className="iv-square-btn" aria-label={t('Добавить')} title={t('Добавить')} onClick={() => toggle('add')}>+</button>
+                  <Menu open={menu === 'add'} onClose={() => setMenu(null)} label={t('Добавить')}>
+                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); attachmentInputRef.current?.click(); }}>{t('Вложение')}</button>
+                    {issueType !== 4 && <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingChild(true); }}>{issueType === 0 ? t('Дочерняя задача') : t('Подзадача')}</button>}
+                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingLink(true); }}>{t('Связанная задача')}</button>
+                  </Menu>
+                </span>
                 <input ref={attachmentInputRef} type="file" className="issue-drawer-file-input" onChange={handleUploadAttachment} />
               </div>
-              {attachmentError && <p className="issue-drawer-error" role="alert">{attachmentError}</p>}
-              {attachmentsLoading ? (
-                <p className="issue-drawer-empty">Загрузка вложений…</p>
-              ) : attachments.length === 0 ? (
-                <p className="issue-drawer-empty">Вложений пока нет.</p>
-              ) : (
-                <ul className="issue-drawer-attachment-list">
-                  {attachments.map((attachment) => (
-                    <li key={attachment.id}>
-                      <div>
-                        <span className="issue-drawer-attachment-name" title={attachment.fileName}>{attachment.fileName}</span>
-                        <span className="issue-drawer-attachment-meta">
-                          {formatFileSize(attachment.sizeBytes)}
-                          {attachment.uploadedByName ? ` · ${attachment.uploadedByName}` : ''}
-                        </span>
-                      </div>
-                      <div className="issue-drawer-attachment-actions">
-                        <button type="button" onClick={() => handleDownloadAttachment(attachment)}>Скачать</button>
-                        <button type="button" onClick={() => handleDeleteAttachment(attachment)} disabled={deletingAttachmentId === attachment.id}>
-                          {deletingAttachmentId === attachment.id ? '…' : 'Удалить'}
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
 
-            <section className="issue-drawer-section">
-              <h4>Комментарии</h4>
-              {comments.length === 0 ? (
-                <p className="issue-drawer-empty">Комментариев пока нет.</p>
-              ) : (
-                <ul className="issue-drawer-comment-list">
-                  {comments.map((comment) => (
-                    <li key={comment.id}>
-                      <div className="issue-drawer-comment-header">
-                        <strong>{comment.authorName}</strong>
-                        <span>{new Date(comment.createdAt).toLocaleString(locale)}</span>
-                        {comment.authorUserId === user?.id && (
-                          <button type="button" onClick={() => handleDeleteComment(comment)} title="Удалить комментарий">✕</button>
-                        )}
+              {shown('description') && (
+                <section className="iv-section">
+                  <h3>{t('Описание')}</h3>
+                  {editingDescription ? (
+                    <div className="iv-editor">
+                      <div className="issue-drawer-editor-toolbar">
+                        <button type="button" onClick={() => setDescription((value) => `${value}${value ? '\n\n' : ''}# `)}>H</button>
+                        <button type="button" onClick={() => setDescription((value) => `${value}${value ? '\n' : ''}- `)}>•</button>
+                        <button type="button" onClick={() => setDescriptionPreview((value) => !value)}>{descriptionPreview ? t('Редактировать') : t('Предпросмотр')}</button>
                       </div>
-                      <p>{comment.text}</p>
-                    </li>
-                  ))}
-                </ul>
+                      {descriptionPreview
+                        ? <RichTextPreview value={serializeRichText(description)} />
+                        : <textarea autoFocus value={description} onChange={(e) => setDescription(e.target.value)} rows={6} aria-label={t('Описание')} />}
+                      {description.includes('@') && <div className="issue-drawer-mentions" aria-label={t('Упоминания')}>
+                        {members.slice(0, 6).map((member) => <button key={member.userId} type="button" onClick={() => setDescription((value) => `${value}@${member.displayName} `)}>@{member.displayName}</button>)}
+                      </div>}
+                      <div className="iv-editor-actions">
+                        <button type="button" className="app-btn app-btn-primary" onClick={() => { setEditingDescription(false); setDescriptionPreview(false); save(); }}>{t('Сохранить')}</button>
+                        <button type="button" className="app-btn app-btn-subtle" onClick={() => { setEditingDescription(false); setDescriptionPreview(false); setDescription(richTextToPlainText(quest.descriptionDocument || quest.description || '')); }}>{t('Отмена')}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" className="iv-inline-edit" onClick={() => setEditingDescription(true)}>
+                      {description.trim() ? <RichTextPreview value={serializeRichText(description)} /> : <span className="iv-placeholder-text">{t('Редактировать описание')}</span>}
+                    </button>
+                  )}
+                </section>
               )}
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value.slice(0, 5000))}
-                placeholder="Написать комментарий"
-                rows={2}
-              />
-              {newComment.includes('@') && <div className="issue-drawer-mentions">
-                {members.slice(0, 6).map((member) => <button key={member.userId} type="button" onClick={() => setNewComment((value) => `${value}@${member.displayName} `)}>@{member.displayName}</button>)}
-              </div>}
-              {commentError && <p className="issue-drawer-error">{commentError}</p>}
-              <button type="button" className="issue-drawer-comment-submit" onClick={handleAddComment} disabled={commentSaving || !newComment.trim()}>
-                {commentSaving ? 'Отправка…' : 'Добавить комментарий'}
-              </button>
-            </section>
+
+              {(attachments.length > 0 || attachmentUploading || attachmentError) && (
+                <section className="iv-section">
+                  <div className="iv-section-head">
+                    <h3>{t('Вложения')} <span className="iv-count">{attachments.length}</span></h3>
+                    <button type="button" className="iv-square-btn" aria-label={t('Прикрепить файл')} title={t('Прикрепить файл')} onClick={() => attachmentInputRef.current?.click()} disabled={attachmentUploading}>+</button>
+                  </div>
+                  {attachmentError && <p className="issue-drawer-error" role="alert">{attachmentError}</p>}
+                  {attachmentsLoading || attachmentUploading ? <p className="issue-drawer-empty">{t('Загрузка…')}</p> : (
+                    <ul className="issue-drawer-attachment-list">
+                      {attachments.map((attachment) => (
+                        <li key={attachment.id}>
+                          <div>
+                            <span className="issue-drawer-attachment-name" title={attachment.fileName}>{attachment.fileName}</span>
+                            <span className="issue-drawer-attachment-meta">
+                              {formatFileSize(attachment.sizeBytes)}
+                              {attachment.uploadedByName ? ` · ${attachment.uploadedByName}` : ''}
+                            </span>
+                          </div>
+                          <div className="issue-drawer-attachment-actions">
+                            <button type="button" onClick={() => handleDownloadAttachment(attachment)}>{t('Скачать')}</button>
+                            <button type="button" onClick={() => handleDeleteAttachment(attachment)} disabled={deletingAttachmentId === attachment.id}>
+                              {deletingAttachmentId === attachment.id ? '…' : t('Удалить')}
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
+
+              {issueType !== 4 && (
+                <section className="iv-section">
+                  <h3>{issueType === 0 ? t('Дочерние задачи') : t('Подзадачи')}</h3>
+                  {children.length > 0 && (
+                    <ul className="iv-issue-list">
+                      {children.map((child) => (
+                        <li key={child.id}>
+                          <IssueTypeIcon issueType={child.issueType} typeId={child.issueTypeId} size={16} />
+                          <span className="iv-issue-key">{child.issueKey}</span>
+                          <span className="iv-issue-title">{child.title}</span>
+                          {child.status && <span className={`iv-lozenge is-${statusTone(child.statusKind)}`}>{child.status}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {addingChild ? (
+                    <form className="iv-inline-form" onSubmit={handleAddChild}>
+                      <input autoFocus value={childTitle} maxLength={255} placeholder={t('Что нужно сделать?')} aria-label={t('Что нужно сделать?')}
+                        onChange={(e) => setChildTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { setAddingChild(false); setChildTitle(''); } }} />
+                      <button type="submit" className="app-btn app-btn-primary" disabled={!childTitle.trim()}>{t('Создать')}</button>
+                      <button type="button" className="app-btn app-btn-subtle" onClick={() => { setAddingChild(false); setChildTitle(''); }}>{t('Отмена')}</button>
+                    </form>
+                  ) : (
+                    <button type="button" className="iv-inline-edit iv-placeholder-text" onClick={() => setAddingChild(true)}>
+                      {issueType === 0 ? t('Добавить дочернюю задачу') : t('Добавить подзадачу')}
+                    </button>
+                  )}
+                </section>
+              )}
+
+              <section className="iv-section">
+                <h3>{t('Привязанные задачи')}</h3>
+                {links.length > 0 && (
+                  <ul className="iv-issue-list">
+                    {links.map((link) => (
+                      <li key={link.id}>
+                        <span className="iv-link-type">{t(LINK_TYPE_LABELS[link.type] || 'связана с')}</span>
+                        <span className="iv-issue-key">{link.targetKey || link.targetQuestId}</span>
+                        <span className="iv-issue-title">{link.targetTitle || ''}</span>
+                        <button type="button" className="iv-icon-btn" aria-label={t('Удалить связь')} title={t('Удалить связь')} onClick={() => handleDeleteLink(link)}>✕</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {addingLink ? (
+                  <form className="iv-inline-form" onSubmit={handleAddLink}>
+                    <select value={linkType} onChange={(e) => setLinkType(Number(e.target.value))} aria-label={t('Тип связи')}>
+                      {LINK_TYPE_LABELS.map((label, index) => <option key={label} value={index}>{t(label)}</option>)}
+                    </select>
+                    <input autoFocus value={linkQuestId} onChange={(e) => setLinkQuestId(e.target.value)} placeholder={t('Ключ задачи, например KAN-12')} aria-label={t('Ключ задачи')} />
+                    <button type="submit" className="app-btn app-btn-primary" disabled={!linkQuestId.trim()}>{t('Привязать')}</button>
+                    <button type="button" className="app-btn app-btn-subtle" onClick={() => { setAddingLink(false); setLinkQuestId(''); }}>{t('Отмена')}</button>
+                  </form>
+                ) : (
+                  <button type="button" className="iv-inline-edit iv-placeholder-text" onClick={() => setAddingLink(true)}>{t('Добавить связанную задачу')}</button>
+                )}
+              </section>
+
+              <section className="iv-section">
+                <h3>{t('Активность')}</h3>
+                <div className="iv-tabs" role="tablist">
+                  {ACTIVITY_TABS.map(([key, label]) => (
+                    <button key={key} type="button" role="tab" aria-selected={activityTab === key} className={activityTab === key ? 'is-active' : ''} onClick={() => setActivityTab(key)}>{t(label)}</button>
+                  ))}
+                </div>
+                {(activityTab === 'comments' || activityTab === 'all') && (
+                  <div className="iv-composer">
+                    <AssigneeAvatar userId={user?.id} displayName={user?.displayName || me?.displayName || ''} avatarUrl={user?.avatarUrl || me?.avatarUrl} size={32} />
+                    <div className="iv-composer-body">
+                      <textarea
+                        ref={commentRef}
+                        value={newComment}
+                        rows={commentFocused || newComment ? 3 : 1}
+                        placeholder={t('Добавить комментарий…')}
+                        aria-label={t('Добавить комментарий…')}
+                        onFocus={() => setCommentFocused(true)}
+                        onChange={(e) => setNewComment(e.target.value.slice(0, 5000))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAddComment();
+                          if (e.key === 'Escape') { setNewComment(''); setCommentFocused(false); e.currentTarget.blur(); }
+                        }}
+                      />
+                      {newComment.includes('@') && <div className="issue-drawer-mentions">
+                        {members.slice(0, 6).map((member) => <button key={member.userId} type="button" onClick={() => setNewComment((value) => `${value}@${member.displayName} `)}>@{member.displayName}</button>)}
+                      </div>}
+                      {commentFocused || newComment ? (
+                        <div className="iv-editor-actions">
+                          <button type="button" className="app-btn app-btn-primary" onClick={handleAddComment} disabled={commentSaving || !newComment.trim()}>{commentSaving ? '…' : t('Сохранить')}</button>
+                          <button type="button" className="app-btn app-btn-subtle" onClick={() => { setNewComment(''); setCommentFocused(false); }}>{t('Отмена')}</button>
+                        </div>
+                      ) : (
+                        <div className="iv-starters">
+                          {COMMENT_STARTERS.map((text) => (
+                            <button key={text} type="button" onClick={() => { setNewComment(`${t(text).replace(/\.\.\.\??$/, '')} `); commentRef.current?.focus(); }}>{t(text)}</button>
+                          ))}
+                        </div>
+                      )}
+                      {commentError && <p className="issue-drawer-error">{commentError}</p>}
+                      <p className="iv-hint">{t('Совет: нажмите')} <kbd>M</kbd>{t(', чтобы добавить комментарий')}</p>
+                    </div>
+                  </div>
+                )}
+                {activityTab === 'worklog' && (
+                  <form className="iv-inline-form" onSubmit={handleLogWork}>
+                    <input type="number" min="1" value={worklogMinutes} onChange={(e) => setWorklogMinutes(e.target.value)} placeholder={t('Затрачено минут')} aria-label={t('Затрачено минут')} />
+                    <button type="submit" className="app-btn app-btn-primary" disabled={!Number(worklogMinutes)}>{t('Записать')}</button>
+                  </form>
+                )}
+                {activity.length === 0
+                  ? <p className="issue-drawer-empty">{activityTab === 'history' ? t('История пока пуста.') : activityTab === 'worklog' ? t('Время ещё не записано.') : activityTab === 'comments' ? t('Комментариев пока нет.') : t('Активности пока нет.')}</p>
+                  : <ul className="iv-activity">{activity.map(renderActivity)}</ul>}
+              </section>
+            </main>
+
+            <aside className="iv-side">
+              <div className="iv-status-row">
+                <span className="iv-anchor">
+                  <button type="button" className={`iv-status-btn is-${statusTone(currentStatus?.kind)}`} onClick={() => toggle('status')} disabled={movingColumn || statusItems.length === 0} aria-label={t('Статус')}>
+                    {currentStatus?.title || t('Статус')} <span aria-hidden="true">▾</span>
+                  </button>
+                  <Menu open={menu === 'status'} onClose={() => setMenu(null)} label={t('Статус')}>
+                    {statusItems.map((item) => (
+                      <button key={item.key} type="button" role="menuitem" className="iv-menu-item" onClick={item.run}>
+                        <span>{item.label}</span>
+                        {item.target && item.target.title !== item.label && <span className={`iv-lozenge is-${statusTone(item.target.kind)}`}>{item.target.title}</span>}
+                      </button>
+                    ))}
+                  </Menu>
+                </span>
+              </div>
+
+              <details className="iv-panel" open>
+                <summary>{t('Сведения')}</summary>
+                <div className="iv-panel-body">
+                  {shown('assignee') && (
+                    <Row label={t('Исполнитель')}>
+                      <AssigneeSelect value={assigneeIds} options={members} onChange={(ids) => { setAssigneeIds(ids); save({ assigneeIds: ids }); }} placeholder={t('Не назначено')} />
+                      {me && !assigneeIds.includes(me.userId) && (
+                        <button type="button" className="iv-link-btn" onClick={() => { const ids = [...assigneeIds, me.userId]; setAssigneeIds(ids); save({ assigneeIds: ids }); }}>{t('Назначить себе')}</button>
+                      )}
+                    </Row>
+                  )}
+                  {shown('priority') && (
+                    <Row label={t('Приоритет')}>
+                      <div className="iv-select">
+                        <PriorityIcon priority={priority} size={14} />
+                        <select value={priority} aria-label={t('Приоритет')} onChange={(e) => { const value = Number(e.target.value); setPriority(value); save({ priority: value }); }}>
+                          {PRIORITY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{t(opt.label)}</option>)}
+                        </select>
+                      </div>
+                    </Row>
+                  )}
+                  <Row label={t('Родитель')}>
+                    {editingParent ? (
+                      <form onSubmit={handleSetParent}>
+                        <input autoFocus className="iv-input" value={parentKey} placeholder={t('Ключ задачи, например KAN-12')} aria-label={t('Родитель')}
+                          onChange={(e) => setParentKey(e.target.value)} onBlur={() => { if (!parentKey.trim()) setEditingParent(false); }}
+                          onKeyDown={(e) => { if (e.key === 'Escape') { setEditingParent(false); setParentKey(''); } }} />
+                      </form>
+                    ) : hierarchy?.parent ? (
+                      <span className="iv-parent">
+                        <IssueTypeIcon issueType={hierarchy.parent.issueType} size={14} />
+                        <span className="iv-issue-key">{hierarchy.parent.issueKey}</span>
+                        <span className="iv-issue-title">{hierarchy.parent.title}</span>
+                        <button type="button" className="iv-icon-btn" aria-label={t('Убрать родителя')} title={t('Убрать родителя')} onClick={() => save({ parentQuestId: null })}>✕</button>
+                      </span>
+                    ) : (
+                      <button type="button" className="iv-inline-edit iv-placeholder-text" onClick={() => setEditingParent(true)}>{t('Добавьте родительский элемент')}</button>
+                    )}
+                  </Row>
+                  {shown('duedate') && (
+                    <Row label={t('Срок исполнения')}>
+                      <input type="date" className="iv-input" value={dueDate} aria-label={t('Срок исполнения')} onChange={(e) => { setDueDate(e.target.value); save({ dueDate: e.target.value }); }} />
+                    </Row>
+                  )}
+                  {shown('labels') && (
+                    <Row label={t('Метки')}>
+                      <input className="iv-input" value={labels} placeholder={t('Добавьте метки')} aria-label={t('Метки')}
+                        onChange={(e) => setLabels(e.target.value)} onBlur={() => { if (labels.trim() !== (quest.labels ?? '')) save(); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+                    </Row>
+                  )}
+                  {shown('components') && componentOptions.length > 0 && (
+                    <Row label={t('Компонент')}>
+                      <select className="iv-input" value={component} aria-label={t('Компонент')} onChange={(e) => { setComponent(e.target.value); save({ component: e.target.value }); }}>
+                        <option value="">{t('Без компонента')}</option>
+                        {componentOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                      </select>
+                    </Row>
+                  )}
+                  {shown('fixversions') && releaseOptions.length > 0 && (
+                    <Row label={t('Версия исправления')}>
+                      <select className="iv-input" value={fixVersion} aria-label={t('Версия исправления')} onChange={(e) => { setFixVersion(e.target.value); save({ fixVersion: e.target.value }); }}>
+                        <option value="">{t('Без версии')}</option>
+                        {releaseOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                      </select>
+                    </Row>
+                  )}
+                  {shown('sprint') && (
+                    <Row label={t('Спринт')}>
+                      <select className="iv-input" value={sprintId} aria-label={t('Спринт')} onChange={(e) => { setSprintId(e.target.value); save({ sprintId: e.target.value }); }}>
+                        <option value="">{t('Нет')}</option>
+                        {boardSprints.filter((s) => s.status !== 2 || s.id === sprintId).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </Row>
+                  )}
+                  {supportsStoryPoints && shown('storypoints') && (
+                    <Row label={t('Story point estimate')}>
+                      <input type="number" min={0} max={100} className="iv-input" value={storyPoints} placeholder={t('Добавьте оценку')} aria-label={t('Story point estimate')}
+                        onChange={(e) => setStoryPoints(e.target.value === '' ? '' : String(Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0))))}
+                        onBlur={() => { if (storyPoints !== (typeof quest.storyPoints === 'number' ? String(quest.storyPoints) : '')) save(); }} />
+                    </Row>
+                  )}
+                  <Row label={t('Первоначальная оценка, мин.')}>
+                    <input type="number" min="0" className="iv-input" value={originalEstimate} aria-label={t('Первоначальная оценка, мин.')}
+                      onChange={(e) => setOriginalEstimate(e.target.value)} onBlur={() => { if (String(originalEstimate) !== String(quest.originalEstimateMinutes ?? '')) save(); }} />
+                  </Row>
+                  <Row label={t('Осталось, мин.')}>
+                    <input type="number" min="0" className="iv-input" value={remainingEstimate} aria-label={t('Осталось, мин.')}
+                      onChange={(e) => setRemainingEstimate(e.target.value)} onBlur={() => { if (String(remainingEstimate) !== String(quest.remainingEstimateMinutes ?? '')) save(); }} />
+                  </Row>
+                  <Row label={t('Опыт (XP)')}>
+                    <input type="number" min={0} max={9999} className="iv-input" value={xpReward} aria-label={t('Опыт (XP)')}
+                      onChange={(e) => setXpReward(Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)))} onBlur={() => { if (xpReward !== quest.xpReward) save(); }} />
+                  </Row>
+                  <Row label={t('Автор')}>
+                    {reporter ? (
+                      <span className="iv-person">
+                        <AssigneeAvatar userId={reporter.id} displayName={reporter.displayName} avatarUrl={reporter.avatarUrl} size={24} />
+                        {reporter.displayName}
+                      </span>
+                    ) : <span className="iv-placeholder-text">{t('Нет')}</span>}
+                  </Row>
+                  <CustomFieldsPanel
+                    quest={quest}
+                    fields={issueConfig.fields}
+                    people={members}
+                    refs={issueConfig}
+                    layout={issueConfig.layout}
+                    onSaved={(values) => { setQuest((current) => (current ? { ...current, customFields: values } : current)); onChanged?.(); }}
+                  />
+                </div>
+              </details>
+
+              <details className="iv-panel">
+                <summary>{t('Голоса')}</summary>
+                <div className="iv-panel-body">
+                  <IssueVotes questId={questId} statusKey={`${quest.columnId}:${quest.completedAt ?? ''}`} />
+                </div>
+              </details>
+
+              <details className="iv-panel">
+                <summary>{t('Ресурсы')}</summary>
+                <div className="iv-panel-body"><IssueAssetsField questId={questId} /></div>
+              </details>
+
+              <details className="iv-panel">
+                <summary>{t('Разработка')}</summary>
+                <div className="iv-panel-body">
+                  <div className="iv-section-head">
+                    <span className="iv-hint">{t('Ветки, коммиты и pull request из GitHub')}</span>
+                    <button type="button" className="app-btn app-btn-subtle" onClick={handleSyncDevelopment} disabled={developmentSyncing}>{developmentSyncing ? '…' : t('Синхронизировать')}</button>
+                  </div>
+                  {quest.issueKey && <CreateBranchPanel questId={questId} issueKey={quest.issueKey} title={quest.title} onCreated={setDevelopment} />}
+                  {developmentItems.length === 0 ? <p className="issue-drawer-empty">{t('Связанные ветки, коммиты и pull request не найдены.')}</p> : (
+                    <ul className="issue-drawer-compact-list">
+                      {developmentItems.map((item) => <li key={item.id}>
+                        {DEVELOPMENT_ICONS[item.kind] || '•'} {item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a> : item.title}
+                        {item.status ? ` · ${item.status}` : ''}
+                      </li>)}
+                    </ul>
+                  )}
+                </div>
+              </details>
+
+              {auxError && <p className="issue-drawer-error" role="alert">{auxError}</p>}
+              <p className="iv-meta">
+                {t('Создано')} {formatDate(quest.createdAt)}
+                {quest.completedAt && <><br />{t('Выполнено')} {formatDate(quest.completedAt)}</>}
+              </p>
+            </aside>
           </div>
         )}
-      </aside>
+      </div>
       {pendingTransition && quest && (
         <TransitionScreenDialog
           issue={quest}
@@ -824,7 +1091,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
             const target = columns.find((c) => c.id === pendingTransition.targetColumnId);
             await quests.move({ questId, targetColumnId: pendingTransition.targetColumnId, newOrder: (target?.quests ?? []).length, ...choice });
             setPendingTransition(null);
-            setQuest(await quests.get(questId));
+            applyQuest(await quests.get(questId));
             onChanged?.();
           }}
         />

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import KanbanQuestItem from './KanbanQuestItem.jsx';
-import AssigneeSelect from './AssigneeSelect.jsx';
-import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
+import QuickCreateIssue from './QuickCreateIssue.jsx';
+import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import './KanbanColumn.css';
 
 const COLUMN_NAMES = {
@@ -18,23 +18,8 @@ export default function KanbanColumn({
   members,
   onStartAddQuest,
   isAdding,
-  newQuestTitle,
-  onNewQuestTitleChange,
-  newQuestDescription,
-  onNewQuestDescriptionChange,
-  newQuestAssigneeIds,
-  onNewQuestAssigneesChange,
-  newQuestRecipientIds = [],
-  onNewQuestRecipientsChange,
-  newQuestXpReward = 10,
-  onNewQuestXpRewardChange,
-  newQuestFiles = [],
-  onNewQuestFilesChange,
-  onRemoveNewQuestFile,
-  newQuestFileError,
-  formatFileSize,
-  creatingQuest,
-  onSubmitNewQuest,
+  issueTypes = [],
+  onCreateQuest,
   onCancelAdd,
   onUpdateColumn,
   onUpdateColumnKind,
@@ -46,6 +31,7 @@ export default function KanbanColumn({
   selectedQuestIds = [],
   onSelectQuest,
 }) {
+  const { t } = useLocalization();
   const { setNodeRef, isOver } = useDroppable({ id: column.id, data: { type: 'column', columnId: column.id } });
   const [editingTitle, setEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -116,94 +102,9 @@ export default function KanbanColumn({
         ))}
       </div>
       {isAdding ? (
-        <div className="kanban-add-form">
-          <input
-            type="text"
-            placeholder="Название квеста"
-            value={newQuestTitle}
-            onChange={(e) => onNewQuestTitleChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && onSubmitNewQuest()}
-            autoFocus
-          />
-          <label className="kanban-add-description">
-            Описание
-            <textarea
-              placeholder="Описание квеста (необязательно)"
-              value={newQuestDescription ?? ''}
-              onChange={(e) => onNewQuestDescriptionChange(e.target.value)}
-              rows={2}
-            />
-          </label>
-          <label className="kanban-add-assignee">
-            Исполнители
-            <AssigneeSelect
-              value={newQuestAssigneeIds || []}
-              options={members || []}
-              onChange={onNewQuestAssigneesChange}
-              placeholder="— не назначены —"
-            />
-          </label>
-          <fieldset className="kanban-add-notifications">
-            <legend>Email-уведомления</legend>
-            <NotificationRecipientPicker
-              members={members}
-              selectedIds={newQuestRecipientIds}
-              onChange={onNewQuestRecipientsChange}
-              disabled={creatingQuest}
-            />
-          </fieldset>
-          <label className="kanban-add-attachments">
-            Файлы
-            <input
-              type="file"
-              multiple
-              disabled={creatingQuest}
-              onChange={(e) => {
-                onNewQuestFilesChange?.(e.target.files);
-                e.target.value = '';
-              }}
-            />
-            <span className="kanban-add-attachments-hint">Можно выбрать несколько файлов, до 1 ГБ каждый.</span>
-          </label>
-          {newQuestFiles.length > 0 && (
-            <ul className="kanban-add-attachments-list">
-              {newQuestFiles.map((file, index) => (
-                <li key={`${file.name}-${file.size}-${index}`}>
-                  <span title={file.name}>
-                    {file.name} ({formatFileSize?.(file.size) ?? `${file.size} Б`})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveNewQuestFile?.(index)}
-                    disabled={creatingQuest}
-                    title="Убрать файл"
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {newQuestFileError && <p className="kanban-add-attachments-error" role="alert">{newQuestFileError}</p>}
-          <label className="kanban-add-xp">
-            Опыт (XP)
-            <input
-              type="number"
-              min={0}
-              max={9999}
-              value={newQuestXpReward}
-              onChange={(e) => onNewQuestXpRewardChange?.(e.target.value === '' ? 10 : Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)))}
-            />
-          </label>
-          <div className="kanban-add-actions">
-            <button type="button" onClick={onSubmitNewQuest} disabled={creatingQuest}>
-              {creatingQuest ? 'Создание…' : 'Добавить'}
-            </button>
-            <button type="button" onClick={onCancelAdd} disabled={creatingQuest}>Отмена</button>
-          </div>
-        </div>
+        <QuickCreateIssue members={members} issueTypes={issueTypes} onCreate={onCreateQuest} onCancel={onCancelAdd} />
       ) : (
-        <button type="button" className="kanban-add-btn" onClick={onStartAddQuest}>+ Квест</button>
+        <button type="button" className="kanban-add-btn" onClick={onStartAddQuest}>+ {t('Создать')}</button>
       )}
     </div>
   );

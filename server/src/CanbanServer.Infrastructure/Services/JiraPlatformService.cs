@@ -942,6 +942,20 @@ public sealed class JiraPlatformService : IJiraPlatformService
 
     public async Task ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct)
     {
+        try
+        {
+            await ApplyGitHubWebhookAsync(eventName, payload, signature, ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+        {
+            // GitHub delivers e.g. "create" and "push" for a new branch concurrently; the retry updates the row the other request inserted.
+            _db.ChangeTracker.Clear();
+            await ApplyGitHubWebhookAsync(eventName, payload, signature, ct);
+        }
+    }
+
+    private async Task ApplyGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct)
+    {
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
         var fullName = GitHubEventParser.RepositoryFullName(root);

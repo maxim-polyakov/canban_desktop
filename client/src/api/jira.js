@@ -286,3 +286,12 @@ export const issueConfig = {
   deleteField: (id) => remove(`/api/issue-config/fields/${id}`),
   setValue: (questId, fieldId, value) => apiJson(`/api/quests/${questId}/fields/${fieldId}`, json('PUT', { value })),
 };
+
+export const audit = {
+  list: (params) => apiJson(`/api/audit${buildQuery(params)}`),
+  exportCsv: async (params) => {
+    const response = await api(`/api/audit/export${buildQuery(params)}`);
+    if (!response.ok) throw new Error((await response.text()) || response.statusText);
+    return response.blob();
+  },
+};

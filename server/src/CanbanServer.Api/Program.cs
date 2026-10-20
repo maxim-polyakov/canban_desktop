@@ -24,7 +24,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-builder.Services.AddControllers(options => options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter()));
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter());
+    options.Filters.Add<CanbanServer.Api.Auditing.AuditActionFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -158,6 +162,7 @@ builder.Services.AddScoped<AssetService>();
 builder.Services.AddScoped<PlanService>();
 builder.Services.AddScoped<HomeService>();
 builder.Services.AddScoped<IssueFieldService>();
+builder.Services.AddScoped<AuditLogService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHttpClient("outbox");

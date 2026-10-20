@@ -29,6 +29,7 @@ export const ADMIN_NAV = {
     { title: 'Разделы', items: [['/spaces', 'spaces', 'Управление разделами']] },
     { title: 'Приложения', items: [['/admin/apps', 'appsAdd', 'Подключённые приложения']] },
     { title: 'Пользователи', items: [['/admin/users', 'teams', 'Пользователи']] },
+    { title: 'Безопасность', items: [['/admin/audit', 'activity', 'Журнал аудита']] },
     { title: 'Платежи', items: [
       ['/admin/billing', 'billing', 'Тариф и счёт'],
       ['/admin/billing/plans', 'card', 'Тарифные планы', { upsell: true }],

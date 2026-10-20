@@ -1,3 +1,5 @@
+using CanbanServer.Infrastructure.Services;
+using CanbanServer.Api.Auditing;
 using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
@@ -37,6 +39,7 @@ public class TeamsController : ControllerBase
         return Ok(list);
     }
 
+    [Audit("team.create", AuditTarget.Team)]
     [HttpPost]
     public async Task<ActionResult<TeamDto>> Create([FromBody] CreateTeamRequest request, CancellationToken ct)
     {
@@ -46,6 +49,7 @@ public class TeamsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = team.Id }, team);
     }
 
+    [Audit("team.update", AuditTarget.Team)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<TeamDto>> Update(Guid id, [FromBody] UpdateTeamRequest request, CancellationToken ct)
     {
@@ -53,6 +57,7 @@ public class TeamsController : ControllerBase
         return team == null ? NotFound() : Ok(team);
     }
 
+    [Audit("member.add", AuditTarget.Team, "teamId", ObjectType = "user", ObjectKey = "userId")]
     [HttpPost("{teamId:guid}/members/{userId:guid}")]
     public async Task<ActionResult> AddMember(Guid teamId, Guid userId, [FromQuery] TeamRole? role, CancellationToken ct)
     {
@@ -67,6 +72,7 @@ public class TeamsController : ControllerBase
         return added ? NoContent() : BadRequest();
     }
 
+    [Audit("member.role", AuditTarget.Team, "teamId", ObjectType = "user", ObjectKey = "userId")]
     [HttpPut("{teamId:guid}/members/{userId:guid}/role")]
     public async Task<ActionResult> SetMemberRole(Guid teamId, Guid userId, [FromBody] SetTeamMemberRoleRequest request, CancellationToken ct)
     {
@@ -77,6 +83,7 @@ public class TeamsController : ControllerBase
     }
 
     /// <summary>Отправить приглашение в команду по email. Приглашённый увидит его и сможет принять или отклонить.</summary>
+    [Audit("member.invite", AuditTarget.Team, "teamId", ObjectType = "user")]
     [HttpPost("{teamId:guid}/members/invite")]
     public async Task<ActionResult> InviteByEmail(Guid teamId, [FromBody] InviteMemberRequest? request, CancellationToken ct)
     {
@@ -129,6 +136,7 @@ public class TeamsController : ControllerBase
         return declined ? NoContent() : NotFound();
     }
 
+    [Audit("member.remove", AuditTarget.Team, "teamId", ObjectType = "user", ObjectKey = "userId")]
     [HttpDelete("{teamId:guid}/members/{userId:guid}")]
     public async Task<ActionResult> RemoveMember(Guid teamId, Guid userId, CancellationToken ct)
     {
@@ -140,6 +148,7 @@ public class TeamsController : ControllerBase
     }
 
     /// <summary>Выйти из команды (текущий пользователь исключает себя).</summary>
+    [Audit("member.leave", AuditTarget.Team, "teamId")]
     [HttpPost("{teamId:guid}/leave")]
     public async Task<ActionResult> Leave(Guid teamId, CancellationToken ct)
     {
@@ -150,6 +159,7 @@ public class TeamsController : ControllerBase
     }
 
     /// <summary>Удалить команду. Доступно только создателю команды.</summary>
+    [Audit("team.delete", AuditTarget.Team, "teamId")]
     [HttpDelete("{teamId:guid}")]
     public async Task<ActionResult> Delete(Guid teamId, CancellationToken ct)
     {

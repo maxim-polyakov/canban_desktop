@@ -1,3 +1,5 @@
+using CanbanServer.Infrastructure.Services;
+using CanbanServer.Api.Auditing;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
@@ -48,6 +50,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.GetTransitionsAsync(boardId, ct));
     }
 
+    [Audit("workflow.transition.save", AuditTarget.Board, "boardId", ObjectType = "transition", ObjectKey = "id")]
     [HttpPut("workflows/board/{boardId:guid}")]
     public async Task<ActionResult> SaveWorkflow(Guid boardId, [FromBody] UpsertWorkflowTransitionRequest request, [FromQuery] Guid? id, CancellationToken ct)
     {
@@ -55,6 +58,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveTransitionAsync(boardId, id, request, ct));
     }
 
+    [Audit("workflow.transition.delete", AuditTarget.Board, "boardId", ObjectType = "transition", ObjectKey = "id")]
     [HttpDelete("workflows/board/{boardId:guid}/{id:guid}")]
     public async Task<ActionResult> DeleteWorkflow(Guid boardId, Guid id, CancellationToken ct)
     {
@@ -62,6 +66,7 @@ public class JiraPlatformController : ControllerBase
         return await _jira.DeleteTransitionAsync(boardId, id, ct) ? NoContent() : NotFound();
     }
 
+    [Audit("workflow.copy", AuditTarget.Board, "boardId", ObjectType = "workflow")]
     [HttpPost("workflows/board/{boardId:guid}/copy")]
     public async Task<ActionResult> CopyWorkflow(Guid boardId, [FromBody] CopyWorkflowRequest request, CancellationToken ct)
     {
@@ -189,6 +194,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.GetComponentsAsync(boardId, ct));
     }
 
+    [Audit("component.create", AuditTarget.Board, "boardId", ObjectType = "component")]
     [HttpPost("components/board/{boardId:guid}")]
     public async Task<ActionResult> CreateComponent(Guid boardId, [FromBody] UpsertBoardComponentRequest request, CancellationToken ct)
     {
@@ -196,6 +202,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveComponentAsync(boardId, null, request, ct));
     }
 
+    [Audit("component.update", AuditTarget.Component)]
     [HttpPut("components/{id:guid}")]
     public async Task<ActionResult> UpdateComponent(Guid id, [FromBody] UpsertBoardComponentRequest request, CancellationToken ct)
     {
@@ -205,6 +212,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveComponentAsync(boardId, id, request, ct));
     }
 
+    [Audit("component.delete", AuditTarget.Component)]
     [HttpDelete("components/{id:guid}")]
     public async Task<ActionResult> DeleteComponent(Guid id, CancellationToken ct)
     {
@@ -221,6 +229,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.GetReleasesAsync(boardId, ct));
     }
 
+    [Audit("release.create", AuditTarget.Board, "boardId", ObjectType = "release")]
     [HttpPost("releases/board/{boardId:guid}")]
     public async Task<ActionResult> CreateRelease(Guid boardId, [FromBody] UpsertBoardReleaseRequest request, CancellationToken ct)
     {
@@ -228,6 +237,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveReleaseAsync(boardId, null, request, ct));
     }
 
+    [Audit("release.update", AuditTarget.Release)]
     [HttpPut("releases/{id:guid}")]
     public async Task<ActionResult> UpdateRelease(Guid id, [FromBody] UpsertBoardReleaseRequest request, CancellationToken ct)
     {
@@ -237,6 +247,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveReleaseAsync(boardId, id, request, ct));
     }
 
+    [Audit("release.release", AuditTarget.Release)]
     [HttpPost("releases/{id:guid}/release")]
     public async Task<ActionResult> MarkReleased(Guid id, CancellationToken ct)
     {
@@ -247,6 +258,7 @@ public class JiraPlatformController : ControllerBase
         return release == null ? NotFound() : Ok(release);
     }
 
+    [Audit("release.delete", AuditTarget.Release)]
     [HttpDelete("releases/{id:guid}")]
     public async Task<ActionResult> DeleteRelease(Guid id, CancellationToken ct)
     {
@@ -561,6 +573,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.GetAutomationRulesAsync(boardId, ct));
     }
 
+    [Audit("automation.create", AuditTarget.Board, "boardId", ObjectType = "automation")]
     [HttpPost("automations/board/{boardId:guid}")]
     public async Task<ActionResult> CreateAutomation(Guid boardId, [FromBody] UpsertAutomationRuleRequest request, CancellationToken ct)
     {
@@ -568,6 +581,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveAutomationRuleAsync(boardId, null, request, ct));
     }
 
+    [Audit("automation.update", AuditTarget.Board, "boardId", ObjectType = "automation", ObjectKey = "id")]
     [HttpPut("automations/board/{boardId:guid}/{id:guid}")]
     public async Task<ActionResult> UpdateAutomation(Guid boardId, Guid id, [FromBody] UpsertAutomationRuleRequest request, CancellationToken ct)
     {
@@ -575,6 +589,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveAutomationRuleAsync(boardId, id, request, ct));
     }
 
+    [Audit("automation.delete", AuditTarget.Board, "boardId", ObjectType = "automation", ObjectKey = "id")]
     [HttpDelete("automations/board/{boardId:guid}/{id:guid}")]
     public async Task<ActionResult> DeleteAutomation(Guid boardId, Guid id, CancellationToken ct)
     {
@@ -582,6 +597,7 @@ public class JiraPlatformController : ControllerBase
         return await _jira.DeleteAutomationRuleAsync(boardId, id, ct) ? NoContent() : NotFound();
     }
 
+    [Audit("automation.run", AuditTarget.Board, "boardId", ObjectType = "automation", ObjectKey = "id")]
     [HttpPost("automations/board/{boardId:guid}/{id:guid}/run")]
     public async Task<ActionResult> RunAutomation(Guid boardId, Guid id, [FromBody] RunAutomationRequest request, CancellationToken ct)
     {
@@ -608,6 +624,7 @@ public class JiraPlatformController : ControllerBase
         });
     }
 
+    [Audit("integration.github.delete", AuditTarget.Board, "boardId", ObjectType = "github", ObjectKey = "id")]
     [HttpDelete("integrations/board/{boardId:guid}/github/{id:guid}")]
     public async Task<ActionResult> DeleteGithub(Guid boardId, Guid id, CancellationToken ct)
     {
@@ -615,6 +632,7 @@ public class JiraPlatformController : ControllerBase
         return await _jira.DeleteGitHubIntegrationAsync(boardId, id, ct) ? NoContent() : NotFound();
     }
 
+    [Audit("integration.webhook.delete", AuditTarget.Board, "boardId", ObjectType = "webhook", ObjectKey = "id")]
     [HttpDelete("integrations/board/{boardId:guid}/webhooks/{id:guid}")]
     public async Task<ActionResult> DeleteWebhook(Guid boardId, Guid id, CancellationToken ct)
     {
@@ -650,6 +668,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SyncDevelopmentAsync(questId, ct));
     }
 
+    [Audit("integration.github.save", AuditTarget.Board, "boardId", ObjectType = "github", ObjectKey = "id")]
     [HttpPut("integrations/board/{boardId:guid}/github")]
     public async Task<ActionResult> SaveGithub(Guid boardId, [FromBody] UpsertGitHubIntegrationRequest request, [FromQuery] Guid? id, CancellationToken ct)
     {
@@ -657,6 +676,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveGitHubIntegrationAsync(boardId, id, request, ct));
     }
 
+    [Audit("integration.webhook.create", AuditTarget.Board, "boardId", ObjectType = "webhook")]
     [HttpPost("integrations/board/{boardId:guid}/webhooks")]
     public async Task<ActionResult> CreateWebhook(Guid boardId, [FromBody] UpsertOutboundWebhookRequest request, CancellationToken ct)
     {
@@ -664,6 +684,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.SaveWebhookAsync(boardId, null, request, ct));
     }
 
+    [Audit("integration.webhook.update", AuditTarget.Board, "boardId", ObjectType = "webhook", ObjectKey = "id")]
     [HttpPut("integrations/board/{boardId:guid}/webhooks/{id:guid}")]
     public async Task<ActionResult> UpdateWebhook(Guid boardId, Guid id, [FromBody] UpsertOutboundWebhookRequest request, CancellationToken ct)
     {
@@ -684,6 +705,7 @@ public class JiraPlatformController : ControllerBase
         return Accepted();
     }
 
+    [Audit("issue.bulkedit", AuditTarget.Board, "boardId", ObjectType = "issues")]
     [HttpPut("bulk/quests")]
     public async Task<ActionResult> BulkEdit([FromBody] BulkEditQuestsRequest request, [FromQuery] Guid boardId, CancellationToken ct)
     {
@@ -691,6 +713,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.BulkEditAsync(boardId, RequireUser(), request, ct));
     }
 
+    [Audit("issue.bulkdelete", AuditTarget.Board, "boardId", ObjectType = "issues")]
     [HttpPost("bulk/quests/delete")]
     public async Task<ActionResult> BulkDelete([FromBody] BulkDeleteQuestsRequest request, [FromQuery] Guid boardId, CancellationToken ct)
     {
@@ -711,6 +734,7 @@ public class JiraPlatformController : ControllerBase
         return Ok(await _jira.CloneQuestAsync(questId, RequireUser(), request ?? new CloneQuestRequest(), ct));
     }
 
+    [Audit("space.clone", AuditTarget.Board, "boardId")]
     [HttpPost("clone/boards/{boardId:guid}")]
     public async Task<ActionResult> CloneBoard(Guid boardId, [FromBody] CloneBoardRequest request, CancellationToken ct)
     {
@@ -729,6 +753,7 @@ public class JiraPlatformController : ControllerBase
         return Content(content, format.Equals("csv", StringComparison.OrdinalIgnoreCase) ? "text/csv" : "application/json");
     }
 
+    [Audit("space.import", AuditTarget.Board, "boardId", ObjectType = "issues")]
     [HttpPost("importExport/boards/{boardId:guid}/import")]
     public async Task<ActionResult> Import(Guid boardId, IFormFile file, [FromQuery] Guid columnId, CancellationToken ct)
     {

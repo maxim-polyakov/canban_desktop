@@ -1,3 +1,5 @@
+using CanbanServer.Infrastructure.Services;
+using CanbanServer.Api.Auditing;
 using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
@@ -42,6 +44,7 @@ public class ColumnsController : ControllerBase
         return Ok(list);
     }
 
+    [Audit("workflow.status.create", AuditTarget.Board, "boardId", ObjectType = "status")]
     [HttpPost("board/{boardId:guid}")]
     public async Task<ActionResult<ColumnSummaryDto>> Create(Guid boardId, [FromBody] CreateColumnRequest request, CancellationToken ct)
     {
@@ -51,6 +54,7 @@ public class ColumnsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = col.Id }, col);
     }
 
+    [Audit("workflow.status.update", AuditTarget.Column)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ColumnSummaryDto>> Update(Guid id, [FromBody] UpdateColumnRequest request, CancellationToken ct)
     {
@@ -61,6 +65,7 @@ public class ColumnsController : ControllerBase
         return col == null ? NotFound() : Ok(col);
     }
 
+    [Audit("workflow.status.reorder", AuditTarget.Board, "boardId")]
     [HttpPut("board/{boardId:guid}/reorder")]
     public async Task<ActionResult> Reorder(Guid boardId, [FromBody] ReorderColumnsRequest request, CancellationToken ct)
     {
@@ -70,6 +75,7 @@ public class ColumnsController : ControllerBase
         return NoContent();
     }
 
+    [Audit("workflow.status.delete", AuditTarget.Column)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {

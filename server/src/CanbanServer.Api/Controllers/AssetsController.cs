@@ -1,3 +1,4 @@
+using CanbanServer.Api.Auditing;
 using System.Text;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.DTOs;
@@ -21,6 +22,7 @@ public class AssetsController : ControllerBase
     [HttpGet("schemas")]
     public async Task<ActionResult> GetSchemas(CancellationToken ct) => Ok(await _assets.GetSchemasAsync(Me, ct));
 
+    [Audit("assets.schema.create", AuditTarget.Body, ObjectType = "assetschema")]
     [HttpPost("schemas")]
     public async Task<ActionResult> CreateSchema([FromBody] CreateAssetSchemaRequest request, CancellationToken ct) =>
         Ok(await _assets.CreateSchemaAsync(Me, request, ct));
@@ -28,10 +30,12 @@ public class AssetsController : ControllerBase
     [HttpGet("schemas/{id:guid}")]
     public async Task<ActionResult> GetSchema(Guid id, CancellationToken ct) => Ok(await _assets.GetSchemaAsync(id, Me, ct));
 
+    [Audit("assets.schema.update", AuditTarget.AssetSchema)]
     [HttpPut("schemas/{id:guid}")]
     public async Task<ActionResult> UpdateSchema(Guid id, [FromBody] UpdateAssetSchemaRequest request, CancellationToken ct) =>
         Ok(await _assets.UpdateSchemaAsync(id, Me, request, ct));
 
+    [Audit("assets.schema.delete", AuditTarget.AssetSchema)]
     [HttpDelete("schemas/{id:guid}")]
     public async Task<ActionResult> DeleteSchema(Guid id, CancellationToken ct)
     {

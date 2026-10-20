@@ -1,3 +1,5 @@
+using CanbanServer.Infrastructure.Services;
+using CanbanServer.Api.Auditing;
 using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
@@ -396,6 +398,7 @@ public class QuestsController : ControllerBase
         return NoContent();
     }
 
+    [Audit("issue.delete", AuditTarget.Quest)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {

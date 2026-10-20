@@ -1,3 +1,4 @@
+using CanbanServer.Api.Auditing;
 using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Api.Extensions;
 using CanbanServer.Application.Contracts;
@@ -104,6 +105,7 @@ public class BoardsController : ControllerBase
         return Ok(list);
     }
 
+    [Audit("space.create", AuditTarget.Body, ObjectType = "board")]
     [HttpPost]
     public async Task<ActionResult<BoardDto>> Create([FromBody] CreateBoardRequest request, CancellationToken ct)
     {
@@ -120,6 +122,7 @@ public class BoardsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = board.Id }, board);
     }
 
+    [Audit("space.update", AuditTarget.Board)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<BoardDto>> Update(Guid id, [FromBody] UpdateBoardRequest request, CancellationToken ct)
     {
@@ -130,6 +133,7 @@ public class BoardsController : ControllerBase
         return board == null ? NotFound() : Ok(board);
     }
 
+    [Audit("space.delete", AuditTarget.Board)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {

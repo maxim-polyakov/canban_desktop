@@ -41,6 +41,7 @@ import PersonalGeneralPage from './pages/settings/PersonalGeneralPage.jsx';
 import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPage.jsx';
 import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
 import { CustomFieldsPage } from './pages/settings/IssueConfigPages.jsx';
+import AuditLogPage from './pages/settings/AuditLogPage.jsx';
 import SpaceSettingsPage from './pages/settings/SpaceSettingsPage.jsx';
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
 import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
@@ -120,6 +121,7 @@ export default function App() {
           <Route path="notifications-settings" element={<Navigate to="/settings/personal/notifications" replace />} />
           <Route path="admin" element={<AdminOverviewPage />} />
           <Route path="admin/system" element={<AdminSystemPage />} />
+          <Route path="admin/audit" element={<AuditLogPage />} />
           <Route path="admin/apps" element={<AdminAppsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/billing" element={<AdminBillingPage />} />

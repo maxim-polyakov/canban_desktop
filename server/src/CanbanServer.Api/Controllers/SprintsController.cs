@@ -1,3 +1,5 @@
+using CanbanServer.Infrastructure.Services;
+using CanbanServer.Api.Auditing;
 using Microsoft.AspNetCore.Mvc;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
@@ -45,6 +47,7 @@ public class SprintsController : ControllerBase
         return sprint == null ? NotFound() : Ok(sprint);
     }
 
+    [Audit("sprint.create", AuditTarget.Board, "boardId", ObjectType = "sprint")]
     [HttpPost("board/{boardId:guid}")]
     public async Task<ActionResult<SprintDto>> Create(Guid boardId, [FromBody] CreateSprintRequest request, CancellationToken ct)
     {
@@ -68,6 +71,7 @@ public class SprintsController : ControllerBase
         return sprint == null ? NotFound() : Ok(sprint);
     }
 
+    [Audit("sprint.start", AuditTarget.Sprint)]
     [HttpPost("{id:guid}/start")]
     public async Task<ActionResult<SprintDto>> Start(Guid id, [FromBody] StartSprintRequest? request, CancellationToken ct)
     {
@@ -83,6 +87,7 @@ public class SprintsController : ControllerBase
         }
     }
 
+    [Audit("sprint.complete", AuditTarget.Sprint)]
     [HttpPost("{id:guid}/complete")]
     public async Task<ActionResult<SprintDto>> Complete(Guid id, [FromBody] CompleteSprintRequest? request, CancellationToken ct)
     {
@@ -101,6 +106,7 @@ public class SprintsController : ControllerBase
         }
     }
 
+    [Audit("sprint.delete", AuditTarget.Sprint)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken ct)
     {

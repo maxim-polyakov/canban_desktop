@@ -35,7 +35,7 @@ export const FEATURE_DESCRIPTIONS = {
 export const BOARD_CHANGED_EVENT = 'canban:board-changed';
 export const notifyBoardChanged = (board) => window.dispatchEvent(new CustomEvent(BOARD_CHANGED_EVENT, { detail: { board } }));
 
-const LEGACY = ['board', 'backlog', 'timeline', 'docs', 'forms', 'development', 'releases', 'reports', 'archive'];
+const LEGACY = ['summary', 'board', 'backlog', 'timeline', 'docs', 'forms', 'development', 'releases', 'reports', 'archive'];
 
 export function spaceFeatures(board) {
   const raw = board?.features ?? board?.Features ?? '';

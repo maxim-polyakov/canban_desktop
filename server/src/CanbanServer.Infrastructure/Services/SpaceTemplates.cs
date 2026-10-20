@@ -21,7 +21,7 @@ public sealed record SpaceTemplate(
 public static class SpaceTemplates
 {
     public static readonly string[] AllFeatures = { "summary", "backlog", "board", "list", "timeline", "calendar", "docs", "forms", "development", "reports", "releases", "archive" };
-    public static readonly string[] LegacyFeatures = { "board", "backlog", "timeline", "docs", "forms", "development", "releases", "reports", "archive" };
+    public static readonly string[] LegacyFeatures = { "summary", "board", "backlog", "timeline", "docs", "forms", "development", "releases", "reports", "archive" };
     /// <summary>Jira spaces always offer documents and forms; software spaces also get the development view.</summary>
     private static readonly string[] ContentFeatures = { "docs", "forms" };
     public static readonly string[] ManagementTypes = { "team", "company" };

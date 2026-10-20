@@ -354,7 +354,7 @@ public class JiraPlatformController : ControllerBase
             name = "Канбан",
             environment = env.EnvironmentName,
             version = typeof(JiraPlatformController).Assembly.GetName().Version?.ToString(),
-            mailFromName = config["Smtp:FromName"] ?? "Canban",
+            mailFromName = config["Smtp:FromName"] ?? "Kanban",
             mailFromAddress = config["Smtp:FromAddress"],
             mailConfigured = !string.IsNullOrWhiteSpace(config["Smtp:Host"]),
             githubAppConfigured = !string.IsNullOrWhiteSpace(config["GitHub:AppId"]),

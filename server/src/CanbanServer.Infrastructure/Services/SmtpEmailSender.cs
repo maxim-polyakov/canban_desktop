@@ -29,7 +29,7 @@ public class SmtpEmailSender : IEmailSender
         _user = _config["Smtp:User"]?.Trim();
         _password = _config["Smtp:Password"]?.Trim();
         _fromAddress = _config["Smtp:FromAddress"]?.Trim() ?? "noreply@canban.local";
-        _fromName = _config["Smtp:FromName"]?.Trim() ?? "Canban";
+        _fromName = _config["Smtp:FromName"]?.Trim() ?? "Kanban";
     }
 
     public async Task<bool> SendAsync(string toEmail, string toName, string subject, string bodyHtml, CancellationToken ct = default, bool plainTextOnly = false)

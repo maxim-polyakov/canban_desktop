@@ -66,7 +66,7 @@ public class AuthService : IAuthService
 
     private async Task SendRegistrationConfirmationAsync(string email, string displayName, string confirmationCode, CancellationToken ct)
     {
-        var appName = _config["Smtp:AppName"]?.Trim() ?? "Canban";
+        var appName = _config["Smtp:AppName"]?.Trim() ?? "Kanban";
         var subject = $"Код подтверждения — {appName}";
         var body = EmailLayout.Render(EmailLayout.SiteUrl(_config), EmailLayout.LogoUrl(_config), "Код подтверждения", $"""
             <p style="margin:0 0 12px">Здравствуйте, <strong>{EmailLayout.Encode(displayName)}</strong>.</p>
@@ -92,7 +92,7 @@ public class AuthService : IAuthService
 
     private async Task SendPasswordResetAsync(string email, string displayName, string code, CancellationToken ct)
     {
-        var appName = _config["Smtp:AppName"]?.Trim() ?? "Canban";
+        var appName = _config["Smtp:AppName"]?.Trim() ?? "Kanban";
         var subject = $"Сброс пароля — {appName}";
         var body = EmailLayout.Render(EmailLayout.SiteUrl(_config), EmailLayout.LogoUrl(_config), "Сброс пароля", $"""
             <p style="margin:0 0 12px">Здравствуйте, <strong>{EmailLayout.Encode(displayName)}</strong>.</p>

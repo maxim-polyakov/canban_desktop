@@ -66,7 +66,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
             var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
             var response = await authService.GoogleLoginOrCreateAsync(email, name ?? email, picture, context.HttpContext.RequestAborted);
-            var callbackUrl = builder.Configuration["Auth:FrontendCallbackUrl"] ?? "https://canban.baxic.ru";
+            var callbackUrl = builder.Configuration["Auth:FrontendCallbackUrl"] ?? "https://kanban.baxic.ru";
             var redirectUrl = callbackUrl.TrimEnd('/') + "/auth/callback#token=" + Uri.EscapeDataString(response.AccessToken);
             context.Response.Redirect(redirectUrl);
             context.HandleResponse();
@@ -111,7 +111,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        var origins = (builder.Configuration["Cors:AllowedOrigins"] ?? "https://canban.baxic.ru")
+        var origins = (builder.Configuration["Cors:AllowedOrigins"] ?? "https://kanban.baxic.ru")
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (origins.Length > 0)
         {

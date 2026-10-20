@@ -91,7 +91,7 @@ npm start
 | `Cors__AllowedOrigins` | Origin клиента (через `;`), нужен для входа с Bearer |
 | `Redis__Configuration` | Redis (`localhost:6379` или `redis:6379` в Docker) |
 | `Google__ClientId`, `Google__ClientSecret` | OAuth Google |
-| `Auth__FrontendCallbackUrl` | URL фронта для редиректа после Google (например `https://canban.baxic.ru`) |
+| `Auth__FrontendCallbackUrl` | URL фронта для редиректа после Google (например `https://kanban.baxic.ru`) |
 | `Smtp__*` | Почта (подтверждение регистрации, сброс пароля) |
 | `S3__*` | Yandex Object Storage / S3 для аватаров |
 
@@ -119,7 +119,7 @@ npm start
    ```
    https://<ваш-домен-api>/signin-google
    ```
-   Пример: `https://canbanapi.baxic.ru/signin-google`
+   Пример: `https://kanbanapi.baxic.ru/signin-google`
 3. Кнопка на клиенте ведёт на `GET /api/auth/google`; после входа редирект на `{Auth__FrontendCallbackUrl}/auth/callback#token=...`
 
 За nginx API должен передавать `X-Forwarded-Proto` и `X-Forwarded-Host` (см. `server/nginx-api.conf.example`).

@@ -5,7 +5,7 @@ const previews = require('./previewTranslations.json');
 
 const port = Number(process.env.PORT || 3000);
 const buildDirectory = path.join(__dirname, 'build');
-const publicUrl = (process.env.PUBLIC_SITE_URL || 'https://canban.baxic.ru').replace(/\/$/, '');
+const publicUrl = (process.env.PUBLIC_SITE_URL || 'https://kanban.baxic.ru').replace(/\/$/, '');
 const imageUrl = `${publicUrl}/canban-preview.png`;
 const rtlLanguages = new Set(['ar', 'he', 'fa', 'ur', 'yi']);
 

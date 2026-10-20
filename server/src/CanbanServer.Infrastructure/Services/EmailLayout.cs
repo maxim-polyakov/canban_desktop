@@ -6,7 +6,7 @@ namespace CanbanServer.Infrastructure.Services;
 /// <summary>Branded HTML shell for all outgoing emails. Mail clients ignore &lt;style&gt; blocks, so everything is inline and table-based.</summary>
 public static class EmailLayout
 {
-    public const string DefaultSiteUrl = "https://canban.baxic.ru";
+    public const string DefaultSiteUrl = "https://kanban.baxic.ru";
 
     public static string SiteUrl(IConfiguration config) =>
         (config["Email:SiteUrl"] ?? config["Auth:FrontendCallbackUrl"] ?? DefaultSiteUrl).Trim().TrimEnd('/');

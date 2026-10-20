@@ -1,4 +1,4 @@
-# Пример для canbanapi.baxic.ru (внутри server { listen 443 ssl; server_name canbanapi.baxic.ru; ... })
+# Пример для kanbanapi.baxic.ru (внутри server { listen 443 ssl; server_name kanbanapi.baxic.ru; ... })
 # Важно: location /hubs должен быть ВЫШЕ location /.
 
     # 1) Сначала — хабы (SignalR): /hubs/board и т.д. (без слеша после hubs в location)

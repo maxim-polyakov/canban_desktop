@@ -37,6 +37,29 @@ public class CustomFieldDefinitionConfiguration : IEntityTypeConfiguration<Custo
     }
 }
 
+public class IssueLayoutObjectConfiguration : IEntityTypeConfiguration<IssueLayoutObject>
+{
+    public void Configure(EntityTypeBuilder<IssueLayoutObject> b)
+    {
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Kind).HasMaxLength(32);
+        b.Property(x => x.Name).HasMaxLength(100);
+        b.Property(x => x.Description).HasMaxLength(500);
+        b.Property(x => x.DataJson).HasColumnType("text");
+        b.HasIndex(x => new { x.TeamId, x.Kind });
+        b.HasOne<Team>().WithMany().HasForeignKey(x => x.TeamId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class BoardIssueLayoutConfiguration : IEntityTypeConfiguration<BoardIssueLayout>
+{
+    public void Configure(EntityTypeBuilder<BoardIssueLayout> b)
+    {
+        b.HasKey(x => x.BoardId);
+        b.HasOne<Board>().WithOne().HasForeignKey<BoardIssueLayout>(x => x.BoardId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class UserGroupConfiguration : IEntityTypeConfiguration<UserGroup>
 {
     public void Configure(EntityTypeBuilder<UserGroup> b)

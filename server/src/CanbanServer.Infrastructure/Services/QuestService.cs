@@ -98,6 +98,22 @@ public class QuestService : IQuestService
         var issueType = request.IssueType ?? (request.IsEpic ? IssueType.Epic : IssueType.Task);
         var prepared = await _fields.PrepareNewIssueAsync(col.Board.TeamId, col.BoardId, request.IssueTypeId, issueType, request.CustomFields, ct);
         issueType = prepared.BaseType;
+        if (request.CustomFields != null)
+        {
+            await _fields.EnsureRequiredSystemFieldsAsync(col.BoardId, issueType, prepared.TypeId, key => key switch
+            {
+                "description" => !string.IsNullOrWhiteSpace(request.Description) || !string.IsNullOrWhiteSpace(request.DescriptionDocumentJson),
+                "assignee" => assigneeIds.Count > 0,
+                "duedate" => request.DueDate.HasValue,
+                "labels" => !string.IsNullOrEmpty(NormalizeLabels(request.Labels)),
+                "components" => request.ComponentIds?.Count > 0 || !string.IsNullOrWhiteSpace(request.Component),
+                "fixversions" => request.ReleaseIds?.Count > 0 || !string.IsNullOrWhiteSpace(request.FixVersion),
+                "storypoints" => request.StoryPoints.HasValue,
+                "originalestimate" => request.OriginalEstimateMinutes.HasValue,
+                "sprint" => request.SprintId.HasValue,
+                _ => true,
+            }, ct);
+        }
         var isEpic = (request.IsEpic && request.IssueTypeId == null) || issueType == IssueType.Epic;
         var issueNumber = col.Board.NextIssueNumber++;
         if (string.IsNullOrWhiteSpace(col.Board.KeyPrefix))

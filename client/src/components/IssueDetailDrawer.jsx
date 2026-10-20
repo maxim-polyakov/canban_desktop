@@ -14,6 +14,7 @@ import IssueAssetsField from './IssueAssetsField.jsx';
 import CreateBranchPanel from './CreateBranchPanel.jsx';
 import CustomFieldsPanel from './CustomFields.jsx';
 import { typeChoice, useBoardIssueConfig } from '../utils/issueConfig.js';
+import { fieldRule } from '../utils/issueLayout.js';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
@@ -203,6 +204,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   }, [onClose]);
 
   const issueConfig = useBoardIssueConfig(quest?.boardId);
+  const shown = (key) => !fieldRule(issueConfig.layout, typeChoice(issueType, issueTypeId), key).hidden;
   const chooseIssueType = (value) => {
     const custom = issueConfig.types.find((type) => type.id === value);
     if (custom) { setIssueTypeId(custom.id); setIssueType(custom.baseType); }
@@ -501,7 +503,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                   </select>
                 </div>
               </label>
-              <label className="issue-drawer-field">
+              {shown('priority') && <label className="issue-drawer-field">
                 <span>Приоритет</span>
                 <div className="issue-drawer-select-wrap">
                   <PriorityIcon priority={priority} size={14} />
@@ -509,10 +511,10 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                     {PRIORITY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </div>
-              </label>
+              </label>}
             </div>
 
-            <label className="issue-drawer-field issue-drawer-field-block">
+            {shown('description') && <label className="issue-drawer-field issue-drawer-field-block">
               <span>{t('Описание')}</span>
               <div className="issue-drawer-editor-toolbar">
                 <button type="button" onClick={() => setDescription((value) => `${value}${value ? '\n\n' : ''}# `)}>H</button>
@@ -523,39 +525,40 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
               {description.includes('@') && <div className="issue-drawer-mentions" aria-label={t('Упоминания')}>
                 {members.slice(0, 6).map((member) => <button key={member.userId} type="button" onClick={() => setDescription((value) => `${value}@${member.displayName} `)}>@{member.displayName}</button>)}
               </div>}
-            </label>
+            </label>}
 
-            <label className="issue-drawer-field issue-drawer-field-block">
+            {shown('labels') && <label className="issue-drawer-field issue-drawer-field-block">
               <span>Метки</span>
               <input value={labels} onChange={(e) => setLabels(e.target.value)} placeholder="метка1, метка2" />
-            </label>
+            </label>}
 
             <CustomFieldsPanel
               quest={quest}
               fields={issueConfig.fields}
               people={members}
               refs={issueConfig}
+              layout={issueConfig.layout}
               onSaved={(values) => { setQuest((current) => (current ? { ...current, customFields: values } : current)); onChanged?.(); }}
             />
 
             <div className="issue-drawer-row">
-                  <label className="issue-drawer-field">
+                  {shown('components') && <label className="issue-drawer-field">
                     <span>Компонент</span>
                     <select value={component} onChange={(e) => setComponent(e.target.value)}>
                       <option value="">{t('Без компонента')}</option>
                       {componentOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                     </select>
-                  </label>
-                  <label className="issue-drawer-field">
+                  </label>}
+                  {shown('fixversions') && <label className="issue-drawer-field">
                     <span>Версия исправления</span>
                     <select value={fixVersion} onChange={(e) => setFixVersion(e.target.value)}>
                       <option value="">{t('Без версии')}</option>
                       {releaseOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                     </select>
-                  </label>
+                  </label>}
             </div>
 
-            {supportsStoryPoints && (
+            {supportsStoryPoints && shown('storypoints') && (
               <label className="issue-drawer-field issue-drawer-field-block">
                 <span>Story Points</span>
                 <input
@@ -570,11 +573,11 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
             )}
 
             <div className="issue-drawer-row">
-              <label className="issue-drawer-field">
+              {shown('duedate') && <label className="issue-drawer-field">
                 <span>Срок</span>
                 <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-              </label>
-              <label className="issue-drawer-field">
+              </label>}
+              {shown('sprint') && <label className="issue-drawer-field">
                 <span>Спринт</span>
                 <select value={sprintId} onChange={(e) => setSprintId(e.target.value)}>
                   <option value="">— Бэклог —</option>
@@ -582,13 +585,13 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                     <option key={s.id} value={s.id}>{s.name}{s.status === 1 ? ' (активный)' : ''}</option>
                   ))}
                 </select>
-              </label>
+              </label>}
             </div>
 
-            <label className="issue-drawer-field issue-drawer-field-block">
+            {shown('assignee') && <label className="issue-drawer-field issue-drawer-field-block">
               <span>Исполнители</span>
               <AssigneeSelect value={assigneeIds} options={members} onChange={setAssigneeIds} placeholder="— не назначены —" />
-            </label>
+            </label>}
 
             {assigneeIds.length > 0 && (
               <div className="issue-drawer-assignee-avatars">

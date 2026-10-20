@@ -7,6 +7,7 @@ import { SPACES_CHANGED_EVENT } from '../../components/AppSidebar.jsx';
 import { DeleteSpaceDialog } from '../SpacesPage.jsx';
 import { isValidSpaceKey } from '../../utils/spaceKey.js';
 import SettingsShell, { SaveStatus, SettingsSection } from './SettingsShell.jsx';
+import { SpaceLayoutSettings } from './IssueLayoutPages.jsx';
 
 export function spaceSettingsNav(boardId) {
   return {
@@ -16,6 +17,7 @@ export function spaceSettingsNav(boardId) {
       { items: [[`/board/${boardId}/settings`, 'settings', 'Сведения']] },
       { title: 'Работа', items: [
         [`/board/${boardId}/workflow`, 'workflow', 'Рабочие процессы'],
+        [`/board/${boardId}/fields`, 'forms', 'Поля и экраны'],
         [`/board/${boardId}/components`, 'components', 'Компоненты'],
         [`/board/${boardId}/releases`, 'releases', 'Релизы'],
       ] },
@@ -27,6 +29,28 @@ export function spaceSettingsNav(boardId) {
       ] },
     ],
   };
+}
+
+export function SpaceFieldsPage() {
+  const { boardId } = useParams();
+  const { t } = useLocalization();
+  const [board, setBoard] = useState(null);
+  useEffect(() => {
+    setBoard(null);
+    boardsApi.getById(boardId).then(setBoard).catch(() => setBoard(null));
+  }, [boardId]);
+  return (
+    <SettingsShell
+      nav={spaceSettingsNav(boardId)}
+      breadcrumbs={[['Разделы', '/spaces'], [board?.name || '…', `/board/${boardId}`], ['Поля и экраны']]}
+      title={t('Поля и экраны')}
+    >
+      {board && <SpaceLayoutSettings boardId={boardId} teamId={board.teamId} />}
+      <p className="settings-section-desc">
+        <Link to="/settings/issues/screens">{t('Экраны')}</Link> · <Link to="/settings/issues/field-configurations">{t('Конфигурации полей')}</Link> · <Link to="/settings/issues/fields">{t('Поля задач')}</Link>
+      </p>
+    </SettingsShell>
+  );
 }
 
 export default function SpaceSettingsPage() {

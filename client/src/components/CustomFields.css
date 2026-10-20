@@ -20,8 +20,17 @@
 .settings-context-card.is-default { flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 13px; background: var(--surface-sunken, #f7f8f9); }
 .settings-context-head { display: flex; gap: 8px; align-items: center; }
 .settings-context-head input { flex: 1; font-weight: 600; }
+.custom-field-tab,
+.create-issue-tab { margin: 8px 0 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--text-subtle); }
+.settings-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 16px; border-bottom: 2px solid var(--border, #dfe1e6); }
+.settings-tabs button { padding: 8px 12px; border: 0; background: none; font: inherit; color: var(--text-subtle); cursor: pointer; margin-bottom: -2px; border-bottom: 2px solid transparent; }
+.settings-tabs button.is-active { color: var(--link, #0c66e4); border-bottom-color: currentColor; font-weight: 600; }
+.settings-screen-fields { margin: 0; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 2px; }
+.settings-screen-fields li { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+.settings-mapping-row { display: grid; grid-template-columns: minmax(120px, 40%) 1fr; gap: 8px; align-items: center; font-size: 13px; }
 @media (max-width: 480px) {
-  .settings-cascade-row { grid-template-columns: 1fr; }
+  .settings-cascade-row,
+  .settings-mapping-row { grid-template-columns: 1fr; }
   .custom-field-row { grid-template-columns: 1fr; gap: 4px; }
   .custom-field-row > label { padding-top: 0; }
 }

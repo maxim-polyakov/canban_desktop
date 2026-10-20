@@ -35,6 +35,30 @@ public class CustomFieldDefinition
     public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>
+/// Screens, screen schemes, issue type screen schemes, field configurations and field configuration schemes.
+/// Kind tells which; DataJson holds the kind-specific layout.
+/// </summary>
+public class IssueLayoutObject
+{
+    public Guid Id { get; set; }
+    public Guid TeamId { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string DataJson { get; set; } = "{}";
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>Schemes a space uses; null means the system default (every field, nothing required).</summary>
+public class BoardIssueLayout
+{
+    public Guid BoardId { get; set; }
+    public Guid? FieldConfigurationSchemeId { get; set; }
+    public Guid? IssueTypeScreenSchemeId { get; set; }
+}
+
 public class UserGroup
 {
     public Guid Id { get; set; }

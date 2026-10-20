@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { issueConfig } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { MULTI_FIELD_TYPES, fieldApplies, formatFieldValue, isEmptyValue } from '../utils/issueConfig.js';
+import { arrangeFields, fieldKey, fieldRule, onScreen, typeToken } from '../utils/issueLayout.js';
 import './CustomFields.css';
 
 function toDraft(field, value) {
@@ -114,7 +115,7 @@ export function CustomFieldInput({ field, value, onChange, onCommit, people = []
   }
 }
 
-function FieldRow({ quest, field, people, refs, onSaved }) {
+function FieldRow({ quest, field, people, refs, readOnly, onSaved }) {
   const { t } = useLocalization();
   const stored = quest.customFields?.[field.id];
   const [draft, setDraft] = useState(() => toDraft(field, stored));
@@ -146,21 +147,44 @@ function FieldRow({ quest, field, people, refs, onSaved }) {
         {field.name}{field.required && <span className="app-required"> *</span>}
       </label>
       <div className="custom-field-control">
-        <CustomFieldInput id={inputId} field={field} value={draft} onChange={setDraft} onCommit={save} people={people} refs={refs} disabled={saving} />
+        <CustomFieldInput id={inputId} field={field} value={draft} onChange={setDraft} onCommit={save} people={people} refs={refs} disabled={saving || readOnly} />
         {error && <p className="issue-drawer-error" role="alert">{error}</p>}
       </div>
     </div>
   );
 }
 
-export default function CustomFieldsPanel({ quest, fields = [], people = [], refs = {}, onSaved }) {
+/** A field as the space's field configuration presents it for an issue type. */
+export function configuredField(layout, token, field) {
+  const rule = fieldRule(layout, token, fieldKey(field.id));
+  return { ...field, required: !!(field.required || rule.required), description: rule.description || field.description };
+}
+
+export default function CustomFieldsPanel({ quest, fields = [], people = [], refs = {}, layout = null, onSaved }) {
   const { t } = useLocalization();
-  const visible = fields.filter((field) => fieldApplies(field, quest.issueType, quest.issueTypeId));
-  if (visible.length === 0) return null;
+  const token = typeToken(quest.issueType, quest.issueTypeId);
+  const applicable = fields.filter((field) => fieldApplies(field, quest.issueType, quest.issueTypeId));
+  const groups = arrangeFields(layout, token, 'view', applicable).filter((group) => group.fields.length > 0);
+  if (groups.length === 0) return null;
   return (
     <section className="issue-drawer-section custom-fields-panel" aria-label={t('Другие поля')}>
       <h4>{t('Другие поля')}</h4>
-      {visible.map((field) => <FieldRow key={field.id} quest={quest} field={field} people={people} refs={refs} onSaved={onSaved} />)}
+      {groups.map((group, index) => (
+        <React.Fragment key={group.name ?? index}>
+          {group.name && <h5 className="custom-field-tab">{group.name}</h5>}
+          {group.fields.map((field) => (
+            <FieldRow
+              key={field.id}
+              quest={quest}
+              field={configuredField(layout, token, field)}
+              people={people}
+              refs={refs}
+              readOnly={!onScreen(layout, token, 'edit', fieldKey(field.id))}
+              onSaved={onSaved}
+            />
+          ))}
+        </React.Fragment>
+      ))}
     </section>
   );
 }

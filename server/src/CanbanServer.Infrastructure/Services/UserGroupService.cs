@@ -83,8 +83,9 @@ public class UserGroupService
         await EnsureAdminAsync(group.TeamId, userId, ct);
         var wanted = userIds.Distinct().ToList();
         if (wanted.Count > MaxMembersPerGroup) throw new ArgumentException($"В группе может быть не больше {MaxMembersPerGroup} участников");
-        var teamUsers = await _db.Teams.Where(t => t.Id == group.TeamId)
-            .Select(t => t.Members.Select(m => m.UserId).Append(t.OwnerId ?? Guid.Empty)).FirstAsync(ct);
+        var teamUsers = await _db.TeamMembers.Where(m => m.TeamId == group.TeamId).Select(m => m.UserId).ToListAsync(ct);
+        var ownerId = await _db.Teams.Where(t => t.Id == group.TeamId).Select(t => t.OwnerId).FirstOrDefaultAsync(ct);
+        if (ownerId.HasValue) teamUsers.Add(ownerId.Value);
         if (wanted.Except(teamUsers).Any()) throw new ArgumentException("Пользователь не состоит в команде");
         var current = await _db.UserGroupMembers.Where(m => m.GroupId == id).ToListAsync(ct);
         _db.UserGroupMembers.RemoveRange(current.Where(m => !wanted.Contains(m.UserId)));

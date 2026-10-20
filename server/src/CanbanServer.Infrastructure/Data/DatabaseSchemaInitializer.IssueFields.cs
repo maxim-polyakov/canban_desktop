@@ -36,6 +36,14 @@ public static partial class DatabaseSchemaInitializer
               PRIMARY KEY ("GroupId", "UserId"));
             CREATE INDEX IF NOT EXISTS "IX_UserGroupMembers_UserId" ON "UserGroupMembers"("UserId");
 
+            CREATE TABLE IF NOT EXISTS "IssueLayoutObjects" (
+              "Id" uuid PRIMARY KEY, "TeamId" uuid NOT NULL, "Kind" varchar(32) NOT NULL, "Name" varchar(100) NOT NULL,
+              "Description" varchar(500) NULL, "DataJson" text NOT NULL DEFAULT '{{}}',
+              "CreatedAt" timestamptz NOT NULL DEFAULT now(), "UpdatedAt" timestamptz NOT NULL DEFAULT now());
+            CREATE INDEX IF NOT EXISTS "IX_IssueLayoutObjects_TeamId_Kind" ON "IssueLayoutObjects"("TeamId", "Kind");
+            CREATE TABLE IF NOT EXISTS "BoardIssueLayouts" (
+              "BoardId" uuid PRIMARY KEY, "FieldConfigurationSchemeId" uuid NULL, "IssueTypeScreenSchemeId" uuid NULL);
+
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueTypeId" uuid NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "CustomFieldsJson" text NOT NULL DEFAULT '{{}}';
             CREATE INDEX IF NOT EXISTS "IX_Quests_IssueTypeId" ON "Quests"("IssueTypeId");
@@ -53,6 +61,8 @@ public static partial class DatabaseSchemaInitializer
             END $$;
             SELECT pg_temp.ensure_fk('"IssueTypeDefinitions"','FK_IssueTypeDefinitions_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"CustomFieldDefinitions"','FK_CustomFieldDefinitions_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"IssueLayoutObjects"','FK_IssueLayoutObjects_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"BoardIssueLayouts"','FK_BoardIssueLayouts_Board','FOREIGN KEY ("BoardId") REFERENCES "Boards"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"UserGroups"','FK_UserGroups_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"UserGroupMembers"','FK_UserGroupMembers_Group','FOREIGN KEY ("GroupId") REFERENCES "UserGroups"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"UserGroupMembers"','FK_UserGroupMembers_User','FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE');

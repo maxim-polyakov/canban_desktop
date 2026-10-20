@@ -44,7 +44,8 @@ import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
 import { CustomFieldsPage } from './pages/settings/IssueConfigPages.jsx';
 import AuditLogPage from './pages/settings/AuditLogPage.jsx';
 import GroupsPage from './pages/settings/GroupsPage.jsx';
-import SpaceSettingsPage from './pages/settings/SpaceSettingsPage.jsx';
+import SpaceSettingsPage, { SpaceFieldsPage } from './pages/settings/SpaceSettingsPage.jsx';
+import { FieldConfigurationsPage, ScreensPage } from './pages/settings/IssueLayoutPages.jsx';
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
 import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
 import { useApplyTheme, usePrefs } from './utils/preferences.js';
@@ -121,6 +122,8 @@ export default function App() {
           <Route path="settings/personal/security" element={<PersonalSecurityPage />} />
           <Route path="settings/issues/issue-types" element={<IssueTypesPage />} />
           <Route path="settings/issues/fields" element={<CustomFieldsPage />} />
+          <Route path="settings/issues/screens" element={<ScreensPage />} />
+          <Route path="settings/issues/field-configurations" element={<FieldConfigurationsPage />} />
           <Route path="notifications-settings" element={<Navigate to="/settings/personal/notifications" replace />} />
           <Route path="admin" element={<AdminOverviewPage />} />
           <Route path="admin/system" element={<AdminSystemPage />} />
@@ -132,6 +135,7 @@ export default function App() {
           <Route path="admin/billing/plans" element={<AdminBillingPlansPage />} />
           <Route path="admin/billing/change" element={<AdminBillingChangePage />} />
           <Route path="board/:boardId/settings" element={<SpaceSettingsPage />} />
+          <Route path="board/:boardId/fields" element={<SpaceFieldsPage />} />
           <Route path="board/:boardId" element={<BoardPage />} />
           <Route path="board/:boardId/issue/:questId" element={<BoardPage />} />
           <Route path="board/:boardId/backlog" element={<BacklogPage />} />

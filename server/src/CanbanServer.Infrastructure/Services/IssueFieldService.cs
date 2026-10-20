@@ -29,9 +29,12 @@ public partial class IssueFieldService
     private readonly IJiraPlatformService _jira;
     private readonly IBoardHub _boardHub;
     private readonly CacheService _cache;
+    private readonly IssueLayoutService _layouts;
 
-    public IssueFieldService(CanbanDbContext db, IProjectAccessService access, IJiraPlatformService jira, IBoardHub boardHub, CacheService cache)
+    public IssueFieldService(
+        CanbanDbContext db, IProjectAccessService access, IJiraPlatformService jira, IBoardHub boardHub, CacheService cache, IssueLayoutService layouts)
     {
+        _layouts = layouts;
         _db = db;
         _access = access;
         _jira = jira;
@@ -94,6 +97,7 @@ public partial class IssueFieldService
                 .Where(x => x.context != null).Select(x => BoardFieldDto(x.field, x.context!)),
             versions,
             groups,
+            layout = await _layouts.ResolveAsync(boardId, ct),
         };
     }
 
@@ -188,11 +192,17 @@ public partial class IssueFieldService
         var context = ResolveContext(field, quest.BoardId);
         if (context == null || !AppliesToType(context, quest.IssueType, quest.IssueTypeId))
             throw new ArgumentException("Поле не используется в задачах этого типа");
+        var layout = await _layouts.ResolveAsync(quest.BoardId, ct);
+        var token = IssueLayoutService.TypeToken(quest.IssueType, quest.IssueTypeId);
+        var fieldKey = IssueLayoutService.FieldKey(field.Id);
+        var rule = layout.Rule(token, fieldKey);
+        if (rule.Hidden) throw new ArgumentException($"Поле «{field.Name}» скрыто в конфигурации полей");
+        if (!layout.OnScreen(token, "edit", fieldKey)) throw new ArgumentException($"Поля «{field.Name}» нет на экране редактирования");
         var normalized = Normalize(field, value, context);
         if (normalized is JsonElement user && field.FieldType == "user")
             await EnsureTeamUserAsync(quest.Board.TeamId, Guid.Parse(user.GetString()!), ct);
         if (normalized is JsonElement reference) await EnsureReferencesAsync(field, quest.Board.TeamId, quest.BoardId, reference, ct);
-        if (normalized == null && field.Required) throw new ArgumentException($"Поле «{field.Name}» обязательно");
+        if (normalized == null && (field.Required || rule.Required)) throw new ArgumentException($"Поле «{field.Name}» обязательно");
         var values = ReadValues(quest.CustomFieldsJson);
         var key = fieldId.ToString();
         var old = values.TryGetValue(key, out var previous) ? Display(previous) : null;
@@ -220,12 +230,24 @@ public partial class IssueFieldService
         var checkRequired = values != null;
         values ??= new();
         var fields = await _db.CustomFieldDefinitions.AsNoTracking().Where(x => x.TeamId == teamId).ToListAsync(ct);
+        var layout = await _layouts.ResolveAsync(boardId, ct);
+        var token = IssueLayoutService.TypeToken(baseType, typeId);
         var result = new Dictionary<string, JsonElement>();
         foreach (var field in fields)
         {
             var context = ResolveContext(field, boardId);
             if (context == null || !AppliesToType(context, baseType, typeId)) continue;
+            var fieldKey = IssueLayoutService.FieldKey(field.Id);
+            var rule = layout.Rule(token, fieldKey);
             var fromDefault = !values.TryGetValue(field.Id.ToString(), out var raw);
+            if (rule.Hidden)
+            {
+                if (!fromDefault && raw.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
+                    throw new ArgumentException($"Поле «{field.Name}» скрыто в конфигурации полей");
+                continue;
+            }
+            if (!fromDefault && raw.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined) && !layout.OnScreen(token, "create", fieldKey))
+                throw new ArgumentException($"Поля «{field.Name}» нет на экране создания");
             var normalized = fromDefault ? context.DefaultValue : Normalize(field, raw, context);
             if (normalized is JsonElement user && field.FieldType == "user")
                 await EnsureTeamUserAsync(teamId, Guid.Parse(user.GetString()!), ct);
@@ -235,10 +257,34 @@ public partial class IssueFieldService
                 catch (ArgumentException) when (fromDefault) { normalized = null; }
             }
             if (normalized is JsonElement element) result[field.Id.ToString()] = element;
-            else if (field.Required && checkRequired) throw new ArgumentException($"Поле «{field.Name}» обязательно");
+            else if ((field.Required || rule.Required) && checkRequired) throw new ArgumentException($"Поле «{field.Name}» обязательно");
         }
         return (typeId, baseType, JsonSerializer.Serialize(result));
     }
+
+    /// <summary>Rejects a new issue that leaves out system fields the space's field configuration requires.</summary>
+    public async Task EnsureRequiredSystemFieldsAsync(Guid boardId, IssueType baseType, Guid? typeId, Func<string, bool> present, CancellationToken ct)
+    {
+        var layout = await _layouts.ResolveAsync(boardId, ct);
+        var missing = IssueLayoutService.MissingRequiredSystemFields(layout, IssueLayoutService.TypeToken(baseType, typeId), present);
+        if (missing.Count > 0) throw new ArgumentException($"Заполните обязательные поля: {string.Join(", ", missing.Select(SystemFieldName))}");
+    }
+
+    public static string SystemFieldName(string key) => key switch
+    {
+        "summary" => "Сводка",
+        "description" => "Описание",
+        "assignee" => "Исполнитель",
+        "priority" => "Приоритет",
+        "duedate" => "Срок",
+        "labels" => "Метки",
+        "components" => "Компоненты",
+        "fixversions" => "Исправить в версиях",
+        "storypoints" => "Story points",
+        "originalestimate" => "Первоначальная оценка",
+        "sprint" => "Спринт",
+        _ => key,
+    };
 
     public async Task<IssueTypeDefinition> RequireTypeAsync(Guid teamId, Guid typeId, CancellationToken ct) =>
         await _db.IssueTypeDefinitions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == typeId && x.TeamId == teamId, ct)

@@ -24,7 +24,7 @@ export const MULTI_FIELD_TYPES = ['multiselect', 'versions', 'groups'];
 /** Types whose default value can be set in a context. */
 export const DEFAULT_VALUE_FIELD_TYPES = ['text', 'paragraph', 'number', 'date', 'select', 'multiselect', 'cascading', 'checkbox', 'url', 'labels', 'group', 'groups'];
 
-const EMPTY_CONFIG = { types: [], fields: [], versions: [], groups: [] };
+const EMPTY_CONFIG = { types: [], fields: [], versions: [], groups: [], layout: null };
 
 export const BASE_TYPES = [
   { value: 0, label: 'Эпик' },
@@ -93,7 +93,13 @@ export function loadBoardIssueConfig(boardId, force = false) {
   if (force || !boardCache.has(boardId)) {
     const promise = Promise.resolve().then(() => issueConfig.forBoard(boardId)).then((config) => {
       rememberIssueTypes(config?.types || []);
-      return { types: config?.types || [], fields: config?.fields || [], versions: config?.versions || [], groups: config?.groups || [] };
+      return {
+        types: config?.types || [],
+        fields: config?.fields || [],
+        versions: config?.versions || [],
+        groups: config?.groups || [],
+        layout: config?.layout || null,
+      };
     }).catch((error) => {
       boardCache.delete(boardId);
       throw error;

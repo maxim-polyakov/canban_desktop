@@ -25,6 +25,7 @@ public partial class AuditLogService
         ["field"] = typeof(CustomFieldDefinition),
         ["assetschema"] = typeof(AssetSchema),
         ["group"] = typeof(UserGroup),
+        ["layout"] = typeof(IssueLayoutObject),
         ["transition"] = typeof(WorkflowTransition),
         ["automation"] = typeof(AutomationRule),
         ["webhook"] = typeof(OutboundWebhook),

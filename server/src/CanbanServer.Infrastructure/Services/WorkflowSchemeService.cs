@@ -444,9 +444,14 @@ public class WorkflowSchemeService
         }
         if (match.Workflow.StatusByKey(validators.PreviousStatus) is { } previous)
         {
-            var name = previous.Name.ToLower();
-            var visited = await _db.QuestChanges.AnyAsync(c => c.QuestId == quest.Id && c.Field == "status"
-                && (c.NewValue!.ToLower() == name || c.OldValue!.ToLower() == name), ct);
+            bool Same(string? title) => string.Equals(title?.Trim(), previous.Name, StringComparison.OrdinalIgnoreCase);
+            var visited = Same(quest.Column?.Title);
+            if (!visited)
+            {
+                var history = await _db.QuestChanges.AsNoTracking().Where(c => c.QuestId == quest.Id && c.Field == "status")
+                    .Select(c => new { c.OldValue, c.NewValue }).ToListAsync(ct);
+                visited = history.Any(c => Same(c.OldValue) || Same(c.NewValue));
+            }
             if (!visited) throw new InvalidOperationException($"Переход доступен только задачам, которые были в статусе «{previous.Name}»");
         }
     }

@@ -136,7 +136,7 @@ public class QuestCollaborationService : IQuestCollaborationService
         comment.AuthorUser = await _db.Users.FirstAsync(u => u.Id == userId, ct);
         var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
         await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
-        await _notifications.NotifyAsync(questId, userId, "Новый комментарий", comment.Text, ct);
+        await _notifications.NotifyAsync(questId, userId, "Новый комментарий", comment.Text, ct, NotificationEvents.Commented);
         return (QuestAttachmentOperationStatus.Success, Map(comment));
     }
 
@@ -153,7 +153,7 @@ public class QuestCollaborationService : IQuestCollaborationService
         await _db.SaveChangesAsync(ct);
         var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
         await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
-        await _notifications.NotifyAsync(questId, userId, "Комментарий удалён", preview, ct);
+        await _notifications.NotifyAsync(questId, userId, "Комментарий удалён", preview, ct, NotificationEvents.CommentDeleted);
         return QuestAttachmentOperationStatus.Success;
     }
 

@@ -187,7 +187,7 @@ public class QuestService : IQuestService
             ct,
             notifyBoard: false,
             externalRecipients: request.ExternalNotificationRecipients);
-        await _notificationService.NotifyAsync(quest.Id, userId, "Задача создана", "Вам назначены уведомления по новой задаче.", ct);
+        await _notificationService.NotifyAsync(quest.Id, userId, "Задача создана", "Вам назначены уведомления по новой задаче.", ct, NotificationEvents.Created);
         await _cache.InvalidateAsync("board:detail:" + col.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(col.BoardId, ct);
         return (await GetByIdAsync(quest.Id, ct))!;
@@ -361,7 +361,8 @@ public class QuestService : IQuestService
             await _collaborationService.SetRecipientsAsync(id, userId, recipientIds, ct, notifyBoard: false);
         }
         if (changes.Count > 0)
-            await _notificationService.NotifyAsync(id, userId, "Задача изменена", string.Join(", ", changes), ct);
+            await _notificationService.NotifyAsync(id, userId, "Задача изменена", string.Join(", ", changes), ct,
+                assigneesChanged ? NotificationEvents.Assigned : NotificationEvents.Updated);
         await _cache.InvalidateAsync("board:detail:" + q.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(q.BoardId, ct);
         return await GetByIdAsync(id, ct);
@@ -408,6 +409,7 @@ public class QuestService : IQuestService
 
         var oldColumnId = quest.ColumnId;
         var oldColumnTitle = quest.Column.Title;
+        var oldColumnKind = quest.Column.Kind;
         quest.ColumnId = request.TargetColumnId;
         quest.Order = request.NewOrder;
         if (oldColumnId != quest.ColumnId && !string.IsNullOrWhiteSpace(postFunctions))
@@ -484,7 +486,8 @@ public class QuestService : IQuestService
         }
         if (oldColumnId != quest.ColumnId)
         {
-            await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{oldColumnTitle}» в «{targetColumn.Title}».", ct);
+            await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{oldColumnTitle}» в «{targetColumn.Title}».", ct,
+                NotificationEvents.ForMove(oldColumnKind, targetColumn.Kind));
         }
         await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(quest.BoardId, ct);
@@ -635,7 +638,7 @@ public class QuestService : IQuestService
 
         await _db.SaveChangesAsync(ct);
         foreach (var quest in completedQuests)
-            await _notificationService.NotifyAsync(quest.Id, userId, "Задача архивирована", "Выполненная задача перемещена в архив.", ct);
+            await _notificationService.NotifyAsync(quest.Id, userId, "Задача архивирована", "Выполненная задача перемещена в архив.", ct, NotificationEvents.Archived);
         await _cache.InvalidateAsync("board:detail:" + boardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
 

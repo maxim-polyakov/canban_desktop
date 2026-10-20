@@ -321,6 +321,14 @@ export const permissionSchemes = {
   assign: (boardId, permissionSchemeId) => apiJson(`/api/boards/${boardId}/permission-scheme`, json('PUT', { permissionSchemeId })),
 };
 
+export const notificationSchemes = {
+  catalog: (teamId) => apiJson(`/api/notification-schemes${buildQuery({ teamId })}`),
+  create: (data) => apiJson('/api/notification-schemes', json('POST', data)),
+  update: (id, data) => apiJson(`/api/notification-schemes/${id}`, json('PUT', data)),
+  remove: (id) => remove(`/api/notification-schemes/${id}`),
+  assign: (boardId, notificationSchemeId) => apiJson(`/api/boards/${boardId}/notification-scheme`, json('PUT', { notificationSchemeId })),
+};
+
 export const userGroups = {
   list: (teamId) => apiJson(`/api/groups${buildQuery({ teamId })}`),
   create: (data) => apiJson('/api/groups', json('POST', data)),

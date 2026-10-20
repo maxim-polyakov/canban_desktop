@@ -61,6 +61,8 @@ public class BoardIssueLayout
     public Guid? WorkflowSchemeId { get; set; }
     /// <summary>Shared permission scheme; null uses the built-in default.</summary>
     public Guid? PermissionSchemeId { get; set; }
+    /// <summary>Shared notification scheme; null uses the built-in default.</summary>
+    public Guid? NotificationSchemeId { get; set; }
 }
 
 public class UserGroup

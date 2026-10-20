@@ -12,10 +12,12 @@ public class QuestNotificationService : IQuestNotificationService
     private readonly IEmailSender _emailSender;
     private readonly string _siteUrl;
     private readonly string _logoUrl;
+    private readonly NotificationSchemeService _schemes;
 
-    public QuestNotificationService(CanbanDbContext db, IEmailSender emailSender, IConfiguration config)
+    public QuestNotificationService(CanbanDbContext db, IEmailSender emailSender, IConfiguration config, NotificationSchemeService schemes)
     {
         _db = db;
+        _schemes = schemes;
         _emailSender = emailSender;
         _siteUrl = EmailLayout.SiteUrl(config);
         _logoUrl = EmailLayout.LogoUrl(config);
@@ -34,7 +36,8 @@ public class QuestNotificationService : IQuestNotificationService
         return true;
     }
 
-    public async Task NotifyAsync(Guid questId, Guid actorUserId, string eventTitle, string details, CancellationToken ct = default)
+    public async Task NotifyAsync(Guid questId, Guid actorUserId, string eventTitle, string details, CancellationToken ct = default,
+        string eventKey = NotificationEvents.Updated)
     {
         var context = await _db.Quests.AsNoTracking()
             .Where(q => q.Id == questId)
@@ -60,12 +63,11 @@ public class QuestNotificationService : IQuestNotificationService
 
         var assigneeIds = context.AssigneeIds.ToHashSet();
         if (context.AssigneeId.HasValue) assigneeIds.Add(context.AssigneeId.Value);
-        var recipientIds = watcherIds.ToHashSet();
-        if (context.ReporterId.HasValue) recipientIds.Add(context.ReporterId.Value);
+        var (recipientIds, includeWatchers) = await _schemes.RecipientsAsync(context.BoardId, eventKey, context.ReporterId, assigneeIds, watcherIds, ct);
         var recipients = await _db.Users.AsNoTracking().Where(u => recipientIds.Contains(u.Id)).ToListAsync(ct);
-        var externalRecipients = await _db.QuestExternalNotificationRecipients.AsNoTracking()
+        var externalRecipients = !includeWatchers ? new() : await _db.QuestExternalNotificationRecipients.AsNoTracking()
             .Where(r => r.QuestId == questId)
-            .Select(r => new { r.Email, r.DisplayName })
+            .Select(r => new ExternalRecipient(r.Email, r.DisplayName))
             .ToListAsync(ct);
 
         var issueLabel = string.IsNullOrEmpty(context.IssueKey) ? context.Title : $"{context.IssueKey} {context.Title}";
@@ -98,6 +100,8 @@ public class QuestNotificationService : IQuestNotificationService
         }
         await _db.SaveChangesAsync(ct);
     }
+
+    private sealed record ExternalRecipient(string Email, string? DisplayName);
 
     private string BuildBody(string eventTitle, string recipientName, string issue, string boardName, string actorName, string details,
         string issueUrl, bool isMember)

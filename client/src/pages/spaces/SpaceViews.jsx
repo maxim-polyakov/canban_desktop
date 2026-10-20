@@ -10,7 +10,7 @@ import { OnboardingChecklist, useOnboarding } from '../../components/SpaceOnboar
 import {
   ACCESS_LEVELS, FEATURE_DESCRIPTIONS, FEATURE_TABS, markOnboardingStep, notifyBoardChanged, spaceFeatures,
 } from '../../utils/spaceFeatures.js';
-import { SpacePermissionScheme } from '../settings/PermissionSchemePages.jsx';
+import { SpaceNotificationScheme, SpacePermissionScheme } from '../settings/PermissionSchemePages.jsx';
 import '../settings/Settings.css';
 import './SpaceTemplates.css';
 
@@ -489,6 +489,7 @@ export function SpaceFeaturesPage({ mode }) {
             </label>
           ))}
           <SpacePermissionScheme boardId={boardId} teamId={board.teamId} />
+          <SpaceNotificationScheme boardId={boardId} teamId={board.teamId} />
         </div>
       ) : (
         <div className="sv-options">

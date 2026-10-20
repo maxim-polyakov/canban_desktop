@@ -30,6 +30,7 @@ export const ADMIN_NAV = {
       ['/settings/issues/field-configurations', 'list', 'Конфигурации полей'],
       ['/settings/issues/workflows', 'workflow', 'Workflow'],
       ['/settings/issues/permission-schemes', 'lock', 'Схемы прав'],
+      ['/settings/issues/notification-schemes', 'bell', 'Схемы уведомлений'],
     ] },
     { title: 'Разделы', items: [['/spaces', 'spaces', 'Управление разделами']] },
     { title: 'Приложения', items: [['/admin/apps', 'appsAdd', 'Подключённые приложения']] },

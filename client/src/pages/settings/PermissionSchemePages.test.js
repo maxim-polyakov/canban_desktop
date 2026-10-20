@@ -1,7 +1,9 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
-import { PermissionSchemesPage, SpacePermissionScheme, grantLabel } from './PermissionSchemePages.jsx';
+import {
+  NotificationSchemesPage, PermissionSchemesPage, SpaceNotificationScheme, SpacePermissionScheme, grantLabel,
+} from './PermissionSchemePages.jsx';
 
 jest.mock('../../i18n/LocalizationContext.jsx', () => ({
   useLocalization: () => ({ t: (s) => s, locale: 'ru', language: 'ru' }),
@@ -40,7 +42,28 @@ jest.mock('../../api.js', () => ({
     remove: (id) => { mockCalls.removed.push(id); return Promise.resolve(); },
     assign: (boardId, id) => { mockCalls.assigned.push({ boardId, id }); return Promise.resolve({ boardId, permissionSchemeId: id }); },
   },
+  notificationSchemes: {
+    catalog: () => Promise.resolve(mockNotificationState),
+    create: (data) => { mockCalls.created.push(data); return Promise.resolve({ id: 'new', usedBy: [], ...data }); },
+    update: (id, data) => { mockCalls.updated.push({ id, ...data }); return Promise.resolve({ ...mockNotificationScheme, ...data }); },
+    remove: (id) => { mockCalls.removed.push(id); return Promise.resolve(); },
+    assign: (boardId, id) => { mockCalls.assigned.push({ boardId, id, kind: 'notification' }); return Promise.resolve({ boardId, notificationSchemeId: id }); },
+  },
 }));
+
+const mockNotificationScheme = {
+  id: 'ns1', teamId: 'team', kind: 'notificationscheme', name: 'Тихая', description: '', usedBy: [],
+  data: { events: { ISSUE_CREATED: [{ type: 'watchers' }], ISSUE_COMMENTED: [] } },
+};
+const mockNotificationState = {
+  teamId: 'team', canManage: true, roles: ['viewer', 'member', 'lead', 'admin'],
+  events: [{ key: 'ISSUE_CREATED', name: 'Задача создана' }, { key: 'ISSUE_COMMENTED', name: 'Новый комментарий' }],
+  defaultData: { events: {} },
+  objects: [mockNotificationScheme],
+  groups: [{ id: 'g1', name: 'QA' }],
+  users: [{ id: 'u1', displayName: 'Анна', email: 'anna@example.com' }],
+  boards: [{ id: 'b2', name: 'Мобайл', notificationSchemeId: 'ns1' }],
+};
 
 let container;
 let root;
@@ -132,6 +155,33 @@ test('space picks its permission scheme', async () => {
   expect(container.textContent).toContain('Сохранено');
   await change(select, '');
   expect(mockCalls.assigned[1]).toEqual({ boardId: 'b2', id: null });
+});
+
+test('notification scheme: events get watchers, users and roles', async () => {
+  await render(<NotificationSchemesPage />);
+  expect(container.textContent).toContain('Схема уведомлений по умолчанию');
+  await click(button('Тихая'));
+  expect(container.textContent).toContain('Все наблюдатели');
+  const types = [...byLabel('Кого уведомлять: Новый комментарий').options].map((o) => o.value);
+  expect(types).toEqual(['watchers', 'reporter', 'assignee', 'role', 'group', 'user']);
+  const addButtons = () => container.querySelectorAll('.perm-add button');
+  await click(addButtons()[1]);
+  await change(byLabel('Кого уведомлять: Новый комментарий'), 'user');
+  await click(addButtons()[1]);
+  await click(byLabel('Убрать Все наблюдатели: Задача создана'));
+  await click(button('Сохранить'));
+  expect(mockCalls.updated[0].data.events).toEqual({
+    ISSUE_CREATED: [],
+    ISSUE_COMMENTED: [{ type: 'watchers', value: null }, { type: 'user', value: 'u1' }],
+  });
+});
+
+test('space picks its notification scheme', async () => {
+  await render(<SpaceNotificationScheme boardId="b2" teamId="team" />);
+  const select = container.querySelector('select[aria-label="Схема уведомлений"]');
+  expect(select.value).toBe('ns1');
+  await change(select, '');
+  expect(mockCalls.assigned).toEqual([{ boardId: 'b2', id: null, kind: 'notification' }]);
 });
 
 test('grant labels name roles, groups, users and issue roles', () => {

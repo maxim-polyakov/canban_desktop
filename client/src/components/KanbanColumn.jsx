@@ -30,6 +30,7 @@ export default function KanbanColumn({
   questFilter,
   selectedQuestIds = [],
   onSelectQuest,
+  hideHeader = false,
 }) {
   const { t } = useLocalization();
   const { setNodeRef, isOver } = useDroppable({ id: column.id, data: { type: 'column', columnId: column.id } });
@@ -56,7 +57,7 @@ export default function KanbanColumn({
       ref={setNodeRef}
       className={'kanban-column' + (isOver ? ' kanban-column-over' : '') + (isEmpty ? ' kanban-column-empty' : '')}
     >
-      <div className="kanban-column-header">
+      {!hideHeader && <div className="kanban-column-header">
         {editingTitle ? (
           <form className="kanban-column-title-edit" onSubmit={submitEditTitle}>
             <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} onBlur={submitEditTitle} autoFocus />
@@ -76,8 +77,8 @@ export default function KanbanColumn({
         {onDeleteColumn && (
           <button type="button" className="kanban-column-btn kanban-column-delete" onClick={() => onDeleteColumn(column.id)} title="Удалить колонку">✕</button>
         )}
-      </div>
-      {onUpdateColumnKind && (
+      </div>}
+      {onUpdateColumnKind && !hideHeader && (
         <label className="kanban-column-done-toggle">
           <input
             type="checkbox"

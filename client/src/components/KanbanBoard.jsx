@@ -31,7 +31,7 @@ function SortableColumn({ column, onColumnReorder, children }) {
   );
 }
 
-export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick, questFilter, selectedQuestIds = [], onSelectQuest, sprintId, issueTypes = [] }) {
+export default function KanbanBoard({ boardId, columns, members, onMoveQuest, onAddColumn, onColumnReorder, onRefresh, onUpdateColumn, onUpdateColumnKind, onRefreshColumn, onRefreshColumnQuests, onDeleteColumn, onDeleteQuest, onQuestClick, questFilter, selectedQuestIds = [], onSelectQuest, sprintId, issueTypes = [], lane = false }) {
   const [activeId, setActiveId] = useState(null);
   const [newQuestColumnId, setNewQuestColumnId] = useState(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
@@ -105,7 +105,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
   };
 
   return (
-    <div className={'kanban-board' + (activeId ? ' kanban-board-dragging' : '')}>
+    <div className={'kanban-board' + (activeId ? ' kanban-board-dragging' : '') + (lane ? ' kanban-board-lane' : '')}>
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <SortableContext items={columns.map((c) => COLUMN_PREFIX + c.id)} strategy={horizontalListSortingStrategy}>
           <div className="kanban-columns">
@@ -129,6 +129,7 @@ export default function KanbanBoard({ boardId, columns, members, onMoveQuest, on
                     questFilter={questFilter}
                     selectedQuestIds={selectedQuestIds}
                     onSelectQuest={onSelectQuest}
+                    hideHeader={lane}
                   />
                 </SortableContext>
               </SortableColumn>

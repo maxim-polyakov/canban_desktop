@@ -8,7 +8,10 @@ import KanbanBoard from '../components/KanbanBoard.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import { buildQuestFilter } from '../utils/jqlFilter.js';
 import { moveQuestInColumns } from '../utils/boardMoves.js';
-import useMediaQuery from '../utils/useMediaQuery.js';
+import BoardToolbar from '../components/BoardToolbar.jsx';
+import AssigneeAvatar from '../components/AssigneeAvatar.jsx';
+import { PriorityIcon } from '../components/IssueIcons.jsx';
+import { buildLanes, labelsOf, matchesBoardFilters } from '../utils/boardLanes.js';
 import { useBoardIssueConfig } from '../utils/issueConfig.js';
 import { issueWorkflow, needsTransitionDialog, transitionsTo } from '../utils/workflow.js';
 import TransitionScreenDialog from '../components/TransitionScreenDialog.jsx';
@@ -20,14 +23,8 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 const ARCHIVE_COLUMN_KIND = 5;
 const DONE_COLUMN_KIND = 3;
 
-const ISSUE_TYPE_FILTER_OPTIONS = [
-  { value: '', label: 'Все типы' },
-  { value: '0', label: 'Эпик' },
-  { value: '1', label: 'История' },
-  { value: '2', label: 'Задача' },
-  { value: '3', label: 'Ошибка' },
-  { value: '4', label: 'Подзадача' },
-];
+const EMPTY_FILTERS = { assigneeIds: [], types: [], priorities: [], labels: [] };
+const groupKey = (boardId) => `board-group:${boardId}`;
 const PRIORITY_FILTER_OPTIONS = [
   { value: '', label: 'Все приоритеты' },
   { value: '4', label: 'Высший' },
@@ -54,17 +51,27 @@ export default function BoardPage() {
   const [editBoardDesc, setEditBoardDesc] = useState('');
   const [archiving, setArchiving] = useState(false);
 
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [queryText, setQueryText] = useState('');
-  const [filterAssigneeId, setFilterAssigneeId] = useState('');
-  const [filterIssueType, setFilterIssueType] = useState('');
-  const [filterPriority, setFilterPriority] = useState('');
+  const [boardFilters, setBoardFilters] = useState(EMPTY_FILTERS);
+  const [groupBy, setGroupBy] = useState(() => localStorage.getItem(groupKey(boardId)) || 'none');
+  const [collapsedLanes, setCollapsedLanes] = useState([]);
   const [selectedQuestIds, setSelectedQuestIds] = useState([]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [columnLayout, setColumnLayout] = useState(null);
   const [columnConfigOpen, setColumnConfigOpen] = useState(false);
   const [sprintsLoaded, setSprintsLoaded] = useState(false);
-  const isMobile = useMediaQuery();
+
+  useEffect(() => {
+    setGroupBy(localStorage.getItem(groupKey(boardId)) || 'none');
+    setBoardFilters(EMPTY_FILTERS);
+    setQueryText('');
+    setCollapsedLanes([]);
+  }, [boardId]);
+  const changeGroupBy = (value) => {
+    setGroupBy(value);
+    setCollapsedLanes([]);
+    localStorage.setItem(groupKey(boardId), value);
+  };
 
   const loadSeqRef = useRef(0);
   const loadSprintsRef = useRef(null);
@@ -364,18 +371,30 @@ export default function BoardPage() {
     .filter((column) => column.kind === DONE_COLUMN_KIND)
     .reduce((total, column) => total + ((column.quests ?? column.Quests ?? []).length), 0);
 
-  const activeFilterCount = [queryText, filterAssigneeId, filterIssueType, filterPriority].filter(Boolean).length;
-
-  const questMatchesFilter = buildQuestFilter(queryText, {
-    currentUserId: user?.id,
+  const textFilter = buildQuestFilter(queryText, { currentUserId: user?.id, members, sprints: boardSprints });
+  const filtering = Boolean(queryText.trim()) || Object.values(boardFilters).some((list) => list.length > 0);
+  const questMatchesFilter = (quest) => textFilter(quest) && matchesBoardFilters(quest, boardFilters);
+  const boardLabels = [...new Set(boardColumns.flatMap((column) => (column.quests ?? column.Quests ?? []).flatMap(labelsOf)))].sort();
+  const filteredColumns = filtering
+    ? viewColumns.map((column) => ({ ...column, quests: (column.quests ?? column.Quests ?? []).filter(questMatchesFilter) }))
+    : viewColumns;
+  const lanes = noActiveSprint ? null : buildLanes(filteredColumns, groupBy, { members, t });
+  const boardProps = {
+    boardId,
     members,
-    sprints: boardSprints,
-    fallback: { assigneeId: filterAssigneeId, issueType: filterIssueType, priority: filterPriority },
-  });
+    issueTypes: issueConfig.types,
+    onMoveQuest: moveOnBoard,
+    onRefresh: loadBoard,
+    onRefreshColumnQuests: layoutMode || scrum ? undefined : handleRefreshColumnQuests,
+    onDeleteQuest: handleDeleteQuest,
+    onQuestClick: openIssue,
+    selectedQuestIds,
+    onSelectQuest: toggleQuestSelection,
+    sprintId: scrum ? [...sprintIds][0] : undefined,
+  };
 
   return (
     <div className="page board-page">
-      {board.description && <p className="board-desc">{board.description}</p>}
       {editBoardOpen && (
         <form className="board-edit-form" onSubmit={handleUpdateBoard}>
           <label>Название <input value={editBoardName} onChange={(e) => setEditBoardName(e.target.value)} /></label>
@@ -387,46 +406,17 @@ export default function BoardPage() {
         </form>
       )}
 
-      <div className="board-toolbar">
-        <div className="board-toolbar-search-wrap">
-          <input
-            type="text"
-            className="board-toolbar-search"
-            placeholder={isMobile ? 'Поиск задач' : 'Поиск: assignee:me priority:high type:bug label:… sprint:active текст'}
-            value={queryText}
-            onChange={(e) => setQueryText(e.target.value)}
-          />
-          <button
-            type="button"
-            className="board-toolbar-help-btn"
-            aria-label="Справка по синтаксису поиска"
-            title={[
-              'Поддерживаемый синтаксис поиска (можно сочетать с обычным текстом):',
-              'assignee:me — мои задачи',
-              'assignee:имя — задачи участника',
-              'priority:highest|high|medium|low|lowest — приоритет',
-              'type:epic|story|task|bug|subtask — тип задачи',
-              'label:значение — задачи с меткой',
-              'sprint:active — задачи активного спринта',
-              'Остальной текст ищется по ключу и названию задачи.',
-            ].join('\n')}
-          >
-            ?
-          </button>
-        </div>
-        <button
-          type="button"
-          className={`board-toolbar-filter-btn ${filtersOpen ? 'is-open' : ''}`}
-          onClick={() => setFiltersOpen((v) => !v)}
-          aria-label="Фильтры"
-        >
-          {isMobile ? (
-            <svg className="board-toolbar-filter-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-              <path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm4 6h4v2h-4z" />
-            </svg>
-          ) : 'Фильтры'}
-          {activeFilterCount > 0 && <span className="board-toolbar-filter-count">{activeFilterCount}</span>}
-        </button>
+      <BoardToolbar
+        query={queryText}
+        onQueryChange={setQueryText}
+        members={members}
+        filters={boardFilters}
+        onFiltersChange={setBoardFilters}
+        groupBy={groupBy}
+        onGroupByChange={changeGroupBy}
+        issueTypes={issueConfig.types}
+        labels={boardLabels}
+      >
         <div className="board-more">
           <button type="button" className="board-btn board-more-btn" aria-label={t('Действия с доской')} title={t('Действия с доской')} aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}>⋯</button>
           {moreOpen && (
@@ -446,39 +436,7 @@ export default function BoardPage() {
             </>
           )}
         </div>
-      </div>
-      {filtersOpen && (
-        <div className="board-toolbar-filters">
-          <label>
-            Исполнитель
-            <select value={filterAssigneeId} onChange={(e) => setFilterAssigneeId(e.target.value)}>
-              <option value="">Все исполнители</option>
-              {members.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
-            </select>
-          </label>
-          <label>
-            Тип
-            <select value={filterIssueType} onChange={(e) => setFilterIssueType(e.target.value)}>
-              {ISSUE_TYPE_FILTER_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          </label>
-          <label>
-            Приоритет
-            <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
-              {PRIORITY_FILTER_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
-          </label>
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              className="board-toolbar-filters-clear"
-              onClick={() => { setQueryText(''); setFilterAssigneeId(''); setFilterIssueType(''); setFilterPriority(''); }}
-            >
-              Сбросить
-            </button>
-          )}
-        </div>
-      )}
+      </BoardToolbar>
       {selectedQuestIds.length > 0 && <div className="board-bulk-bar" role="toolbar">
         <strong>{t('Выбрано')}: {selectedQuestIds.length}</strong>
         <select defaultValue="" onChange={(e) => { if (e.target.value) applyBulkUpdate({ columnId: e.target.value }); }}>
@@ -507,6 +465,40 @@ export default function BoardPage() {
             <button type="button" className="app-btn app-btn-subtle" onClick={() => setColumnConfigOpen(true)}>{t('Настроить столбцы')}</button>
           </div>
         </div>
+      ) : lanes ? (
+        <div className="board-lanes">
+          <div className="kanban-columns board-lane-headers" aria-hidden="true">
+            {filteredColumns.map((column) => (
+              <div key={column.id} className="kanban-column-sortable">
+                <div className="kanban-column">
+                  <div className="kanban-column-header">
+                    <h3 className="kanban-column-title">
+                      <span className="kanban-column-title-text">{column.title}</span>
+                      <span className="kanban-column-count">{(column.quests ?? []).length}</span>
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {lanes.length === 0 && <p className="board-lanes-empty">{t('Задачи не найдены')}</p>}
+          {lanes.map((lane) => {
+            const collapsed = collapsedLanes.includes(lane.key);
+            return (
+              <section key={lane.key} className={`board-lane ${collapsed ? 'is-collapsed' : ''}`}>
+                <button type="button" className="board-lane-header" aria-expanded={!collapsed}
+                  onClick={() => setCollapsedLanes((list) => (collapsed ? list.filter((k) => k !== lane.key) : [...list, lane.key]))}>
+                  <span className="board-lane-chevron" aria-hidden="true">▾</span>
+                  {groupBy === 'assignee' && <AssigneeAvatar userId={lane.userId} displayName={lane.title} avatarUrl={lane.avatarUrl} size={24} />}
+                  {groupBy === 'priority' && <PriorityIcon priority={lane.priority} size={16} />}
+                  <span>{lane.title}</span>
+                  <span className="board-lane-count">{t('${n} задач', { n: lane.count })}</span>
+                </button>
+                {!collapsed && <KanbanBoard {...boardProps} columns={lane.columns} lane />}
+              </section>
+            );
+          })}
+        </div>
       ) : (
         <KanbanBoard
           boardId={boardId}
@@ -524,7 +516,7 @@ export default function BoardPage() {
           onDeleteColumn={layoutMode ? undefined : handleDeleteColumn}
           onDeleteQuest={handleDeleteQuest}
           onQuestClick={openIssue}
-          questFilter={activeFilterCount > 0 ? questMatchesFilter : undefined}
+          questFilter={filtering ? questMatchesFilter : undefined}
           selectedQuestIds={selectedQuestIds}
           onSelectQuest={toggleQuestSelection}
           sprintId={scrum ? [...sprintIds][0] : undefined}

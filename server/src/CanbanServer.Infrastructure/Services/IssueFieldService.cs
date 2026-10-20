@@ -371,8 +371,8 @@ public class IssueFieldService
             if (Enum.GetNames<IssueType>().Contains(name, StringComparer.OrdinalIgnoreCase)
                 || new[] { "Эпик", "История", "Задача", "Баг", "Ошибка", "Подзадача" }.Contains(name, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException("Такой стандартный тип уже есть");
-            var lower = name.ToLowerInvariant();
-            if (await _db.IssueTypeDefinitions.AnyAsync(x => x.TeamId == request.TeamId && x.Id != type.Id && x.Name.ToLower() == lower, ct))
+            var taken = await _db.IssueTypeDefinitions.Where(x => x.TeamId == type.TeamId && x.Id != type.Id).Select(x => x.Name).ToListAsync(ct);
+            if (taken.Contains(name, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"Тип «{name}» уже есть");
             type.Name = name;
         }
@@ -406,8 +406,8 @@ public class IssueFieldService
             if (name.Length > 100) throw new ArgumentException("Название поля — не больше 100 символов");
             if (name.StartsWith("cf[", StringComparison.OrdinalIgnoreCase) || name.Any(c => c is '"' or '\''))
                 throw new ArgumentException("Название поля не может содержать кавычки");
-            var lower = name.ToLowerInvariant();
-            if (await _db.CustomFieldDefinitions.AnyAsync(x => x.TeamId == request.TeamId && x.Id != field.Id && x.Name.ToLower() == lower, ct))
+            var taken = await _db.CustomFieldDefinitions.Where(x => x.TeamId == field.TeamId && x.Id != field.Id).Select(x => x.Name).ToListAsync(ct);
+            if (taken.Contains(name, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"Поле «{name}» уже есть");
             field.Name = name;
         }

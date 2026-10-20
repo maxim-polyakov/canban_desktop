@@ -297,7 +297,8 @@ public sealed class JiraPlatformService : IJiraPlatformService
     public async Task<List<WorkLogDto>> GetWorkLogsAsync(Guid questId, CancellationToken ct)
     {
         var logs = await _db.WorkLogs.AsNoTracking().Where(x => x.QuestId == questId).OrderByDescending(x => x.StartedAt).ToListAsync(ct);
-        var users = await _db.Users.AsNoTracking().Where(u => logs.Select(l => l.UserId).Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct);
+        var userIds = logs.Select(l => l.UserId).Distinct().ToList();
+        var users = await _db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct);
         return logs.Select(x => new WorkLogDto(x.Id, x.QuestId, x.UserId, users.GetValueOrDefault(x.UserId)?.DisplayName, x.TimeSpentMinutes, x.StartedAt, x.Note)).ToList();
     }
 
@@ -345,7 +346,8 @@ public sealed class JiraPlatformService : IJiraPlatformService
     public async Task<List<QuestChangeDto>> GetHistoryAsync(Guid questId, CancellationToken ct)
     {
         var items = await _db.QuestChanges.AsNoTracking().Where(x => x.QuestId == questId).OrderByDescending(x => x.CreatedAt).Take(500).ToListAsync(ct);
-        var users = await _db.Users.AsNoTracking().Where(u => items.Where(i => i.UserId.HasValue).Select(i => i.UserId!.Value).Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct);
+        var userIds = items.Where(i => i.UserId.HasValue).Select(i => i.UserId!.Value).Distinct().ToList();
+        var users = await _db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct);
         return items.Select(x => new QuestChangeDto(x.Id, x.QuestId, x.UserId, x.UserId.HasValue ? users.GetValueOrDefault(x.UserId.Value)?.DisplayName : null, x.ChangeType, x.Field, x.OldValue, x.NewValue, x.CreatedAt)).ToList();
     }
 
@@ -738,7 +740,8 @@ public sealed class JiraPlatformService : IJiraPlatformService
     {
         var quests = await _db.Quests.AsNoTracking().Include(q => q.Column).Include(q => q.Sprint)
             .Where(q => q.BoardId == boardId).ToListAsync(ct);
-        var links = await _db.QuestLinks.AsNoTracking().Where(l => quests.Select(q => q.Id).Contains(l.SourceQuestId)).ToListAsync(ct);
+        var questIds = quests.Select(q => q.Id).ToList();
+        var links = await _db.QuestLinks.AsNoTracking().Where(l => questIds.Contains(l.SourceQuestId)).ToListAsync(ct);
         return kind.ToLowerInvariant() switch
         {
             "roadmap" => quests.Select(q => new
@@ -1319,9 +1322,11 @@ public sealed class JiraPlatformService : IJiraPlatformService
     private async Task<object> BuildReleaseProgressAsync(Guid boardId, Guid? releaseId, CancellationToken ct)
     {
         var releases = await _db.BoardReleases.AsNoTracking().Where(r => r.BoardId == boardId && (!releaseId.HasValue || r.Id == releaseId)).ToListAsync(ct);
-        var links = await _db.QuestReleases.AsNoTracking().Where(qr => releases.Select(r => r.Id).Contains(qr.ReleaseId)).ToListAsync(ct);
+        var releaseIds = releases.Select(r => r.Id).ToList();
+        var links = await _db.QuestReleases.AsNoTracking().Where(qr => releaseIds.Contains(qr.ReleaseId)).ToListAsync(ct);
+        var linkedIds = links.Select(l => l.QuestId).Distinct().ToList();
         var quests = await _db.Quests.AsNoTracking().Include(q => q.Column)
-            .Where(q => links.Select(l => l.QuestId).Contains(q.Id)).ToListAsync(ct);
+            .Where(q => linkedIds.Contains(q.Id)).ToListAsync(ct);
         return releases.Select(r =>
         {
             var ids = links.Where(l => l.ReleaseId == r.Id).Select(l => l.QuestId).ToHashSet();
@@ -1341,7 +1346,8 @@ public sealed class JiraPlatformService : IJiraPlatformService
     private async Task<object> BuildTimeTrackingAsync(Guid boardId, CancellationToken ct)
     {
         var quests = await _db.Quests.AsNoTracking().Where(q => q.BoardId == boardId).ToListAsync(ct);
-        var spent = await _db.WorkLogs.AsNoTracking().Where(w => quests.Select(q => q.Id).Contains(w.QuestId))
+        var questIds = quests.Select(q => q.Id).ToList();
+        var spent = await _db.WorkLogs.AsNoTracking().Where(w => questIds.Contains(w.QuestId))
             .GroupBy(w => w.QuestId).Select(g => new { QuestId = g.Key, Minutes = g.Sum(x => x.TimeSpentMinutes) })
             .ToDictionaryAsync(x => x.QuestId, x => x.Minutes, ct);
         return quests.Select(q => new

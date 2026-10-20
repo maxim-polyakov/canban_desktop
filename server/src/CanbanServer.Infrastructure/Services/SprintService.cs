@@ -95,15 +95,23 @@ public class SprintService : ISprintService
         if (sprint.Status == SprintStatus.Closed)
             throw new InvalidOperationException("Closed sprint cannot be started");
 
-        var active = await _db.Sprints
-            .Where(s => s.BoardId == sprint.BoardId && s.Status == SprintStatus.Active && s.Id != id)
-            .ToListAsync(ct);
-        foreach (var other in active)
-            other.Status = SprintStatus.Closed;
+        if (sprint.Status == SprintStatus.Active)
+            throw new InvalidOperationException("Спринт уже начат.");
+
+        var name = request.Name?.Trim();
+        if (request.Name != null && string.IsNullOrEmpty(name)) throw new ArgumentException("Укажите название спринта.");
+        if (name is { Length: > 200 }) throw new ArgumentException("Название спринта не должно превышать 200 символов.");
+        var start = request.StartDate ?? sprint.StartDate ?? DateTime.UtcNow;
+        var end = request.EndDate ?? sprint.EndDate;
+        if (end.HasValue && end <= start) throw new ArgumentException("Дата окончания должна быть позже даты начала.");
+        if (request.AutoComplete && !end.HasValue) throw new ArgumentException("Чтобы завершать спринт автоматически, укажите дату окончания.");
 
         sprint.Status = SprintStatus.Active;
-        sprint.StartDate = request.StartDate ?? sprint.StartDate ?? DateTime.UtcNow;
-        if (request.EndDate != null) sprint.EndDate = request.EndDate;
+        sprint.StartDate = start;
+        sprint.EndDate = end;
+        if (!string.IsNullOrEmpty(name)) sprint.Name = name;
+        if (request.Goal != null) sprint.Goal = string.IsNullOrWhiteSpace(request.Goal) ? null : request.Goal.Trim();
+        sprint.AutoComplete = request.AutoComplete;
         await _db.SaveChangesAsync(ct);
         await InvalidateBoard(sprint.BoardId, ct);
         var count = await _db.Quests.CountAsync(q => q.SprintId == id, ct);
@@ -158,6 +166,16 @@ public class SprintService : ISprintService
         return true;
     }
 
+    public async Task<int> CompleteDueAsync(CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var due = await _db.Sprints.Where(s => s.Status == SprintStatus.Active && s.AutoComplete && s.EndDate != null && s.EndDate <= now)
+            .Select(s => s.Id).ToListAsync(ct);
+        foreach (var id in due)
+            await CompleteAsync(id, new CompleteSprintRequest(null, true), ct);
+        return due.Count;
+    }
+
     private async Task InvalidateBoard(Guid boardId, CancellationToken ct)
     {
         await _cache.InvalidateAsync("board:detail:" + boardId, ct);
@@ -174,5 +192,6 @@ public class SprintService : ISprintService
         sprint.EndDate,
         sprint.Order,
         sprint.CreatedAt,
-        questCount);
+        questCount,
+        sprint.AutoComplete);
 }

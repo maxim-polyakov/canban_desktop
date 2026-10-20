@@ -197,6 +197,7 @@ builder.Services.AddSingleton<IGitHubAppClient, GitHubAppClient>();
 builder.Services.AddHostedService<OutboxDispatcher>();
 builder.Services.AddHostedService<AuditRetentionService>();
 builder.Services.AddHostedService<FilterSubscriptionDispatcher>();
+builder.Services.AddHostedService<SprintAutoCompleteService>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration
 var redisConfig = builder.Configuration["Redis:Configuration"];

@@ -17,6 +17,8 @@ public class Sprint
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public int Order { get; set; }
+    /// <summary>Close the sprint automatically at its end date, returning unfinished issues to the backlog.</summary>
+    public bool AutoComplete { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public Board Board { get; set; } = null!;

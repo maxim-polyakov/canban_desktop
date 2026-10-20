@@ -6,6 +6,7 @@ import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { IssueTypeIcon, PriorityIcon, WatcherBadge } from '../components/IssueIcons.jsx';
 import AssigneeAvatar from '../components/AssigneeAvatar.jsx';
 import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
+import StartSprintDialog from '../components/StartSprintDialog.jsx';
 import useMediaQuery from '../utils/useMediaQuery.js';
 import './BacklogPage.css';
 
@@ -148,6 +149,7 @@ export default function BacklogPage() {
   const [creatingIssue, setCreatingIssue] = useState(false);
   const [activeDragId, setActiveDragId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [startingSprint, setStartingSprint] = useState(null);
   const isMobile = useMediaQuery();
 
   const sensors = useSensors(
@@ -208,13 +210,10 @@ export default function BacklogPage() {
     }
   };
 
-  const handleStartSprint = async (sprintId) => {
-    try {
-      await sprintsApi.start(sprintId, {});
-      await loadAll();
-    } catch (e) {
-      window.alert(t(e.message || 'Не удалось запустить спринт.'));
-    }
+  const handleStartSprint = async (data) => {
+    await sprintsApi.start(startingSprint.id, data);
+    setStartingSprint(null);
+    await loadAll();
   };
 
   const handleCompleteSprint = async (sprintId) => {
@@ -375,7 +374,7 @@ export default function BacklogPage() {
               <SprintActions
                 sprint={sprint}
                 isMobile={isMobile}
-                onStart={() => handleStartSprint(sprint.id)}
+                onStart={() => setStartingSprint(sprint)}
                 onComplete={() => handleCompleteSprint(sprint.id)}
                 onDelete={() => handleDeleteSprint(sprint.id)}
               />
@@ -429,6 +428,16 @@ export default function BacklogPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {startingSprint && (
+        <StartSprintDialog
+          sprint={startingSprint}
+          issueCount={(sprintQuests[startingSprint.id] ?? []).length}
+          anotherActive={sprintList.some((s) => s.status === 1 && s.id !== startingSprint.id)}
+          onStart={handleStartSprint}
+          onClose={() => setStartingSprint(null)}
+        />
+      )}
 
       {questId && (
         <IssueDetailDrawer

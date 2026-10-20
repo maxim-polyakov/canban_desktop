@@ -1,0 +1,148 @@
+.ssd-modal {
+  width: min(600px, calc(100vw - 32px));
+}
+
+.ssd-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ssd-count,
+.ssd-required-note {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+.ssd-required-note {
+  color: var(--text-subtle);
+  font-size: 0.8rem;
+}
+
+.ssd-star {
+  color: var(--danger, #c9372c);
+}
+
+.ssd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ssd-narrow {
+  max-width: 240px;
+}
+
+.ssd-label {
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.ssd-field input,
+.ssd-field select,
+.ssd-field textarea {
+  width: 100%;
+  min-height: 36px;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface-sunken);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.ssd-field textarea {
+  resize: vertical;
+}
+
+.ssd-field input:focus,
+.ssd-field select:focus,
+.ssd-field textarea:focus {
+  outline: none;
+  border-color: var(--accent, #0c66e4);
+  background: var(--surface);
+}
+
+.ssd-field input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.ssd-datetime {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 8px;
+  max-width: 400px;
+}
+
+.ssd-hint {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+
+.ssd-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.ssd-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.ssd-toggle-track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--text-subtlest, #8c9bab);
+  transition: background 0.15s;
+}
+
+.ssd-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+
+.ssd-toggle input:checked + .ssd-toggle-track {
+  background: var(--success, #22a06b);
+}
+
+.ssd-toggle input:checked + .ssd-toggle-track::after {
+  transform: translateX(16px);
+}
+
+.ssd-toggle input:focus-visible + .ssd-toggle-track {
+  outline: 2px solid var(--accent, #0c66e4);
+  outline-offset: 2px;
+}
+
+.ssd-toggle-hint {
+  margin-top: -10px;
+}
+
+@media (max-width: 640px) {
+  .ssd-datetime {
+    grid-template-columns: minmax(0, 1fr) 110px;
+  }
+}

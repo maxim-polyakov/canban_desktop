@@ -11,5 +11,7 @@ public interface ISprintService
     Task<SprintDto?> UpdateAsync(Guid id, UpdateSprintRequest request, CancellationToken ct = default);
     Task<SprintDto?> StartAsync(Guid id, StartSprintRequest request, CancellationToken ct = default);
     Task<SprintDto?> CompleteAsync(Guid id, CompleteSprintRequest request, CancellationToken ct = default);
+    /// <summary>Closes active auto-complete sprints whose end date has passed; returns how many were closed.</summary>
+    Task<int> CompleteDueAsync(CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
 }

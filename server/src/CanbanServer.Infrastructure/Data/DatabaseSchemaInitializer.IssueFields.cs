@@ -50,6 +50,7 @@ public static partial class DatabaseSchemaInitializer
 
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueTypeId" uuid NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "StartDate" timestamptz NULL;
+            ALTER TABLE "Sprints" ADD COLUMN IF NOT EXISTS "AutoComplete" boolean NOT NULL DEFAULT false;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "CustomFieldsJson" text NOT NULL DEFAULT '{{}}';
             CREATE INDEX IF NOT EXISTS "IX_Quests_IssueTypeId" ON "Quests"("IssueTypeId");
 

@@ -141,17 +141,6 @@ export default function ColumnConfigDialog({ boardId, layout, onClose, onPublish
     }
   };
 
-  const reset = async () => {
-    if (!window.confirm(t('Вернуть по одному столбцу на каждый статус?'))) return;
-    setBusy(true);
-    try {
-      onPublished(await boards.resetColumnLayout(boardId));
-    } catch (e) {
-      setError(t(e.message || 'Не удалось сбросить столбцы'));
-      setBusy(false);
-    }
-  };
-
   const drop = (columnId, index) => (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -174,7 +163,6 @@ export default function ColumnConfigDialog({ boardId, layout, onClose, onPublish
         onDrop={drop(laneId, index)}
       >
         <span className={`ccd-lozenge is-${statusTone(status.kind)}`}>{status.title}</span>
-        {status.isNew && <span className="ccd-new-badge">{t('новый')}</span>}
         <Menu
           label={t('Действия со статусом')}
           items={[
@@ -258,12 +246,12 @@ export default function ColumnConfigDialog({ boardId, layout, onClose, onPublish
                 <button type="button" className="ccd-plus" aria-label={t('Добавить столбец')} title={t('Добавить столбец')} onClick={() => setNewColumn('')}>+</button>
               ) : (
                 <form className="ccd-lane" onSubmit={addColumn}>
-                  <input className="ccd-rename" autoFocus maxLength={100} value={newColumn} placeholder={t('Название столбца')} aria-label={t('Название столбца')}
-                    onChange={(e) => setNewColumn(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') setNewColumn(null); }} />
-                  <div className="ccd-add-actions">
-                    <button type="button" className="app-btn app-btn-subtle" onClick={() => setNewColumn(null)}>{t('Отмена')}</button>
-                    <button type="submit" className="app-btn app-btn-primary" disabled={!newColumn.trim()}>{t('Добавить')}</button>
-                  </div>
+                  <header className="ccd-lane-head">
+                    <input className="ccd-rename" autoFocus maxLength={100} value={newColumn} placeholder={t('Название столбца')} aria-label={t('Название столбца')}
+                      onChange={(e) => setNewColumn(e.target.value)}
+                      onBlur={() => { if (!newColumn.trim()) setNewColumn(null); }}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setNewColumn(null); }} />
+                  </header>
                 </form>
               )}
             </div>
@@ -271,7 +259,6 @@ export default function ColumnConfigDialog({ boardId, layout, onClose, onPublish
           {error && <p className="app-modal-error" role="alert">{error}</p>}
         </div>
         <div className="app-modal-footer">
-          {layout?.configured && <button type="button" className="app-btn app-btn-subtle ccd-reset" onClick={reset} disabled={busy}>{t('Столбец на каждый статус')}</button>}
           <button type="button" className="app-btn app-btn-subtle" onClick={onClose} disabled={busy}>{t('Отмена')}</button>
           <button type="button" className="app-btn app-btn-primary" onClick={publish} disabled={busy || !dirty || !!problem}>{busy ? '…' : t('Опубликовать')}</button>
         </div>

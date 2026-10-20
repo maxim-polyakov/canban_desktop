@@ -11,7 +11,6 @@ const mockCalls = [];
 jest.mock('../api.js', () => ({
   boards: {
     publishColumnLayout: (id, data) => { mockCalls.push(['publish', id, data]); return Promise.resolve({ configured: true, columns: [], hidden: [], statuses: [] }); },
-    resetColumnLayout: (id) => { mockCalls.push(['reset', id]); return Promise.resolve({ configured: false }); },
   },
 }));
 

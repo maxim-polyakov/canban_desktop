@@ -124,11 +124,6 @@
 .ccd-lozenge.is-progress { background: #deebff; color: #0747a6; }
 .ccd-lozenge.is-done { background: #e3fcef; color: #006644; }
 
-.ccd-new-badge {
-  font-size: 0.7rem;
-  color: var(--text-subtle);
-}
-
 .ccd-menu {
   position: relative;
   margin-left: auto;
@@ -260,10 +255,6 @@
 
 .ccd-plus:hover {
   background: var(--hover, rgba(9, 30, 66, 0.08));
-}
-
-.ccd-reset {
-  margin-right: auto;
 }
 
 .board-empty-state {

@@ -72,7 +72,6 @@ export const boards = {
   update: (id, data) => apiJson(`/api/boards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   getColumnLayout: (id) => apiJson(`/api/boards/${id}/column-layout`),
   publishColumnLayout: (id, data) => apiJson(`/api/boards/${id}/column-layout`, { method: 'PUT', body: JSON.stringify(data) }),
-  resetColumnLayout: (id) => apiJson(`/api/boards/${id}/column-layout`, { method: 'DELETE' }),
   setAvatar: (id, avatarUrl) => apiJson(`/api/boards/${id}/avatar`, { method: 'PUT', body: JSON.stringify({ avatarUrl }) }),
   uploadAvatar: (id, file) => {
     const formData = new FormData();

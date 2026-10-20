@@ -5,7 +5,8 @@ namespace CanbanServer.Application.Contracts;
 
 public interface IJiraPlatformService
 {
-    Task ValidateTransitionAsync(Quest quest, Guid targetColumnId, BoardPermission permission, CancellationToken ct);
+    Task<WorkflowTransition?> ValidateTransitionAsync(Quest quest, Guid targetColumnId, BoardPermission permission, CancellationToken ct, Guid? userId = null);
+    Task<List<WorkflowTransitionDto>> CopyWorkflowAsync(Guid targetBoardId, Guid sourceBoardId, CancellationToken ct);
     Task AddChangeAsync(Guid questId, Guid? userId, string changeType, string? field, string? oldValue, string? newValue, CancellationToken ct);
     Task EnqueueAsync(string type, object payload, CancellationToken ct);
 

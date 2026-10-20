@@ -2,8 +2,9 @@ using CanbanServer.Domain.Entities;
 
 namespace CanbanServer.Application.DTOs;
 
-public record WorkflowTransitionDto(Guid Id, Guid BoardId, Guid SourceColumnId, Guid TargetColumnId, string Name, string AllowedIssueTypes, string AllowedRoles, string? ConditionsJson, bool Enabled);
-public record UpsertWorkflowTransitionRequest(Guid SourceColumnId, Guid TargetColumnId, string Name, string? AllowedIssueTypes, string? AllowedRoles, string? ConditionsJson, bool Enabled = true);
+public record WorkflowTransitionDto(Guid Id, Guid BoardId, Guid SourceColumnId, Guid TargetColumnId, string Name, string AllowedIssueTypes, string AllowedRoles, string? ConditionsJson, bool Enabled, bool FromAnyStatus = false, string? PostFunctionsJson = null);
+public record UpsertWorkflowTransitionRequest(Guid SourceColumnId, Guid TargetColumnId, string Name, string? AllowedIssueTypes, string? AllowedRoles, string? ConditionsJson, bool Enabled = true, bool FromAnyStatus = false, string? PostFunctionsJson = null);
+public record CopyWorkflowRequest(Guid SourceBoardId);
 
 public record QuestLinkDto(Guid Id, Guid SourceQuestId, Guid TargetQuestId, QuestLinkType Type, string? SourceKey, string? TargetKey, string? SourceTitle, string? TargetTitle);
 /// <param name="Target">Issue key (e.g. KAN-12) or quest id; used when TargetQuestId is not set.</param>

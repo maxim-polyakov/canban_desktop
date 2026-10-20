@@ -27,6 +27,10 @@ public static partial class DatabaseSchemaInitializer
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "CustomFieldsJson" text NOT NULL DEFAULT '{{}}';
             CREATE INDEX IF NOT EXISTS "IX_Quests_IssueTypeId" ON "Quests"("IssueTypeId");
 
+            ALTER TABLE "WorkflowTransitions" ADD COLUMN IF NOT EXISTS "FromAnyStatus" boolean NOT NULL DEFAULT false;
+            ALTER TABLE "WorkflowTransitions" ADD COLUMN IF NOT EXISTS "PostFunctionsJson" text NULL;
+            ALTER TABLE "WorkflowTransitions" ALTER COLUMN "AllowedIssueTypes" TYPE varchar(2000);
+
             CREATE OR REPLACE FUNCTION pg_temp.ensure_fk(tbl regclass, cname text, definition text)
             RETURNS void LANGUAGE plpgsql AS $$
             BEGIN

@@ -62,13 +62,21 @@ public class JiraPlatformController : ControllerBase
         return await _jira.DeleteTransitionAsync(boardId, id, ct) ? NoContent() : NotFound();
     }
 
+    [HttpPost("workflows/board/{boardId:guid}/copy")]
+    public async Task<ActionResult> CopyWorkflow(Guid boardId, [FromBody] CopyWorkflowRequest request, CancellationToken ct)
+    {
+        await EnsureBoardAsync(boardId, BoardPermission.Manage, ct);
+        await EnsureBoardAsync(request.SourceBoardId, BoardPermission.View, ct);
+        return Ok(await _jira.CopyWorkflowAsync(boardId, request.SourceBoardId, ct));
+    }
+
     [HttpGet("workflows/quests/{questId:guid}/transitions")]
     public async Task<ActionResult> GetQuestTransitions(Guid questId, CancellationToken ct)
     {
         await EnsureQuestAsync(questId, BoardPermission.View, ct);
         var quest = await _db.Quests.AsNoTracking().FirstAsync(q => q.Id == questId, ct);
         var transitions = await _jira.GetTransitionsAsync(quest.BoardId, ct);
-        return Ok(transitions.Where(t => t.Enabled && t.SourceColumnId == quest.ColumnId).ToList());
+        return Ok(transitions.Where(t => t.Enabled && t.TargetColumnId != quest.ColumnId && (t.FromAnyStatus || t.SourceColumnId == quest.ColumnId)).ToList());
     }
 
     public record ExecuteTransitionRequest(Guid TransitionId);
@@ -79,7 +87,7 @@ public class JiraPlatformController : ControllerBase
         await EnsureQuestAsync(questId, BoardPermission.Work, ct);
         var quest = await _db.Quests.AsNoTracking().FirstAsync(q => q.Id == questId, ct);
         var transition = (await _jira.GetTransitionsAsync(quest.BoardId, ct))
-            .FirstOrDefault(t => t.Id == request.TransitionId && t.Enabled && t.SourceColumnId == quest.ColumnId)
+            .FirstOrDefault(t => t.Id == request.TransitionId && t.Enabled && t.TargetColumnId != quest.ColumnId && (t.FromAnyStatus || t.SourceColumnId == quest.ColumnId))
             ?? throw new ArgumentException("Transition is not available for this issue");
         var moved = await _quests.MoveAsync(new MoveQuestRequest(questId, transition.TargetColumnId, 0), RequireUser(), ct);
         return moved == null ? NotFound() : Ok(moved);

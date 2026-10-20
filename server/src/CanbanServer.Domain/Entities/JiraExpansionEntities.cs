@@ -18,6 +18,9 @@ public class WorkflowTransition
     public string? ConditionsJson { get; set; }
     public bool Enabled { get; set; } = true;
     public string Name { get; set; } = "";
+    /// <summary>Global transition: available from every status; SourceColumnId is then ignored.</summary>
+    public bool FromAnyStatus { get; set; }
+    public string? PostFunctionsJson { get; set; }
     public Board Board { get; set; } = null!;
 }
 

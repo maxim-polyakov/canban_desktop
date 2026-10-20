@@ -10,7 +10,7 @@ public class WorkflowTransitionConfiguration : IEntityTypeConfiguration<Workflow
     {
         b.HasKey(x => x.Id);
         b.Property(x => x.Name).HasMaxLength(200);
-        b.Property(x => x.AllowedIssueTypes).HasMaxLength(200);
+        b.Property(x => x.AllowedIssueTypes).HasMaxLength(2000);
         b.Property(x => x.AllowedRoles).HasMaxLength(200);
         b.HasIndex(x => new { x.BoardId, x.SourceColumnId, x.TargetColumnId });
     }

@@ -10,6 +10,9 @@ const remove = (url) => api(url, { method: 'DELETE' }).then(okOrThrow);
 export const workflows = {
   getByBoard: (boardId) => apiJson(`/api/workflows/board/${boardId}`),
   save: (boardId, data) => apiJson(`/api/workflows/board/${boardId}`, json('PUT', data)),
+  update: (boardId, id, data) => apiJson(`/api/workflows/board/${boardId}${buildQuery({ id })}`, json('PUT', data)),
+  remove: (boardId, id) => remove(`/api/workflows/board/${boardId}/${id}`),
+  copy: (boardId, sourceBoardId) => apiJson(`/api/workflows/board/${boardId}/copy`, json('POST', { sourceBoardId })),
   getTransitions: (questId) => apiJson(`/api/workflows/quests/${questId}/transitions`),
   transition: (questId, transitionId) => apiJson(`/api/workflows/quests/${questId}/transitions`, json('POST', { transitionId })),
 };

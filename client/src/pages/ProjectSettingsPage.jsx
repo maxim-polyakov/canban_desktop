@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from '../i18n/navigation.jsx';
 import {
-  automations, boards, components, integrations, permissions, releases, workflows,
+  automations, components, integrations, permissions, releases,
 } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
+import WorkflowEditor from './workflow/WorkflowEditor.jsx';
 import './JiraPages.css';
 
 export const AUTOMATION_TRIGGERS = ['IssueCreated', 'IssueUpdated', 'IssueMoved', 'WorkLogged', 'SprintChanged', 'WebhookReceived'];
@@ -137,47 +138,6 @@ function AutomationSettings({ boardId }) {
   </>;
 }
 
-function WorkflowSettings({ boardId }) {
-  const { t } = useLocalization();
-  const [columns, setColumns] = useState([]);
-  const [items, setItems] = useState([]);
-  const [form, setForm] = useState({ name: '', sourceColumnId: '', targetColumnId: '' });
-  const [error, setError] = useState('');
-  const load = useCallback(async () => {
-    try {
-      const [board, list] = await Promise.all([boards.getById(boardId), workflows.getByBoard(boardId)]);
-      setColumns(board?.columns || []);
-      setItems(Array.isArray(list) ? list : []);
-    } catch (e) { setError(e.message); }
-  }, [boardId]);
-  useEffect(() => { load(); }, [load]);
-  const columnTitle = (id) => columns.find((column) => column.id === id)?.title || '?';
-  const submit = async (e) => {
-    e.preventDefault(); setError('');
-    try {
-      await workflows.save(boardId, { ...form, enabled: true });
-      setForm({ name: '', sourceColumnId: '', targetColumnId: '' });
-      await load();
-    } catch (err) { setError(err.message); }
-  };
-  return <>
-    <div className="jira-header"><h1>{t('Редактор workflow')}</h1></div>
-    <p>{t('Если переходов нет, задачи можно перемещать между любыми колонками.')}</p>
-    <form className="jira-toolbar" onSubmit={submit}>
-      <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('Название перехода')} />
-      <select required value={form.sourceColumnId} onChange={(e) => setForm({ ...form, sourceColumnId: e.target.value })}>
-        <option value="">{t('Из колонки')}</option>{columns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-      </select>
-      <select required value={form.targetColumnId} onChange={(e) => setForm({ ...form, targetColumnId: e.target.value })}>
-        <option value="">{t('В колонку')}</option>{columns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-      </select>
-      <button className="jira-button jira-button-primary" type="submit">{t('Добавить')}</button>
-    </form>
-    {error && <p className="jira-error">{error}</p>}
-    <ul className="jira-link-list">{items.map((item) => <li key={item.id}>{item.name}: {columnTitle(item.sourceColumnId)} → {columnTitle(item.targetColumnId)}</li>)}</ul>
-  </>;
-}
-
 function PermissionSettings({ boardId }) {
   const { t } = useLocalization();
   const [data, setData] = useState(null);
@@ -274,6 +234,6 @@ export default function ProjectSettingsPage({ mode }) {
   else if (mode === 'automations') content = <AutomationSettings boardId={boardId} />;
   else if (mode === 'integrations') content = <Integrations boardId={boardId} />;
   else if (mode === 'permissions') content = <PermissionSettings boardId={boardId} />;
-  else content = <WorkflowSettings boardId={boardId} />;
+  else content = <WorkflowEditor boardId={boardId} />;
   return <div className="page jira-page">{content}</div>;
 }

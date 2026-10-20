@@ -1,0 +1,41 @@
+.wf-editor { display: flex; flex-direction: column; gap: 4px; max-width: 1200px; }
+.wf-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.wf-muted { color: var(--text-subtle); font-size: 13px; margin: 0 0 8px; }
+.wf-section { margin-top: 20px; }
+.wf-section h2 { margin: 0 0 6px; font-size: 16px; }
+.wf-empty { padding: 20px; border: 1px dashed var(--border); border-radius: 6px; color: var(--text-subtle); text-align: center; }
+.wf-statuses { display: flex; flex-wrap: wrap; gap: 8px; }
+.wf-status-card { display: flex; flex-direction: column; gap: 6px; min-width: 170px; padding: 10px; border-radius: 6px; border: 1px solid var(--border); border-left-width: 4px; background: var(--surface); }
+.wf-status-card.is-todo { border-left-color: #8590a2; }
+.wf-status-card.is-progress { border-left-color: #1d7afc; }
+.wf-status-card.is-done { border-left-color: #22a06b; }
+.wf-status-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+.wf-diagram { overflow-x: auto; padding: 8px 0; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-sunken, var(--surface)); color: var(--text-subtle); }
+.wf-diagram svg { display: block; }
+.wf-status rect { stroke-width: 1; }
+.wf-status text { font-size: 11px; font-weight: 700; fill: #172b4d; }
+.wf-status.is-todo rect { fill: #dfe1e6; stroke: #8590a2; }
+.wf-status.is-progress rect { fill: #cce0ff; stroke: #1d7afc; }
+.wf-status.is-done rect { fill: #baf3db; stroke: #22a06b; }
+.wf-edge path { fill: none; stroke: currentColor; stroke-width: 1.5; }
+.wf-edge text { font-size: 11px; fill: var(--text); }
+.wf-edge.is-disabled { opacity: .4; }
+.wf-edge.is-disabled path { stroke-dasharray: 4 3; }
+.wf-table-wrap { overflow-x: auto; }
+.wf-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.wf-table th { padding: 8px; text-align: left; font-size: 12px; color: var(--text-subtle); border-bottom: 2px solid var(--border); white-space: nowrap; }
+.wf-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.wf-table tr.is-disabled td { color: var(--text-subtle); }
+.wf-narrow { width: 1%; white-space: nowrap; }
+.wf-row-actions { display: inline-flex; align-items: center; gap: 2px; }
+.wf-lozenge { display: inline-block; margin-left: 6px; padding: 0 4px; border-radius: 3px; background: var(--chip-bg, var(--nav-hover)); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.wf-lozenge.is-any { margin-left: 0; background: #e9f2ff; color: #0055cc; }
+.wf-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.wf-copy { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.wf-copy select { min-width: 240px; height: 32px; }
+.wf-dialog { max-width: 640px; }
+.wf-dialog-section { margin: 16px 0 6px; font-size: 14px; }
+.wf-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.wf-row > .app-field { flex: 1 1 200px; }
+.wf-checklist { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.wf-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }

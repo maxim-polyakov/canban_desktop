@@ -352,12 +352,14 @@ public class QuestService : IQuestService
 
         var (_, permission) = await _access.GetBoardAccessAsync(quest.BoardId, userId, ct);
         if (permission == null) return null;
-        await _jira.ValidateTransitionAsync(quest, request.TargetColumnId, permission.Value, ct);
+        var transition = await _jira.ValidateTransitionAsync(quest, request.TargetColumnId, permission.Value, ct, userId);
 
         var oldColumnId = quest.ColumnId;
         var oldColumnTitle = quest.Column.Title;
         quest.ColumnId = request.TargetColumnId;
         quest.Order = request.NewOrder;
+        if (oldColumnId != quest.ColumnId && !string.IsNullOrWhiteSpace(transition?.PostFunctionsJson))
+            await ApplyPostFunctionsAsync(quest, transition.PostFunctionsJson, userId, ct);
         if (oldColumnId != quest.ColumnId)
         {
             await _jira.AddChangeAsync(quest.Id, userId, "status", "status", oldColumnTitle, targetColumn.Title, ct);
@@ -623,6 +625,44 @@ public class QuestService : IQuestService
     }
 
     private static QuestDto Map(Quest q) => BoardService.MapQuest(q);
+
+    /// <summary>Workflow post functions: { "assignee": "currentUser" | "unassigned", "priority": 0..4 }.</summary>
+    private async Task ApplyPostFunctionsAsync(Quest quest, string json, Guid userId, CancellationToken ct)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        var assignee = root.TryGetProperty("assignee", out var a) && a.ValueKind == JsonValueKind.String ? a.GetString() : null;
+        var before = quest.Assignees.OrderBy(x => x.Order).Select(x => x.UserId.ToString()).ToList();
+        if (assignee == "currentUser" && !(quest.Assignees.Count == 1 && quest.Assignees.First().UserId == userId))
+        {
+            var others = quest.Assignees.Where(x => x.UserId != userId).ToList();
+            _db.QuestAssignees.RemoveRange(others);
+            foreach (var other in others) quest.Assignees.Remove(other);
+            var mine = quest.Assignees.FirstOrDefault(x => x.UserId == userId);
+            if (mine != null) mine.Order = 0;
+            else
+            {
+                var mover = await _db.Users.FirstAsync(u => u.Id == userId, ct);
+                _db.QuestAssignees.Add(new QuestAssignee { Id = Guid.NewGuid(), QuestId = quest.Id, UserId = userId, User = mover, Order = 0 });
+            }
+            quest.AssigneeId = userId;
+            await _jira.AddChangeAsync(quest.Id, userId, "updated", "assignee", string.Join(",", before), userId.ToString(), ct);
+        }
+        else if (assignee == "unassigned" && (quest.Assignees.Count > 0 || quest.AssigneeId != null))
+        {
+            var all = quest.Assignees.ToList();
+            _db.QuestAssignees.RemoveRange(all);
+            quest.Assignees.Clear();
+            quest.AssigneeId = null;
+            await _jira.AddChangeAsync(quest.Id, userId, "updated", "assignee", string.Join(",", before), null, ct);
+        }
+        if (root.TryGetProperty("priority", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out var priority)
+            && Enum.IsDefined(typeof(IssuePriority), priority) && quest.Priority != (IssuePriority)priority)
+        {
+            await _jira.AddChangeAsync(quest.Id, userId, "updated", "priority", quest.Priority.ToString(), ((IssuePriority)priority).ToString(), ct);
+            quest.Priority = (IssuePriority)priority;
+        }
+    }
 
     private static bool SameIds(IEnumerable<Guid>? requested, IEnumerable<Guid> current) =>
         (requested ?? Enumerable.Empty<Guid>()).ToHashSet().SetEquals(current);

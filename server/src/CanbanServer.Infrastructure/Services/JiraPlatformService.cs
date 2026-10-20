@@ -59,7 +59,9 @@ public sealed class JiraPlatformService : IJiraPlatformService
         entity.Name = string.IsNullOrWhiteSpace(request.Name) ? "Transition" : request.Name.Trim();
         entity.AllowedIssueTypes = request.AllowedIssueTypes?.Trim() ?? "";
         entity.AllowedRoles = request.AllowedRoles?.Trim() ?? "";
-        entity.ConditionsJson = request.ConditionsJson;
+        entity.ConditionsJson = NormalizeJsonObject(request.ConditionsJson, "conditions");
+        entity.PostFunctionsJson = NormalizeJsonObject(request.PostFunctionsJson, "post functions");
+        entity.FromAnyStatus = request.FromAnyStatus;
         entity.Enabled = request.Enabled;
         await _db.SaveChangesAsync(ct);
         return MapTransition(entity);
@@ -74,25 +76,46 @@ public sealed class JiraPlatformService : IJiraPlatformService
         return true;
     }
 
-    public async Task ValidateTransitionAsync(Quest quest, Guid targetColumnId, BoardPermission permission, CancellationToken ct)
+    public async Task<WorkflowTransition?> ValidateTransitionAsync(Quest quest, Guid targetColumnId, BoardPermission permission, CancellationToken ct, Guid? userId = null)
     {
+        if (quest.ColumnId == targetColumnId) return null;
         var rules = await _db.WorkflowTransitions.AsNoTracking()
             .Where(x => x.BoardId == quest.BoardId && x.Enabled)
             .ToListAsync(ct);
-        if (rules.Count == 0) return;
-        var match = rules.FirstOrDefault(x => x.SourceColumnId == quest.ColumnId && x.TargetColumnId == targetColumnId);
-        if (match == null) throw new InvalidOperationException("Transition is not allowed by workflow");
+        if (rules.Count == 0) return null;
+        var candidates = rules.Where(x => x.TargetColumnId == targetColumnId && (x.FromAnyStatus || x.SourceColumnId == quest.ColumnId))
+            .OrderBy(x => x.FromAnyStatus).ToList();
+        if (candidates.Count == 0) throw new InvalidOperationException("Transition is not allowed by workflow");
+        InvalidOperationException? failure = null;
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                CheckConditions(candidate, quest, permission, userId);
+                return candidate;
+            }
+            catch (InvalidOperationException e) { failure ??= e; }
+        }
+        throw failure!;
+    }
+
+    /// <summary>Throws when the issue or the user does not satisfy the transition's conditions.</summary>
+    public static void CheckConditions(WorkflowTransition match, Quest quest, BoardPermission permission, Guid? userId)
+    {
         if (!string.IsNullOrWhiteSpace(match.AllowedIssueTypes))
         {
             var allowed = match.AllowedIssueTypes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (!allowed.Any(a => a.Equals(quest.IssueType.ToString(), StringComparison.OrdinalIgnoreCase) || a == ((int)quest.IssueType).ToString()))
+            var typeTokens = quest.IssueTypeId is Guid typeId
+                ? new[] { typeId.ToString() }
+                : new[] { quest.IssueType.ToString(), ((int)quest.IssueType).ToString() };
+            if (!allowed.Any(a => typeTokens.Contains(a, StringComparer.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("Transition is not allowed for this issue type");
         }
         if (!string.IsNullOrWhiteSpace(match.AllowedRoles))
         {
             var allowed = match.AllowedRoles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var roleNames = new[] { permission.ToString(), ((int)permission).ToString() };
-            if (!allowed.Any(a => roleNames.Contains(a, StringComparer.OrdinalIgnoreCase)))
+            var levels = allowed.Select(a => Enum.TryParse<BoardPermission>(a, true, out var level) ? level : (BoardPermission?)null).Where(x => x.HasValue).ToList();
+            if (levels.Count > 0 && !levels.Any(level => permission >= level))
                 throw new InvalidOperationException("Transition is not allowed for your role");
         }
         if (!string.IsNullOrWhiteSpace(match.ConditionsJson))
@@ -102,13 +125,22 @@ public sealed class JiraPlatformService : IJiraPlatformService
             if (root.TryGetProperty("requireAssignee", out var requireAssignee) && requireAssignee.GetBoolean()
                 && !quest.AssigneeId.HasValue && quest.Assignees.Count == 0)
                 throw new InvalidOperationException("Transition requires an assignee");
+            if (root.TryGetProperty("onlyAssignee", out var onlyAssignee) && onlyAssignee.ValueKind == JsonValueKind.True && userId.HasValue
+                && quest.AssigneeId != userId && !quest.Assignees.Any(a => a.UserId == userId))
+                throw new InvalidOperationException("Only an assignee can perform this transition");
             if (root.TryGetProperty("requireEstimate", out var requireEstimate) && requireEstimate.GetBoolean()
                 && !quest.OriginalEstimateMinutes.HasValue && !quest.StoryPoints.HasValue)
                 throw new InvalidOperationException("Transition requires an estimate");
             if (root.TryGetProperty("requiredFields", out var requiredFields) && requiredFields.ValueKind == JsonValueKind.Array)
             {
+                var customValues = IssueFieldService.ReadValues(quest.CustomFieldsJson);
                 foreach (var field in requiredFields.EnumerateArray().Select(x => x.GetString()?.ToLowerInvariant()))
                 {
+                    if (field != null && field.StartsWith("cf:", StringComparison.Ordinal))
+                    {
+                        if (!customValues.ContainsKey(field[3..])) throw new InvalidOperationException("Transition requires a custom field to be filled in");
+                        continue;
+                    }
                     var present = field switch
                     {
                         "description" => !string.IsNullOrWhiteSpace(quest.Description) || !string.IsNullOrWhiteSpace(quest.DescriptionDocumentJson),
@@ -1168,7 +1200,54 @@ public sealed class JiraPlatformService : IJiraPlatformService
     }
 
     private static WorkflowTransitionDto MapTransition(WorkflowTransition x) =>
-        new(x.Id, x.BoardId, x.SourceColumnId, x.TargetColumnId, x.Name, x.AllowedIssueTypes, x.AllowedRoles, x.ConditionsJson, x.Enabled);
+        new(x.Id, x.BoardId, x.SourceColumnId, x.TargetColumnId, x.Name, x.AllowedIssueTypes, x.AllowedRoles, x.ConditionsJson, x.Enabled, x.FromAnyStatus, x.PostFunctionsJson);
+
+    private static string? NormalizeJsonObject(string? json, string what)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        if (json.Length > 20000) throw new ArgumentException($"Workflow {what} are too large");
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object) throw new ArgumentException($"Workflow {what} must be a JSON object");
+            return doc.RootElement.EnumerateObject().Any() ? doc.RootElement.GetRawText() : null;
+        }
+        catch (JsonException) { throw new ArgumentException($"Workflow {what} are not valid JSON"); }
+    }
+
+    public async Task<List<WorkflowTransitionDto>> CopyWorkflowAsync(Guid targetBoardId, Guid sourceBoardId, CancellationToken ct)
+    {
+        if (targetBoardId == sourceBoardId) throw new ArgumentException("Choose another space");
+        var sourceColumns = await _db.Columns.AsNoTracking().Where(c => c.BoardId == sourceBoardId).ToListAsync(ct);
+        var targetColumns = await _db.Columns.AsNoTracking().Where(c => c.BoardId == targetBoardId).ToListAsync(ct);
+        var byTitle = targetColumns.GroupBy(c => c.Title.Trim().ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First().Id);
+        Guid? Map(Guid sourceColumnId)
+        {
+            var title = sourceColumns.FirstOrDefault(c => c.Id == sourceColumnId)?.Title.Trim().ToLowerInvariant();
+            return title != null && byTitle.TryGetValue(title, out var id) ? id : null;
+        }
+        var source = await _db.WorkflowTransitions.AsNoTracking().Where(x => x.BoardId == sourceBoardId).ToListAsync(ct);
+        var copies = new List<WorkflowTransition>();
+        foreach (var rule in source)
+        {
+            var target = Map(rule.TargetColumnId);
+            var from = rule.FromAnyStatus ? target : Map(rule.SourceColumnId);
+            if (target == null || from == null) continue;
+            copies.Add(new WorkflowTransition
+            {
+                Id = Guid.NewGuid(), BoardId = targetBoardId, SourceColumnId = from.Value, TargetColumnId = target.Value,
+                Name = rule.Name, AllowedIssueTypes = rule.AllowedIssueTypes, AllowedRoles = rule.AllowedRoles,
+                ConditionsJson = rule.ConditionsJson, PostFunctionsJson = rule.PostFunctionsJson,
+                FromAnyStatus = rule.FromAnyStatus, Enabled = rule.Enabled,
+            });
+        }
+        if (source.Count > 0 && copies.Count == 0)
+            throw new ArgumentException("No statuses of the source space match this space by name");
+        await _db.WorkflowTransitions.Where(x => x.BoardId == targetBoardId).ExecuteDeleteAsync(ct);
+        _db.WorkflowTransitions.AddRange(copies);
+        await _db.SaveChangesAsync(ct);
+        return await GetTransitionsAsync(targetBoardId, ct);
+    }
 
     private static SavedFilterDto MapFilter(SavedFilter x) =>
         new(x.Id, x.OwnerUserId, x.BoardId, x.Name, x.Jql, x.Shared, x.CreatedAt, x.UpdatedAt);

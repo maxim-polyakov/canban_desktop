@@ -30,13 +30,13 @@
   z-index: 60;
   display: flex;
   flex-direction: column;
-  min-width: 240px;
+  min-width: 280px;
   max-height: 70vh;
   padding: 6px 0;
   overflow-y: auto;
-  background: var(--surface-overlay, var(--surface));
-  border-radius: 4px;
-  box-shadow: var(--overlay-shadow, 0 8px 16px rgba(9, 30, 66, 0.25));
+  background: var(--surface-overlay, #fff);
+  border-radius: 6px;
+  box-shadow: var(--overlay-shadow, 0 8px 12px rgba(30, 31, 33, 0.15), 0 0 1px rgba(30, 31, 33, 0.31));
 }
 
 .iam-menu > button,
@@ -45,33 +45,30 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 36px;
-  padding: 6px 16px;
+  min-height: 32px;
+  padding: 6px 12px 6px 16px;
   border: 0;
-  border-left: 2px solid transparent;
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .iam-menu > button:hover,
 .iam-parent.is-open > button,
 .iam-parent > button:hover {
-  background: var(--surface-hovered, rgba(9, 30, 66, 0.06));
-  border-left-color: var(--accent, #0c66e4);
+  background: var(--surface-hovered, #f0f1f2);
 }
 
 .iam-menu > button:disabled,
 .iam-parent > button:disabled {
   color: var(--text-disabled, #8c9bab);
   cursor: not-allowed;
-}
-
-.iam-menu > button.is-danger {
-  color: var(--danger, #c9372c);
 }
 
 .iam-parent {
@@ -83,8 +80,9 @@
 }
 
 .iam-caret {
-  color: var(--text-subtle);
-  font-size: 16px;
+  flex: 0 0 auto;
+  margin-left: 16px;
+  color: var(--text);
 }
 
 .iam-submenu {
@@ -130,7 +128,7 @@
 .iam-sep {
   height: 1px;
   margin: 6px 0;
-  background: var(--border);
+  background: var(--border, #dddee1);
 }
 
 @media (max-width: 640px) {

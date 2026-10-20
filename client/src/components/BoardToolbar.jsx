@@ -56,6 +56,7 @@ function CheckRow({ checked, onChange, children }) {
 /** Jira board toolbar: search, people avatars, «Фильтр» and «Группа»; actions on the right go in `children`. */
 export default function BoardToolbar({
   query, onQueryChange, members = [], filters, onFiltersChange, groupBy, onGroupByChange, issueTypes = [], labels = [], children,
+  searchPlaceholder = 'Поиск на доске',
 }) {
   const { t } = useLocalization();
   const filter = usePopover();
@@ -81,7 +82,7 @@ export default function BoardToolbar({
     <div className="btb" role="toolbar" aria-label={t('Панель доски')}>
       <label className="btb-search">
         <SearchIcon />
-        <input type="search" value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder={t('Поиск на доске')} aria-label={t('Поиск на доске')} />
+        <input type="search" value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder={t(searchPlaceholder)} aria-label={t(searchPlaceholder)} />
       </label>
 
       <div className="btb-people" role="group" aria-label={t('Фильтр по исполнителю')}>
@@ -164,7 +165,7 @@ export default function BoardToolbar({
         )}
       </div>
 
-      <div className="btb-popover-wrap" ref={group.ref}>
+      {onGroupByChange && <div className="btb-popover-wrap" ref={group.ref}>
         <button type="button" className={`btb-btn ${groupBy !== 'none' ? 'is-active' : ''}`} aria-expanded={group.open} onClick={() => group.setOpen((v) => !v)}>
           <GroupIcon />{groupBy === 'none' ? t('Группа') : `${t('Группа')}: ${t(groupLabel)}`}
         </button>
@@ -177,7 +178,7 @@ export default function BoardToolbar({
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {(query || assigneeIds.length > 0 || filterCount > 0) && (
         <button type="button" className="btb-link" onClick={() => { onQueryChange(''); onFiltersChange({ assigneeIds: [], types: [], priorities: [], labels: [] }); }}>{t('Очистить всё')}</button>

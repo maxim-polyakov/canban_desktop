@@ -43,15 +43,16 @@ export const issueCountText = (count, t) => {
   return t('${n} задач будут включены в спринт.', { n: count });
 };
 
-export default function StartSprintDialog({ sprint, issueCount = 0, anotherActive = false, onStart, onClose }) {
+export default function StartSprintDialog({ sprint, issueCount = 0, anotherActive = false, mode = 'start', onStart, onClose }) {
+  const editing = mode === 'edit';
   const { t } = useLocalization();
   const initial = useMemo(() => {
     const plannedStart = sprint?.startDate ? new Date(sprint.startDate) : null;
-    const start = plannedStart && plannedStart > new Date() ? plannedStart : new Date();
+    const start = plannedStart && (editing || plannedStart > new Date()) ? plannedStart : new Date();
     const duration = initialDuration(sprint);
     const end = duration === 'custom' ? new Date(sprint.endDate) : addWeeks(start, Number(duration));
     return { duration, start: toLocalParts(start), end: toLocalParts(end) };
-  }, [sprint]);
+  }, [sprint, editing]);
   const [name, setName] = useState(sprint?.name ?? '');
   const [duration, setDuration] = useState(initial.duration);
   const [startDate, setStartDate] = useState(initial.start.date);
@@ -90,14 +91,16 @@ export default function StartSprintDialog({ sprint, issueCount = 0, anotherActiv
     setSaving(true);
     setError('');
     try {
-      await onStart({ name: name.trim(), goal: goal.trim(), startDate: start.toISOString(), endDate: end.toISOString(), autoComplete });
+      await onStart(editing
+        ? { name: name.trim(), goal: goal.trim(), startDate: start.toISOString(), endDate: end.toISOString() }
+        : { name: name.trim(), goal: goal.trim(), startDate: start.toISOString(), endDate: end.toISOString(), autoComplete });
     } catch (err) {
       setError(t(err?.message || 'Не удалось запустить спринт.'));
       setSaving(false);
     }
   };
 
-  const title = anotherActive ? t('Запустить другой спринт') : t('Начать спринт');
+  const title = editing ? `${t('Изменить спринт')}: ${sprint?.name ?? ''}` : anotherActive ? t('Запустить другой спринт') : t('Начать спринт');
 
   return (
     <div className="app-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
@@ -107,7 +110,7 @@ export default function StartSprintDialog({ sprint, issueCount = 0, anotherActiv
           <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={onClose} disabled={saving}><NavIcon name="close" /></button>
         </div>
         <div className="app-modal-body ssd-body">
-          <p className="ssd-count">{issueCountText(issueCount, t)}</p>
+          {!editing && <p className="ssd-count">{issueCountText(issueCount, t)}</p>}
           <p className="ssd-required-note">{t('Обязательные поля отмечены звездочкой')} <span className="ssd-star">*</span></p>
 
           <label className="ssd-field">
@@ -140,12 +143,12 @@ export default function StartSprintDialog({ sprint, issueCount = 0, anotherActiv
             {duration !== 'custom' && <span className="ssd-hint">{t('Чтобы указать дату окончания вручную, выберите длительность «Особая».')}</span>}
           </div>
 
-          <label className="ssd-toggle">
+          {!editing && <label className="ssd-toggle">
             <input type="checkbox" role="switch" checked={autoComplete} onChange={(e) => setAutoComplete(e.target.checked)} />
             <span className="ssd-toggle-track" aria-hidden="true" />
             <span>{t('Автоматически завершать спринт')}</span>
-          </label>
-          {autoComplete && <span className="ssd-hint ssd-toggle-hint">{t('В дату окончания спринт завершится сам, а незавершённые задачи вернутся в бэклог.')}</span>}
+          </label>}
+          {!editing && autoComplete && <span className="ssd-hint ssd-toggle-hint">{t('В дату окончания спринт завершится сам, а незавершённые задачи вернутся в бэклог.')}</span>}
 
           <label className="ssd-field">
             <span className="ssd-label">{t('Цель спринта')}</span>
@@ -156,7 +159,7 @@ export default function StartSprintDialog({ sprint, issueCount = 0, anotherActiv
         </div>
         <div className="app-modal-footer">
           <button type="button" className="app-btn app-btn-subtle" onClick={onClose} disabled={saving}>{t('Отмена')}</button>
-          <button type="submit" className="app-btn app-btn-primary" disabled={saving}>{saving ? '…' : t('Начать')}</button>
+          <button type="submit" className="app-btn app-btn-primary" disabled={saving}>{saving ? '…' : editing ? t('Обновить') : t('Начать')}</button>
         </div>
       </form>
     </div>

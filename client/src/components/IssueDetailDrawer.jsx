@@ -79,7 +79,8 @@ function Row({ label, children }) {
  * Jira-like issue view: a large dialog with the summary, description and activity on the left
  * and the status and details on the right; every field saves as soon as it changes.
  */
-export default function IssueDetailDrawer({ questId, members = [], columns = [], onClose, onChanged, canDelete = true }) {
+export default function IssueDetailDrawer({ questId, members = [], columns = [], onClose, onChanged, canDelete = true, variant = 'modal' }) {
+  const panel = variant === 'panel';
   const { user } = useAuth();
   const { locale, t } = useLocalization();
   const [quest, setQuest] = useState(null);
@@ -634,8 +635,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   };
 
   return (
-    <div className="iv-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
-      <div className="iv-dialog" role="dialog" aria-modal="true" aria-label={quest?.issueKey || t('Задача')}>
+    <div className={`iv-overlay ${panel ? 'is-panel' : ''}`} onMouseDown={(e) => { if (!panel && e.target === e.currentTarget) onClose?.(); }}>
+      <div className="iv-dialog" role="dialog" aria-modal={panel ? 'false' : 'true'} aria-label={quest?.issueKey || t('Задача')}>
         <header className="iv-header">
           <nav className="iv-breadcrumbs" aria-label={t('Навигация')}>
             {hierarchy?.parent ? (

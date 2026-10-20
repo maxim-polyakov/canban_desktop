@@ -23,7 +23,7 @@ afterEach(() => {
 
 const flush = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); await flush(); };
-const item = (label) => [...container.querySelectorAll('[role^="menuitem"]')].find((el) => el.textContent.replace('›', '').replace('✓', '').trim() === label);
+const item = (label) => [...container.querySelectorAll('[role^="menuitem"]')].find((el) => el.textContent.replace('✓', '').trim() === label);
 const quest = { id: 'q1', issueKey: 'EEE-7', title: 'Задача', priority: 2, sprintId: 's1', assigneeIds: [], storyPoints: null, flagged: false, issueType: 2 };
 
 const renderMenu = async (props = {}) => {
@@ -42,8 +42,9 @@ test('builds an absolute issue link', () => {
 
 test('lists Jira backlog actions and moves to another sprint or the backlog', async () => {
   const h = await renderMenu();
-  const labels = [...container.querySelectorAll('.iam-menu > [role="menuitem"], .iam-parent > [role="menuitem"]')].map((el) => el.textContent.replace('›', '').trim());
-  expect(labels).toEqual(['Переместить задачу', 'Копировать ссылку', 'Копировать ключ', 'Добавить флажок', 'Исполнитель', 'Приоритет', 'Родительский элемент', 'Примерная оценка сложности', 'Разделить задачу', 'Удалить']);
+  const labels = [...container.querySelectorAll('.iam-menu > [role="menuitem"], .iam-parent > [role="menuitem"]')].map((el) => el.textContent.trim());
+  expect(labels).toEqual(['Переместить задачу', 'Копировать ссылку', 'Копировать ключ', 'Добавить флажок', 'Исполнитель', 'Приоритет', 'Родительский элемент', 'Примерная оценка сложности', 'Разделить задачу типа «Задача»', 'Удалить']);
+  expect(container.querySelectorAll('.iam-menu > .iam-sep')).toHaveLength(3);
 
   await click(item('Переместить задачу'));
   expect(item('Спринт 1')).toBeUndefined();

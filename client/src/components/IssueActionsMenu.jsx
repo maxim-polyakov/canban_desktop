@@ -15,6 +15,15 @@ export const STORY_POINTS = [1, 2, 3, 5, 8, 13, 21];
 
 export const issueLink = (boardId, questId, origin = window.location.origin) => `${origin}/board/${boardId}/issue/${questId}`;
 
+const ISSUE_TYPE_NAMES = ['Эпик', 'История', 'Задача', 'Баг', 'Подзадача'];
+export const issueTypeName = (quest) => quest.issueTypeName || ISSUE_TYPE_NAMES[quest.issueType] || 'Задача';
+
+const Chevron = () => (
+  <svg className="iam-caret" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+    <path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const Check = ({ on }) => <span className="iam-check" aria-hidden="true">{on ? '✓' : ''}</span>;
 
 /**
@@ -107,7 +116,7 @@ export default function IssueActionsMenu({ quest, boardId, sprints = [], members
   const parentItem = (key, label, disabled = false) => (
     <div key={key} className={`iam-parent ${sub === key ? 'is-open' : ''}`} onMouseEnter={() => !disabled && setSub(key)}>
       <button type="button" role="menuitem" aria-haspopup="menu" aria-expanded={sub === key} disabled={disabled} onClick={() => setSub(sub === key ? null : key)}>
-        <span className="iam-label">{label}</span><span className="iam-caret" aria-hidden="true">›</span>
+        <span className="iam-label">{label}</span><Chevron />
       </button>
       {sub === key && <div className="iam-menu iam-submenu" role="menu" aria-label={label}>{submenus[key]}</div>}
     </div>
@@ -122,18 +131,18 @@ export default function IssueActionsMenu({ quest, boardId, sprints = [], members
       {open && (
         <div className="iam-menu" role="menu" aria-label={t('Действия с задачей ${key}', { key: quest.issueKey })}>
           {parentItem('move', t('Переместить задачу'), moveTargets.length === 0)}
+          <div className="iam-sep" role="separator" />
           {plain('link', t('Копировать ссылку'), () => copy(issueLink(boardId, quest.id), 'Ссылка скопирована'))}
           {plain('key', t('Копировать ключ'), () => copy(quest.issueKey, 'Ключ скопирован'))}
           <div className="iam-sep" role="separator" />
           {plain('flag', quest.flagged ? t('Убрать флажок') : t('Добавить флажок'), () => onUpdate({ flagged: !quest.flagged }))}
-          <div className="iam-sep" role="separator" />
           {parentItem('assignee', t('Исполнитель'))}
           {parentItem('priority', t('Приоритет'))}
           {!isEpic && parentItem('parent', t('Родительский элемент'))}
           {parentItem('estimate', t('Примерная оценка сложности'))}
+          {onSplit && plain('split', t('Разделить задачу типа «${type}»', { type: t(issueTypeName(quest)) }), onSplit)}
           <div className="iam-sep" role="separator" />
-          {onSplit && plain('split', t('Разделить задачу'), onSplit)}
-          {plain('delete', t('Удалить'), onDelete, 'is-danger')}
+          {plain('delete', t('Удалить'), onDelete)}
         </div>
       )}
     </span>

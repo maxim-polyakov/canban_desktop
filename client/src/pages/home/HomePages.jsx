@@ -503,22 +503,21 @@ function TagInput({ value, onChange, id }) {
   );
 }
 
-export function CreateHomeItemDialog({ open, kind, goals, onClose, onCreated }) {
+export function CreateHomeItemDialog({ open, ...props }) {
+  return open ? <CreateHomeItemForm {...props} /> : null;
+}
+
+function CreateHomeItemForm({ kind, goals, onClose, onCreated }) {
   const cfg = HOME_KINDS[kind];
   const { t } = useLocalization();
   const { user } = useAuth();
   const peopleList = usePeople();
   const myTeams = useMyTeams();
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState(() => ({
+    name: '', icon: '', ownerUserId: user?.id || '', teamId: '', targetDate: '', startDate: '', goalId: '', tags: [], isPrivate: false,
+  }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => {
-    if (open) {
-      setForm({ name: '', icon: '', ownerUserId: user?.id || '', teamId: '', targetDate: '', startDate: '', goalId: '', tags: [], isPrivate: false });
-      setError('');
-    }
-  }, [open, user]);
-  if (!open) return null;
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e?.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e }));
 
   const submit = async (e) => {

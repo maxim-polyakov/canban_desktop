@@ -11,6 +11,7 @@ import AssigneeAvatar from './AssigneeAvatar.jsx';
 import AssigneeSelect from './AssigneeSelect.jsx';
 import NotificationRecipientPicker from './NotificationRecipientPicker.jsx';
 import IssueAssetsField from './IssueAssetsField.jsx';
+import CreateBranchPanel from './CreateBranchPanel.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import './IssueDetailDrawer.css';
@@ -403,6 +404,18 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     } catch (e) { setAuxError(e.message); } finally { setDevelopmentSyncing(false); }
   };
 
+  const [linkCopied, setLinkCopied] = useState(false);
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/browse/${quest.issueKey}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 1500);
+    } catch {
+      window.prompt(t('Скопируйте вручную'), url);
+    }
+  };
+
   const handleClone = async () => {
     try {
       const cloned = await cloneApi.quest(questId, { includeLinks: false, includeWatchers: true });
@@ -417,6 +430,12 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
         <header className="issue-drawer-header">
           <button type="button" className="issue-drawer-back" onClick={onClose} title="Назад" aria-label="Назад">←</button>
           <span className="issue-drawer-key">{quest?.issueKey || '…'}</span>
+          {quest?.issueKey && (
+            <button type="button" className="issue-drawer-copy-link" onClick={handleCopyLink}
+              title={linkCopied ? t('Ссылка скопирована') : t('Копировать ссылку')} aria-label={t('Копировать ссылку')}>
+              {linkCopied ? '✓' : '🔗'}
+            </button>
+          )}
           <button type="button" className="issue-drawer-close" onClick={onClose} title="Закрыть" aria-label="Закрыть">✕</button>
         </header>
 
@@ -633,6 +652,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                 <h4>{t('Разработка GitHub')}</h4>
                 <button type="button" onClick={handleSyncDevelopment} disabled={developmentSyncing}>{developmentSyncing ? '…' : t('Синхронизировать')}</button>
               </div>
+              {quest.issueKey && <CreateBranchPanel issueKey={quest.issueKey} title={quest.title} />}
               {developmentItems.length === 0 ? <p className="issue-drawer-empty">{t('Связанные ветки, коммиты и pull request не найдены.')}</p> : (
                 <ul className="issue-drawer-compact-list">
                   {developmentItems.map((item) => <li key={item.id}>

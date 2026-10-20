@@ -51,7 +51,8 @@ public interface IJiraPlatformService
     Task<GitHubIntegrationDto> SaveGitHubIntegrationAsync(Guid boardId, Guid? id, UpsertGitHubIntegrationRequest request, CancellationToken ct);
     Task<bool> DeleteGitHubIntegrationAsync(Guid boardId, Guid id, CancellationToken ct);
     bool IsGitHubAppConfigured { get; }
-    Task ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct);
+    /// <summary>Stores development links and returns the newly linked commits whose smart commit commands still have to run.</summary>
+    Task<IReadOnlyList<SmartCommitRequest>> ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct);
     Task<DevelopmentSummaryDto> GetDevelopmentAsync(Guid questId, CancellationToken ct);
     Task<DevelopmentSummaryDto> SyncDevelopmentAsync(Guid questId, CancellationToken ct);
     Task<BoardPermissionsDto> GetBoardPermissionsAsync(Guid boardId, Guid userId, CancellationToken ct);

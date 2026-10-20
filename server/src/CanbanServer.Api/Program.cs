@@ -152,6 +152,7 @@ builder.Services.AddScoped<IQuestAttachmentStorageService, QuestAttachmentStorag
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IProjectAccessService, ProjectAccessService>();
 builder.Services.AddScoped<IJiraPlatformService, JiraPlatformService>();
+builder.Services.AddScoped<ISmartCommitService, SmartCommitService>();
 builder.Services.AddScoped<IJqlQueryService, JqlService>();
 builder.Services.AddScoped<AssetService>();
 builder.Services.AddScoped<PlanService>();

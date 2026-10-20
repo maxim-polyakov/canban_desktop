@@ -123,6 +123,20 @@ public class JiraPlatformController : ControllerBase
         return await _jira.DeleteLinkAsync(questId, linkId, ct) ? NoContent() : NotFound();
     }
 
+    /// <summary>Resolves a permanent "/browse/KEY" link; keys may repeat across spaces, so the first one the user can see wins.</summary>
+    [HttpGet("issues/key/{issueKey}")]
+    public async Task<ActionResult> ResolveIssueKey(string issueKey, CancellationToken ct)
+    {
+        var userId = RequireUser();
+        var key = issueKey.Trim().ToUpperInvariant();
+        var candidates = await _db.Quests.AsNoTracking().Where(q => q.IssueKey == key)
+            .OrderBy(q => q.CreatedAt).Select(q => new { q.Id, q.BoardId, q.IssueKey }).Take(20).ToListAsync(ct);
+        foreach (var quest in candidates)
+            if ((await _access.GetBoardAccessAsync(quest.BoardId, userId, ct)).Permission != null)
+                return Ok(new { questId = quest.Id, boardId = quest.BoardId, issueKey = quest.IssueKey });
+        return NotFound();
+    }
+
     [HttpGet("quests/{questId:guid}/worklogs")]
     public async Task<ActionResult> GetWorkLogs(Guid questId, CancellationToken ct)
     {
@@ -637,13 +651,14 @@ public class JiraPlatformController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("integrations/github/webhook")]
-    public async Task<ActionResult> GitHubWebhook(CancellationToken ct)
+    public async Task<ActionResult> GitHubWebhook([FromServices] ISmartCommitService smartCommits, CancellationToken ct)
     {
         using var reader = new StreamReader(Request.Body);
         var payload = await reader.ReadToEndAsync(ct);
         var signature = Request.Headers["X-Hub-Signature-256"].FirstOrDefault() ?? "";
         var eventName = Request.Headers["X-GitHub-Event"].FirstOrDefault() ?? "unknown";
-        await _jira.ProcessGitHubWebhookAsync(eventName, payload, signature, ct);
+        var commits = await _jira.ProcessGitHubWebhookAsync(eventName, payload, signature, ct);
+        await smartCommits.ExecuteAsync(commits, ct);
         return Accepted();
     }
 

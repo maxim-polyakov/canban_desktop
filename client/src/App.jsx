@@ -12,6 +12,7 @@ import ForgotPasswordCodePage from './pages/ForgotPasswordCodePage.jsx';
 import ForgotPasswordResetPage from './pages/ForgotPasswordResetPage.jsx';
 import AuthCallbackPage from './pages/AuthCallbackPage.jsx';
 import BoardPage from './pages/BoardPage.jsx';
+import BrowseIssuePage from './pages/BrowseIssuePage.jsx';
 import BoardArchivePage from './pages/BoardArchivePage.jsx';
 import BacklogPage from './pages/BacklogPage.jsx';
 import ProjectReportsPage from './pages/ProjectReportsPage.jsx';
@@ -148,6 +149,7 @@ export default function App() {
           <Route path="board/:boardId/features" element={<SpaceFeaturesPage mode="features" />} />
           <Route path="board/:boardId/access" element={<SpaceFeaturesPage mode="access" />} />
           <Route path="issues" element={<IssueNavigatorPage />} />
+          <Route path="browse/:issueKey" element={<BrowseIssuePage />} />
           <Route path="filters" element={<FiltersPage />} />
           <Route path="dashboards" element={<DashboardsListPage />} />
           <Route path="dashboards/:dashboardId" element={<DashboardPage />} />

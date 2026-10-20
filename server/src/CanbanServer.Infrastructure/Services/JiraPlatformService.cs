@@ -940,21 +940,21 @@ public sealed class JiraPlatformService : IJiraPlatformService
         return await GetDevelopmentAsync(questId, ct);
     }
 
-    public async Task ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct)
+    public async Task<IReadOnlyList<SmartCommitRequest>> ProcessGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct)
     {
         try
         {
-            await ApplyGitHubWebhookAsync(eventName, payload, signature, ct);
+            return await ApplyGitHubWebhookAsync(eventName, payload, signature, ct);
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
             // GitHub delivers e.g. "create" and "push" for a new branch concurrently; the retry updates the row the other request inserted.
             _db.ChangeTracker.Clear();
-            await ApplyGitHubWebhookAsync(eventName, payload, signature, ct);
+            return await ApplyGitHubWebhookAsync(eventName, payload, signature, ct);
         }
     }
 
-    private async Task ApplyGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct)
+    private async Task<IReadOnlyList<SmartCommitRequest>> ApplyGitHubWebhookAsync(string eventName, string payload, string signature, CancellationToken ct)
     {
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
@@ -969,13 +969,14 @@ public sealed class JiraPlatformService : IJiraPlatformService
         {
             var defaultSecret = _configuration["GitHub:WebhookSecret"];
             if (candidates.Count == 0 && !string.IsNullOrWhiteSpace(defaultSecret) && VerifyGitHubSignature(payload, signature, defaultSecret))
-                return;
+                return Array.Empty<SmartCommitRequest>();
             throw new UnauthorizedAccessException("Invalid GitHub signature");
         }
 
         var installationId = GitHubEventParser.InstallationId(root);
         var events = GitHubEventParser.Parse(eventName, root);
         var keys = events.SelectMany(e => e.IssueKeys).Distinct().ToList();
+        var smartCommits = new List<SmartCommitRequest>();
         foreach (var integration in matched)
         {
             if (installationId.HasValue && integration.InstallationId != installationId.Value)
@@ -988,11 +989,16 @@ public sealed class JiraPlatformService : IJiraPlatformService
             foreach (var quest in quests)
             {
                 foreach (var item in events.Where(e => e.IssueKeys.Contains(quest.IssueKey)))
-                    await UpsertDevelopmentLinkAsync(quest.Id, integration.Id, item, payload, ct);
+                {
+                    var isNew = await UpsertDevelopmentLinkAsync(quest.Id, integration.Id, item, payload, ct);
+                    if (isNew && item.Kind == GitHubEventParser.CommitKind && !string.IsNullOrWhiteSpace(item.Message))
+                        smartCommits.Add(new SmartCommitRequest(quest.Id, item.AuthorEmail, item.Message));
+                }
                 await EnqueueAsync("WebhookReceived", new { boardId = integration.BoardId, questId = quest.Id, eventName }, ct);
             }
         }
         await _db.SaveChangesAsync(ct);
+        return smartCommits;
     }
 
     public async Task<BoardPermissionsDto> GetBoardPermissionsAsync(Guid boardId, Guid userId, CancellationToken ct)
@@ -1015,10 +1021,11 @@ public sealed class JiraPlatformService : IJiraPlatformService
         return new BoardPermissionsDto(boardId, current, result.OrderByDescending(m => m.Permission).ThenBy(m => m.DisplayName).ToList());
     }
 
-    private async Task UpsertDevelopmentLinkAsync(Guid questId, Guid integrationId, GitHubDevelopmentEvent item, string? payload, CancellationToken ct)
+    private async Task<bool> UpsertDevelopmentLinkAsync(Guid questId, Guid integrationId, GitHubDevelopmentEvent item, string? payload, CancellationToken ct)
     {
         var existing = _db.DevelopmentLinks.Local.FirstOrDefault(x => x.QuestId == questId && x.Kind == item.Kind && x.ExternalId == item.ExternalId)
             ?? await _db.DevelopmentLinks.FirstOrDefaultAsync(x => x.QuestId == questId && x.Kind == item.Kind && x.ExternalId == item.ExternalId, ct);
+        var isNew = existing == null;
         if (existing == null)
         {
             existing = new DevelopmentLink { Id = Guid.NewGuid(), QuestId = questId, GitHubIntegrationId = integrationId, Kind = item.Kind, ExternalId = item.ExternalId };
@@ -1029,6 +1036,7 @@ public sealed class JiraPlatformService : IJiraPlatformService
         existing.Status = item.Status;
         if (payload != null) existing.PayloadJson = payload;
         existing.UpdatedAt = DateTime.UtcNow;
+        return isNew;
     }
 
     private string? ResolveConfiguration(string key) =>

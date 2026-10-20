@@ -78,6 +78,27 @@ public class GitHubIntegrationTests
         Assert.False(new GitHubAppClient(new StubHttpClientFactory(), config).IsConfigured);
     }
 
+    [Fact]
+    public void SmartCommitCommandsAreParsedFromLinesWithIssueKeys()
+    {
+        var commands = GitHubEventParser.ParseSmartCommands("LOTU-1 #comment Поправил меню #time 1h 30m отладка #done\nMerge #12 #review");
+
+        Assert.Equal(new[] { "comment", "time", "done" }, commands.Select(c => c.Name));
+        Assert.Equal("Поправил меню", commands[0].Arguments);
+        Assert.Equal("1h 30m отладка", commands[1].Arguments);
+        Assert.Equal("in-progress", GitHubEventParser.ParseSmartCommands("LOTU-2 #In-Progress").Single().Name);
+        Assert.Equal("готово", GitHubEventParser.ParseSmartCommands("LOTU-2 #Готово").Single().Name);
+    }
+
+    [Fact]
+    public void SmartCommitDurationUsesJiraUnits()
+    {
+        Assert.Equal((90, "отладка"), GitHubEventParser.ParseDuration("1h 30m отладка"));
+        Assert.Equal((5 * 8 * 60 + 8 * 60, ""), GitHubEventParser.ParseDuration("1w 1d"));
+        Assert.Equal((0, "без времени"), GitHubEventParser.ParseDuration("без времени"));
+        Assert.Equal("in-review", SmartCommitService.Slug(" In Review "));
+    }
+
     private static byte[] FromBase64Url(string value)
     {
         var s = value.Replace('-', '+').Replace('_', '/');

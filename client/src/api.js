@@ -94,6 +94,7 @@ export const columns = {
 
 export const quests = {
   get: (id) => apiJson(`/api/quests/${id}`),
+  resolveKey: (issueKey) => apiJson(`/api/issues/key/${encodeURIComponent(issueKey)}`),
   getByColumn: (columnId) => apiJson(`/api/quests/column/${columnId}`),
   getArchiveByBoard: (boardId) => apiJson(`/api/quests/board/${boardId}/archive`),
   getBacklog: (boardId, filter = {}) =>

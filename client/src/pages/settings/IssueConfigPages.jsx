@@ -5,8 +5,10 @@ import { Link } from '../../i18n/navigation.jsx';
 import NavIcon from '../../components/NavIcons.jsx';
 import { IssueTypeIcon } from '../../components/IssueIcons.jsx';
 import {
-  BASE_TYPES, FIELD_TYPES, clearBoardIssueConfig, forgetIssueType, loadIssueCatalog, rememberIssueTypes,
+  BASE_TYPES, DEFAULT_VALUE_FIELD_TYPES, FIELD_TYPES, OPTION_FIELD_TYPES, clearBoardIssueConfig, emptyFieldValue,
+  forgetIssueType, isEmptyValue, loadIssueCatalog, rememberIssueTypes,
 } from '../../utils/issueConfig.js';
+import { CustomFieldInput } from '../../components/CustomFields.jsx';
 import SettingsShell, { ADMIN_NAV } from './SettingsShell.jsx';
 import '../../components/CustomFields.css';
 
@@ -240,13 +242,100 @@ function ChoiceList({ label, allLabel, options, value, onChange }) {
   );
 }
 
-function CustomFieldDialog({ teamId, field, boards, types, onClose, onSaved }) {
+const lines = (text) => text.split('\n').map((x) => x.trim()).filter(Boolean);
+
+/** Editable options of a context: plain lines, or parents with their children for a cascading list. */
+function contextDraft(source = {}) {
+  return {
+    options: (source.options ?? []).join('\n'),
+    children: Object.fromEntries(Object.entries(source.children ?? {}).map(([parent, list]) => [parent, list.join('\n')])),
+    defaultValue: source.defaultValue ?? null,
+  };
+}
+
+function contextPayload(fieldType, draft) {
+  const payload = {};
+  if (OPTION_FIELD_TYPES.includes(fieldType)) {
+    payload.options = lines(draft.options);
+    if (fieldType === 'cascading') {
+      payload.children = Object.fromEntries(payload.options.map((parent) => [parent, lines(draft.children[parent] ?? '')]));
+    }
+  } else {
+    payload.options = [];
+  }
+  if (DEFAULT_VALUE_FIELD_TYPES.includes(fieldType)) {
+    payload.defaultValue = isEmptyValue(draft.defaultValue) ? emptyFieldValue({ fieldType }) : draft.defaultValue;
+  }
+  return payload;
+}
+
+function ContextOptionsEditor({ fieldType, draft, onChange, groups, name }) {
+  const { t } = useLocalization();
+  const [parent, setParent] = useState('');
+  const options = lines(draft.options);
+  const activeParent = options.includes(parent) ? parent : options[0] ?? '';
+  const preview = {
+    id: 'default-value',
+    name: t('Значение по умолчанию'),
+    fieldType,
+    options,
+    children: Object.fromEntries(options.map((o) => [o, lines(draft.children[o] ?? '')])),
+  };
+  return (
+    <>
+      {OPTION_FIELD_TYPES.includes(fieldType) && (
+        <label className="app-field">
+          <span>{t(fieldType === 'cascading' ? 'Варианты первого уровня (каждый с новой строки)' : 'Варианты (каждый с новой строки)')} <span className="app-required">*</span></span>
+          <textarea rows={4} aria-label={`${name}: ${t('Варианты')}`} value={draft.options} onChange={(e) => onChange({ ...draft, options: e.target.value })} />
+        </label>
+      )}
+      {fieldType === 'cascading' && options.length > 0 && (
+        <div className="app-field settings-cascade">
+          <span>{t('Варианты второго уровня')}</span>
+          <div className="settings-cascade-row">
+            <select aria-label={t('Вариант первого уровня')} value={activeParent} onChange={(e) => setParent(e.target.value)}>
+              {options.map((o) => <option key={o} value={o}>{o}{lines(draft.children[o] ?? '').length ? ` (${lines(draft.children[o]).length})` : ''}</option>)}
+            </select>
+            <textarea
+              rows={3}
+              aria-label={`${t('Варианты второго уровня')}: ${activeParent}`}
+              placeholder={t('Каждый с новой строки')}
+              value={draft.children[activeParent] ?? ''}
+              onChange={(e) => onChange({ ...draft, children: { ...draft.children, [activeParent]: e.target.value } })}
+            />
+          </div>
+        </div>
+      )}
+      {DEFAULT_VALUE_FIELD_TYPES.includes(fieldType) && (
+        <div className="app-field">
+          <span>{t('Значение по умолчанию')}</span>
+          <CustomFieldInput
+            field={preview}
+            value={draft.defaultValue ?? emptyFieldValue(preview)}
+            onChange={(value) => onChange({ ...draft, defaultValue: value })}
+            refs={{ groups }}
+          />
+          <small className="app-modal-hint">{t('Подставляется в новые задачи, если значение не указано')}</small>
+        </div>
+      )}
+    </>
+  );
+}
+
+function issueTypeChoices(types) {
+  return [
+    ...BASE_TYPES.map((type) => ({ value: String(type.value), label: type.label, icon: <IssueTypeIcon issueType={type.value} size={14} /> })),
+    ...types.map((type) => ({ value: type.id, label: type.name, icon: <IssueTypeIcon issueType={type.baseType} typeId={type.id} size={14} /> })),
+  ];
+}
+
+function CustomFieldDialog({ teamId, field, boards, types, groups, onClose, onSaved }) {
   const { t } = useLocalization();
   const [form, setForm] = useState(() => ({
     name: field?.name ?? '',
     description: field?.description ?? '',
     fieldType: field?.fieldType ?? 'text',
-    options: (field?.options ?? []).join('\n'),
+    context: contextDraft(field),
     boards: field?.boards ?? [],
     issueTypes: field?.issueTypes ?? [],
     required: field?.required ?? false,
@@ -254,11 +343,7 @@ function CustomFieldDialog({ teamId, field, boards, types, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
-  const hasOptions = form.fieldType === 'select' || form.fieldType === 'multiselect';
-  const typeOptions = [
-    ...BASE_TYPES.map((type) => ({ value: String(type.value), label: type.label, icon: <IssueTypeIcon issueType={type.value} size={14} /> })),
-    ...types.map((type) => ({ value: type.id, label: type.name, icon: <IssueTypeIcon issueType={type.baseType} typeId={type.id} size={14} /> })),
-  ];
+  const typeOptions = issueTypeChoices(types);
 
   const submit = async () => {
     setSaving(true);
@@ -269,7 +354,7 @@ function CustomFieldDialog({ teamId, field, boards, types, onClose, onSaved }) {
         name: form.name,
         description: form.description,
         fieldType: form.fieldType,
-        options: hasOptions ? form.options.split('\n') : [],
+        ...contextPayload(form.fieldType, form.context),
         boards: form.boards,
         issueTypes: form.issueTypes,
         required: form.required,
@@ -291,21 +376,19 @@ function CustomFieldDialog({ teamId, field, boards, types, onClose, onSaved }) {
       </label>
       <label className="app-field">
         <span>{t('Тип поля')}</span>
-        <select value={form.fieldType} disabled={!!field} onChange={(e) => set({ fieldType: e.target.value })}>
+        <select value={form.fieldType} disabled={!!field} onChange={(e) => set({ fieldType: e.target.value, context: { ...form.context, defaultValue: null } })}>
           {FIELD_TYPES.map((type) => <option key={type.value} value={type.value}>{t(type.label)}</option>)}
         </select>
         {field && <small className="app-modal-hint">{t('Тип поля нельзя менять после создания')}</small>}
       </label>
-      {hasOptions && (
-        <label className="app-field">
-          <span>{t('Варианты (каждый с новой строки)')} <span className="app-required">*</span></span>
-          <textarea rows={4} value={form.options} onChange={(e) => set({ options: e.target.value })} />
-        </label>
-      )}
+      <ContextOptionsEditor fieldType={form.fieldType} draft={form.context} onChange={(context) => set({ context })} groups={groups} name={form.name} />
       <label className="app-field">
         <span>{t('Описание')}</span>
         <textarea rows={2} value={form.description} maxLength={500} placeholder={t('Подсказка, которую увидят при заполнении')} onChange={(e) => set({ description: e.target.value })} />
       </label>
+      {field?.contexts?.length > 0 && (
+        <p className="app-modal-hint">{t('Это настройки контекста по умолчанию. В пространствах из других контекстов действуют их варианты и значения.')}</p>
+      )}
       <ChoiceList
         label={t('Пространства')}
         allLabel={t('Все пространства команды')}
@@ -322,16 +405,96 @@ function CustomFieldDialog({ teamId, field, boards, types, onClose, onSaved }) {
   );
 }
 
+function FieldContextsDialog({ teamId, field, boards, types, groups, onClose, onSaved }) {
+  const { t } = useLocalization();
+  const [contexts, setContexts] = useState(() => (field.contexts ?? []).map((c) => ({
+    id: c.id, name: c.name, boards: c.boards, issueTypes: c.issueTypes, draft: contextDraft(c),
+  })));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const typeOptions = issueTypeChoices(types);
+  const update = (index, patch) => setContexts((list) => list.map((c, i) => (i === index ? { ...c, ...patch } : c)));
+  const takenBy = (boardId, index) => field.boards.includes(boardId) || contexts.some((c, i) => i !== index && c.boards.includes(boardId));
+
+  const add = () => setContexts((list) => [...list, {
+    id: null, name: `${t('Контекст')} ${list.length + 1}`, boards: [], issueTypes: [], draft: contextDraft({ options: field.options, children: field.children }),
+  }]);
+
+  const submit = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      const payload = contexts.map((c) => ({
+        id: c.id, name: c.name, boards: c.boards, issueTypes: c.issueTypes, ...contextPayload(field.fieldType, c.draft),
+      }));
+      onSaved(await issueConfig.updateField(field.id, { teamId, contexts: payload }));
+    } catch (e) {
+      setError(t(e.message || 'Не удалось сохранить контексты.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title={`${t('Контексты поля')} «${field.name}»`} onClose={onClose} onSubmit={submit} saving={saving} error={error} submitLabel={t('Сохранить')}>
+      <p className="app-modal-hint">
+        {t('Контекст задаёт варианты и значение по умолчанию для выбранных пространств и типов задач. Пространство может входить только в один контекст; остальные используют контекст по умолчанию.')}
+      </p>
+      <div className="settings-context-card is-default">
+        <strong>{t('Контекст по умолчанию')}</strong>
+        <span>{field.boards.length ? field.boards.map((id) => boards.find((b) => b.id === id)?.name ?? id).join(', ') : t('Все остальные пространства')}</span>
+      </div>
+      {contexts.map((context, index) => (
+        <fieldset key={context.id ?? `new-${index}`} className="settings-context-card">
+          <div className="settings-context-head">
+            <input
+              aria-label={t('Название контекста')}
+              value={context.name}
+              maxLength={100}
+              onChange={(e) => update(index, { name: e.target.value })}
+            />
+            <button
+              type="button"
+              className="app-icon-btn"
+              aria-label={`${t('Удалить')} ${context.name}`}
+              onClick={() => setContexts((list) => list.filter((_, i) => i !== index))}
+            ><NavIcon name="trash" size={14} /></button>
+          </div>
+          <fieldset className="settings-choice-list">
+            <legend>{t('Пространства')} <span className="app-required">*</span></legend>
+            {boards.map((board) => (
+              <label key={board.id} className="custom-field-option">
+                <input
+                  type="checkbox"
+                  checked={context.boards.includes(board.id)}
+                  disabled={!context.boards.includes(board.id) && takenBy(board.id, index)}
+                  onChange={(e) => update(index, { boards: e.target.checked ? [...context.boards, board.id] : context.boards.filter((x) => x !== board.id) })}
+                />
+                {board.name}
+              </label>
+            ))}
+          </fieldset>
+          <ChoiceList label={t('Типы задач')} allLabel={t('Все типы задач')} options={typeOptions} value={context.issueTypes} onChange={(value) => update(index, { issueTypes: value })} />
+          <ContextOptionsEditor fieldType={field.fieldType} draft={context.draft} onChange={(draft) => update(index, { draft })} groups={groups} name={context.name} />
+        </fieldset>
+      ))}
+      <button type="button" className="app-btn app-btn-subtle" onClick={add}>{t('Добавить контекст')}</button>
+    </Modal>
+  );
+}
+
 export function CustomFieldsPage() {
   const { t } = useLocalization();
   const { catalog, error, reload } = useIssueCatalog();
   const [teamId, setTeamId, team] = useTeamSelection(catalog?.teams);
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null);
+  const [contextsOf, setContextsOf] = useState(null);
   const [actionError, setActionError] = useState('');
   const canManage = !!team?.canManage;
   const boards = useMemo(() => (catalog?.boards || []).filter((board) => board.teamId === teamId), [catalog, teamId]);
   const types = useMemo(() => (catalog?.types || []).filter((type) => type.teamId === teamId), [catalog, teamId]);
+  const groups = useMemo(() => (catalog?.groups || []).filter((group) => group.teamId === teamId), [catalog, teamId]);
   const fields = (catalog?.fields || [])
     .filter((field) => field.teamId === teamId)
     .filter((field) => !query.trim() || field.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -375,6 +538,7 @@ export function CustomFieldsPage() {
                 <th>{t('Тип поля')}</th>
                 <th className="hide-mobile">{t('Пространства')}</th>
                 <th className="hide-mobile">{t('Типы задач')}</th>
+                <th className="is-narrow hide-mobile">{t('Контексты')}</th>
                 <th className="is-narrow">{t('JQL')}</th>
                 {canManage && <th className="is-narrow"><span className="settings-sr-only">{t('Действия')}</span></th>}
               </tr>
@@ -389,11 +553,13 @@ export function CustomFieldsPage() {
                   <td>{t(FIELD_TYPES.find((type) => type.value === field.fieldType)?.label ?? field.fieldType)}</td>
                   <td className="hide-mobile">{field.boards.length ? field.boards.map((id) => boards.find((b) => b.id === id)?.name ?? id).join(', ') : t('Все')}</td>
                   <td className="hide-mobile">{field.issueTypes.length ? field.issueTypes.map(typeLabel).join(', ') : t('Все')}</td>
+                  <td className="is-narrow hide-mobile">{1 + (field.contexts?.length ?? 0)}</td>
                   <td className="is-narrow"><code className="settings-code">{/\s/.test(field.name) ? `"${field.name}"` : field.name}</code></td>
                   {canManage && (
                     <td className="is-narrow">
                       <span className="settings-row-actions">
                         <button type="button" className="app-icon-btn" aria-label={`${t('Изменить')} ${field.name}`} onClick={() => setEditing(field)}><NavIcon name="edit" size={14} /></button>
+                        <button type="button" className="app-icon-btn" aria-label={`${t('Контексты поля')} ${field.name}`} title={t('Контексты поля')} onClick={() => setContextsOf(field)}><NavIcon name="spaces" size={14} /></button>
                         <button type="button" className="app-icon-btn" aria-label={`${t('Удалить')} ${field.name}`} onClick={() => remove(field)}><NavIcon name="trash" size={14} /></button>
                       </span>
                     </td>
@@ -411,8 +577,20 @@ export function CustomFieldsPage() {
           field={editing.id ? editing : null}
           boards={boards}
           types={types}
+          groups={groups}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); reload(); }}
+        />
+      )}
+      {contextsOf && (
+        <FieldContextsDialog
+          teamId={teamId}
+          field={contextsOf}
+          boards={boards}
+          types={types}
+          groups={groups}
+          onClose={() => setContextsOf(null)}
+          onSaved={() => { setContextsOf(null); reload(); }}
         />
       )}
     </SettingsShell>

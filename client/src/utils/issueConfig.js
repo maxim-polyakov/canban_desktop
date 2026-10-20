@@ -8,11 +8,23 @@ export const FIELD_TYPES = [
   { value: 'date', label: 'Дата' },
   { value: 'select', label: 'Список (один вариант)' },
   { value: 'multiselect', label: 'Список (несколько вариантов)' },
+  { value: 'cascading', label: 'Каскадный список' },
   { value: 'checkbox', label: 'Флажок' },
   { value: 'url', label: 'Ссылка' },
   { value: 'user', label: 'Пользователь' },
   { value: 'labels', label: 'Метки' },
+  { value: 'version', label: 'Выбор версии (одна)' },
+  { value: 'versions', label: 'Выбор версий (несколько)' },
+  { value: 'group', label: 'Выбор группы (одна)' },
+  { value: 'groups', label: 'Выбор групп (несколько)' },
 ];
+
+export const OPTION_FIELD_TYPES = ['select', 'multiselect', 'cascading'];
+export const MULTI_FIELD_TYPES = ['multiselect', 'versions', 'groups'];
+/** Types whose default value can be set in a context. */
+export const DEFAULT_VALUE_FIELD_TYPES = ['text', 'paragraph', 'number', 'date', 'select', 'multiselect', 'cascading', 'checkbox', 'url', 'labels', 'group', 'groups'];
+
+const EMPTY_CONFIG = { types: [], fields: [], versions: [], groups: [] };
 
 export const BASE_TYPES = [
   { value: 0, label: 'Эпик' },
@@ -77,11 +89,11 @@ export function loadIssueCatalog(force = false) {
 }
 
 export function loadBoardIssueConfig(boardId, force = false) {
-  if (!boardId) return Promise.resolve({ types: [], fields: [] });
+  if (!boardId) return Promise.resolve(EMPTY_CONFIG);
   if (force || !boardCache.has(boardId)) {
     const promise = Promise.resolve().then(() => issueConfig.forBoard(boardId)).then((config) => {
       rememberIssueTypes(config?.types || []);
-      return { types: config?.types || [], fields: config?.fields || [] };
+      return { types: config?.types || [], fields: config?.fields || [], versions: config?.versions || [], groups: config?.groups || [] };
     }).catch((error) => {
       boardCache.delete(boardId);
       throw error;
@@ -96,10 +108,10 @@ export function clearBoardIssueConfig() {
 }
 
 export function useBoardIssueConfig(boardId) {
-  const [config, setConfig] = useState({ types: [], fields: [] });
+  const [config, setConfig] = useState(EMPTY_CONFIG);
   useEffect(() => {
     let cancelled = false;
-    setConfig({ types: [], fields: [] });
+    setConfig(EMPTY_CONFIG);
     loadBoardIssueConfig(boardId).then((value) => { if (!cancelled) setConfig(value); }).catch(() => {});
     return () => { cancelled = true; };
   }, [boardId]);
@@ -120,10 +132,22 @@ export function isEmptyValue(value) {
   return value === undefined || value === null || value === '' || value === false || (Array.isArray(value) && value.length === 0);
 }
 
-export function formatFieldValue(field, value, people = []) {
+/** Empty input value for a field type. */
+export function emptyFieldValue(field) {
+  if (MULTI_FIELD_TYPES.includes(field.fieldType) || field.fieldType === 'cascading') return [];
+  if (field.fieldType === 'checkbox') return false;
+  return '';
+}
+
+export function formatFieldValue(field, value, people = [], refs = {}) {
   if (isEmptyValue(value)) return '';
   if (field.fieldType === 'checkbox') return 'Да';
   if (field.fieldType === 'user') return people.find((p) => (p.userId ?? p.id) === value)?.displayName ?? value;
+  if (field.fieldType === 'cascading') return [].concat(value).join(' → ');
+  if (['version', 'versions', 'group', 'groups'].includes(field.fieldType)) {
+    const list = field.fieldType.startsWith('version') ? refs.versions : refs.groups;
+    return [].concat(value).map((id) => (list || []).find((x) => x.id === id)?.name ?? id).join(', ');
+  }
   if (Array.isArray(value)) return value.join(', ');
   if (field.fieldType === 'date') {
     const date = new Date(`${value}T00:00:00`);

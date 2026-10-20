@@ -534,6 +534,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
               quest={quest}
               fields={issueConfig.fields}
               people={members}
+              refs={issueConfig}
               onSaved={(values) => { setQuest((current) => (current ? { ...current, customFields: values } : current)); onChanged?.(); }}
             />
 

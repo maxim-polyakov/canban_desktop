@@ -287,6 +287,14 @@ export const issueConfig = {
   setValue: (questId, fieldId, value) => apiJson(`/api/quests/${questId}/fields/${fieldId}`, json('PUT', { value })),
 };
 
+export const userGroups = {
+  list: (teamId) => apiJson(`/api/groups${buildQuery({ teamId })}`),
+  create: (data) => apiJson('/api/groups', json('POST', data)),
+  update: (id, data) => apiJson(`/api/groups/${id}`, json('PUT', data)),
+  setMembers: (id, userIds) => apiJson(`/api/groups/${id}/members`, json('PUT', { userIds })),
+  remove: (id) => remove(`/api/groups/${id}`),
+};
+
 export const audit = {
   list: (params) => apiJson(`/api/audit${buildQuery(params)}`),
   settings: (teamId) => apiJson(`/api/audit/settings/${teamId}`),

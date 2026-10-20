@@ -73,6 +73,8 @@ public class CanbanDbContext : DbContext
     public DbSet<BillingPlanChange> BillingPlanChanges => Set<BillingPlanChange>();
     public DbSet<IssueTypeDefinition> IssueTypeDefinitions => Set<IssueTypeDefinition>();
     public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
+    public DbSet<UserGroup> UserGroups => Set<UserGroup>();
+    public DbSet<UserGroupMember> UserGroupMembers => Set<UserGroupMember>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
     public DbSet<AuditSetting> AuditSettings => Set<AuditSetting>();
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();

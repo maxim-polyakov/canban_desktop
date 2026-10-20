@@ -10,12 +10,17 @@ namespace CanbanServer.Infrastructure.Services;
 public record IssueTypeRequest(Guid TeamId, string? Name, string? Description, IssueType? BaseType, string? Icon, string? Color);
 public record CustomFieldRequest(
     Guid TeamId, string? Name, string? Description, string? FieldType, List<string>? Options,
-    List<Guid>? Boards, List<string>? IssueTypes, bool? Required, int? Order);
+    List<Guid>? Boards, List<string>? IssueTypes, bool? Required, int? Order,
+    Dictionary<string, List<string>>? Children = null, JsonElement? DefaultValue = null, List<FieldContextRequest>? Contexts = null);
 public record SetCustomFieldRequest(JsonElement? Value);
 
-public class IssueFieldService
+public partial class IssueFieldService
 {
-    public static readonly string[] FieldTypes = { "text", "paragraph", "number", "date", "select", "multiselect", "checkbox", "url", "user", "labels" };
+    public static readonly string[] FieldTypes =
+    {
+        "text", "paragraph", "number", "date", "select", "multiselect", "cascading", "checkbox", "url", "user", "labels",
+        "version", "versions", "group", "groups",
+    };
     private const int MaxTypesPerTeam = 100;
     private const int MaxFieldsPerTeam = 200;
 
@@ -54,6 +59,8 @@ public class IssueFieldService
             .GroupBy(q => q.IssueTypeId!.Value).Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count, ct);
         var boards = await _db.Boards.AsNoTracking().Where(b => teamIds.Contains(b.TeamId))
             .OrderBy(b => b.Name).Select(b => new { id = b.Id, teamId = b.TeamId, name = b.Name, key = b.KeyPrefix }).ToListAsync(ct);
+        var groups = await _db.UserGroups.AsNoTracking().Where(g => teamIds.Contains(g.TeamId))
+            .OrderBy(g => g.Name).Select(g => new { id = g.Id, teamId = g.TeamId, name = g.Name }).ToListAsync(ct);
         return new
         {
             teams = teams.Select(t => new
@@ -63,6 +70,7 @@ public class IssueFieldService
                 canManage = t.isOwner || t.role == TeamRole.Admin,
             }),
             boards,
+            groups,
             types = types.Select(x => TypeDto(x, typeCounts.TryGetValue(x.Id, out var n) ? n : 0)),
             fields = fields.Select(FieldDto),
         };
@@ -74,10 +82,18 @@ public class IssueFieldService
         var teamId = await _db.Boards.Where(b => b.Id == boardId).Select(b => b.TeamId).FirstAsync(ct);
         var types = await _db.IssueTypeDefinitions.AsNoTracking().Where(x => x.TeamId == teamId).OrderBy(x => x.Name).ToListAsync(ct);
         var fields = await _db.CustomFieldDefinitions.AsNoTracking().Where(x => x.TeamId == teamId).OrderBy(x => x.Order).ThenBy(x => x.Name).ToListAsync(ct);
+        var versions = await _db.BoardReleases.AsNoTracking().Where(r => r.BoardId == boardId)
+            .OrderBy(r => r.ReleaseDate ?? DateTime.MaxValue).ThenBy(r => r.Name)
+            .Select(r => new { id = r.Id, name = r.Name, status = r.Status }).ToListAsync(ct);
+        var groups = await _db.UserGroups.AsNoTracking().Where(g => g.TeamId == teamId).OrderBy(g => g.Name)
+            .Select(g => new { id = g.Id, name = g.Name }).ToListAsync(ct);
         return new
         {
             types = types.Select(x => TypeDto(x, null)),
-            fields = fields.Where(f => AppliesToBoard(f, boardId)).Select(FieldDto),
+            fields = fields.Select(f => (field: f, context: ResolveContext(f, boardId)))
+                .Where(x => x.context != null).Select(x => BoardFieldDto(x.field, x.context!)),
+            versions,
+            groups,
         };
     }
 
@@ -169,11 +185,13 @@ public class IssueFieldService
         var quest = await _db.Quests.Include(q => q.Board).FirstAsync(q => q.Id == questId, ct);
         var field = await _db.CustomFieldDefinitions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == fieldId && x.TeamId == quest.Board.TeamId, ct)
             ?? throw new KeyNotFoundException("Field not found");
-        if (!Applies(field, quest.BoardId, quest.IssueType, quest.IssueTypeId))
+        var context = ResolveContext(field, quest.BoardId);
+        if (context == null || !AppliesToType(context, quest.IssueType, quest.IssueTypeId))
             throw new ArgumentException("Поле не используется в задачах этого типа");
-        var normalized = Normalize(field, value);
+        var normalized = Normalize(field, value, context);
         if (normalized is JsonElement user && field.FieldType == "user")
             await EnsureTeamUserAsync(quest.Board.TeamId, Guid.Parse(user.GetString()!), ct);
+        if (normalized is JsonElement reference) await EnsureReferencesAsync(field, quest.Board.TeamId, quest.BoardId, reference, ct);
         if (normalized == null && field.Required) throw new ArgumentException($"Поле «{field.Name}» обязательно");
         var values = ReadValues(quest.CustomFieldsJson);
         var key = fieldId.ToString();
@@ -198,16 +216,26 @@ public class IssueFieldService
         Guid teamId, Guid boardId, Guid? typeId, IssueType baseType, Dictionary<string, JsonElement>? values, CancellationToken ct)
     {
         if (typeId.HasValue) baseType = (await RequireTypeAsync(teamId, typeId.Value, ct)).BaseType;
-        if (values == null) return (typeId, baseType, "{}");
+        // Quick create sends no field values: defaults still apply, required fields are filled in later.
+        var checkRequired = values != null;
+        values ??= new();
         var fields = await _db.CustomFieldDefinitions.AsNoTracking().Where(x => x.TeamId == teamId).ToListAsync(ct);
         var result = new Dictionary<string, JsonElement>();
-        foreach (var field in fields.Where(f => Applies(f, boardId, baseType, typeId)))
+        foreach (var field in fields)
         {
-            var normalized = values.TryGetValue(field.Id.ToString(), out var raw) ? Normalize(field, raw) : null;
+            var context = ResolveContext(field, boardId);
+            if (context == null || !AppliesToType(context, baseType, typeId)) continue;
+            var fromDefault = !values.TryGetValue(field.Id.ToString(), out var raw);
+            var normalized = fromDefault ? context.DefaultValue : Normalize(field, raw, context);
             if (normalized is JsonElement user && field.FieldType == "user")
                 await EnsureTeamUserAsync(teamId, Guid.Parse(user.GetString()!), ct);
+            if (normalized is JsonElement reference)
+            {
+                try { await EnsureReferencesAsync(field, teamId, boardId, reference, ct); }
+                catch (ArgumentException) when (fromDefault) { normalized = null; }
+            }
             if (normalized is JsonElement element) result[field.Id.ToString()] = element;
-            else if (field.Required) throw new ArgumentException($"Поле «{field.Name}» обязательно");
+            else if (field.Required && checkRequired) throw new ArgumentException($"Поле «{field.Name}» обязательно");
         }
         return (typeId, baseType, JsonSerializer.Serialize(result));
     }
@@ -223,21 +251,11 @@ public class IssueFieldService
         catch (JsonException) { return new(); }
     }
 
-    public static bool AppliesToBoard(CustomFieldDefinition field, Guid boardId) =>
-        string.IsNullOrEmpty(field.Boards) || Split(field.Boards).Contains(boardId.ToString(), StringComparer.OrdinalIgnoreCase);
-
-    public static bool Applies(CustomFieldDefinition field, Guid boardId, IssueType baseType, Guid? typeId)
-    {
-        if (!AppliesToBoard(field, boardId)) return false;
-        if (string.IsNullOrEmpty(field.IssueTypes)) return true;
-        var token = typeId?.ToString() ?? ((int)baseType).ToString(CultureInfo.InvariantCulture);
-        return Split(field.IssueTypes).Contains(token, StringComparer.OrdinalIgnoreCase);
-    }
-
-    /// <summary>Validates a raw value against the field type; null clears the field.</summary>
-    public static JsonElement? Normalize(CustomFieldDefinition field, JsonElement? raw)
+    /// <summary>Validates a raw value against the field type and context options; null clears the field.</summary>
+    public static JsonElement? Normalize(CustomFieldDefinition field, JsonElement? raw, FieldContext? context = null)
     {
         if (raw is not JsonElement value || value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) return null;
+        context ??= DefaultContext(field);
         switch (field.FieldType)
         {
             case "text":
@@ -274,12 +292,30 @@ public class IssueFieldService
             {
                 var text = Text(value, field.Name).Trim();
                 if (text.Length == 0) return null;
-                return Json(Option(field, text));
+                return Json(MatchOption(field, context.Options, text));
             }
             case "multiselect":
             {
-                var items = Strings(value, field.Name).Select(x => Option(field, x)).Distinct().ToList();
+                var items = Strings(value, field.Name).Select(x => MatchOption(field, context.Options, x)).Distinct().ToList();
                 return items.Count == 0 ? null : Json(items);
+            }
+            case "cascading":
+            {
+                if (value.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(value.GetString())) return null;
+                if (value.ValueKind == JsonValueKind.Array && value.GetArrayLength() == 0) return null;
+                return NormalizeCascade(field, context, value);
+            }
+            case "version":
+            case "group":
+            {
+                var ids = Ids(field, value, multiple: false);
+                return ids.Count == 0 ? null : Json(ids[0]);
+            }
+            case "versions":
+            case "groups":
+            {
+                var ids = Ids(field, value, multiple: true);
+                return ids.Count == 0 ? null : Json(ids);
             }
             case "labels":
             {
@@ -335,12 +371,6 @@ public class IssueFieldService
         if (string.IsNullOrWhiteSpace(json)) return new();
         try { return JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
         catch (JsonException) { return new(); }
-    }
-
-    private static string Option(CustomFieldDefinition field, string value)
-    {
-        var match = ParseOptions(field.OptionsJson).FirstOrDefault(o => o.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
-        return match ?? throw new ArgumentException($"Поле «{field.Name}»: нет варианта «{value}»");
     }
 
     private static string Text(JsonElement value, string name) => value.ValueKind switch
@@ -419,34 +449,17 @@ public class IssueFieldService
             if (!isNew && request.FieldType != field.FieldType) throw new ArgumentException("Тип поля нельзя менять после создания");
             field.FieldType = request.FieldType;
         }
-        if (request.Options != null)
-        {
-            var options = request.Options.Select(o => (o ?? "").Trim()).Where(o => o.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            if (options.Count > 100 || options.Any(o => o.Length > 100)) throw new ArgumentException("Слишком много или слишком длинные варианты");
-            field.OptionsJson = JsonSerializer.Serialize(options);
-        }
-        if (field.FieldType is "select" or "multiselect" && ParseOptions(field.OptionsJson).Count == 0)
-            throw new ArgumentException("Добавьте хотя бы один вариант");
-        if (request.Boards != null)
-        {
-            var ids = request.Boards.Distinct().ToList();
-            var valid = await _db.Boards.CountAsync(b => ids.Contains(b.Id) && b.TeamId == request.TeamId, ct);
-            if (valid != ids.Count) throw new ArgumentException("Пространство не найдено в этой команде");
-            field.Boards = string.Join(",", ids);
-        }
-        if (request.IssueTypes != null)
-        {
-            var tokens = request.IssueTypes.Select(x => (x ?? "").Trim()).Where(x => x.Length > 0).Distinct().ToList();
-            var customIds = new List<Guid>();
-            foreach (var token in tokens)
-            {
-                if (Guid.TryParse(token, out var id)) customIds.Add(id);
-                else if (!int.TryParse(token, out var n) || !Enum.IsDefined(typeof(IssueType), n)) throw new ArgumentException("Неверный тип задачи");
-            }
-            if (customIds.Count > 0 && await _db.IssueTypeDefinitions.CountAsync(x => customIds.Contains(x.Id) && x.TeamId == request.TeamId, ct) != customIds.Count)
-                throw new ArgumentException("Тип задачи не найден в этой команде");
-            field.IssueTypes = string.Join(",", tokens);
-        }
+        var global = DefaultContext(field);
+        ApplyOptions(field, global, request.Options, request.Children);
+        if (request.DefaultValue.HasValue) global.DefaultValue = await DefaultValueAsync(field, global, request.DefaultValue, ct);
+        field.OptionsJson = JsonSerializer.Serialize(global.Options);
+        field.CascadeJson = JsonSerializer.Serialize(global.Children);
+        field.DefaultValueJson = global.DefaultValue is JsonElement def ? def.GetRawText() : null;
+        if (request.Boards != null) field.Boards = string.Join(",", await ValidBoardsAsync(field.TeamId, request.Boards, ct));
+        if (request.IssueTypes != null) field.IssueTypes = string.Join(",", await ValidIssueTypesAsync(field.TeamId, request.IssueTypes, ct));
+        var contexts = request.Contexts ?? ExtraContexts(field)
+            .Select(c => new FieldContextRequest(c.Id, c.Name, c.Boards, c.IssueTypes, c.Options, c.Children, null)).ToList();
+        await ApplyContextsAsync(field, contexts, ct);
         if (request.Required != null) field.Required = request.Required.Value;
         if (request.Order != null) field.Order = Math.Clamp(request.Order.Value, 0, 10000);
     }
@@ -502,8 +515,11 @@ public class IssueFieldService
         description = x.Description,
         fieldType = x.FieldType,
         options = ParseOptions(x.OptionsJson),
+        children = ParseChildren(x.CascadeJson),
+        defaultValue = ParseDefault(x.DefaultValueJson),
         boards = Split(x.Boards).ToList(),
         issueTypes = Split(x.IssueTypes).ToList(),
+        contexts = ExtraContexts(x).Select(ContextDto),
         required = x.Required,
         order = x.Order,
     };

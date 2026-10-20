@@ -10,14 +10,17 @@ public sealed class JqlCustomFields
     private readonly ILookup<string, CustomFieldDefinition> _byName;
     private readonly Dictionary<Guid, CustomFieldDefinition> _byId;
     private readonly IReadOnlyDictionary<Guid, string> _typeNames;
+    private readonly IReadOnlyDictionary<Guid, string> _referenceNames;
     private readonly Dictionary<Guid, Dictionary<string, JsonElement>> _values = new();
 
-    public JqlCustomFields(IEnumerable<CustomFieldDefinition> fields, IReadOnlyDictionary<Guid, string> typeNames)
+    public JqlCustomFields(
+        IEnumerable<CustomFieldDefinition> fields, IReadOnlyDictionary<Guid, string> typeNames, IReadOnlyDictionary<Guid, string>? referenceNames = null)
     {
         var list = fields.ToList();
         _byName = list.ToLookup(f => f.Name.ToLowerInvariant());
         _byId = list.ToDictionary(f => f.Id);
         _typeNames = typeNames;
+        _referenceNames = referenceNames ?? new Dictionary<Guid, string>();
     }
 
     public string? TypeName(Guid typeId) => _typeNames.TryGetValue(typeId, out var name) ? name : null;
@@ -39,9 +42,18 @@ public sealed class JqlCustomFields
             "number" when raw.ValueKind == JsonValueKind.Number => raw.GetDecimal(),
             "date" when DateTime.TryParse(raw.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var date) => date,
             "user" when Guid.TryParse(raw.GetString(), out var user) => user,
+            "version" or "versions" or "group" or "groups" => References(raw),
             _ => IssueFieldService.Display(raw),
         };
         return true;
+    }
+
+    /// <summary>Names and ids of referenced versions or groups, so JQL can match either.</summary>
+    private string References(JsonElement raw)
+    {
+        var ids = raw.ValueKind == JsonValueKind.Array ? raw.EnumerateArray().Select(x => x.GetString()) : new[] { raw.GetString() };
+        return string.Join(",", ids.Where(x => x != null).Select(x =>
+            Guid.TryParse(x, out var id) && _referenceNames.TryGetValue(id, out var name) ? $"{name},{x}" : x));
     }
 
     private List<CustomFieldDefinition> Candidates(string field)

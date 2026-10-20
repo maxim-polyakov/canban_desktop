@@ -34,9 +34,23 @@ public sealed class JqlService : IJqlQueryService
             .Select(g => new { g.Key, At = g.Max(c => c.CreatedAt) })
             .ToDictionaryAsync(x => x.Key, x => x.At, ct);
         var teamIds = values.Select(q => q.Board.TeamId).Distinct().ToList();
+        var customFields = await _db.CustomFieldDefinitions.AsNoTracking().Where(f => teamIds.Contains(f.TeamId)).ToListAsync(ct);
+        var referenceNames = new Dictionary<Guid, string>();
+        if (customFields.Any(f => f.FieldType is "version" or "versions"))
+        {
+            var boardIds = values.Select(q => q.BoardId).Distinct().ToList();
+            foreach (var r in await _db.BoardReleases.AsNoTracking().Where(r => boardIds.Contains(r.BoardId)).Select(r => new { r.Id, r.Name }).ToListAsync(ct))
+                referenceNames[r.Id] = r.Name;
+        }
+        if (customFields.Any(f => f.FieldType is "group" or "groups"))
+        {
+            foreach (var g in await _db.UserGroups.AsNoTracking().Where(g => teamIds.Contains(g.TeamId)).Select(g => new { g.Id, g.Name }).ToListAsync(ct))
+                referenceNames[g.Id] = g.Name;
+        }
         var custom = new JqlCustomFields(
-            await _db.CustomFieldDefinitions.AsNoTracking().Where(f => teamIds.Contains(f.TeamId)).ToListAsync(ct),
-            await _db.IssueTypeDefinitions.AsNoTracking().Where(t => teamIds.Contains(t.TeamId)).ToDictionaryAsync(t => t.Id, t => t.Name, ct));
+            customFields,
+            await _db.IssueTypeDefinitions.AsNoTracking().Where(t => teamIds.Contains(t.TeamId)).ToDictionaryAsync(t => t.Id, t => t.Name, ct),
+            referenceNames);
         var context = new JqlContext(userId, DateTime.UtcNow, q => lastChanges.TryGetValue(q.Id, out var at) && at > q.CreatedAt ? at : q.CreatedAt, custom);
         var filtered = ast.Where == null ? values : values.Where(q => Match(ast.Where, q, context)).ToList();
         IOrderedEnumerable<Quest>? ordered = null;

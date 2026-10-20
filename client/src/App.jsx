@@ -43,6 +43,7 @@ import PersonalNotificationsPage from './pages/settings/PersonalNotificationsPag
 import IssueTypesPage from './pages/settings/IssueTypesPage.jsx';
 import { CustomFieldsPage } from './pages/settings/IssueConfigPages.jsx';
 import AuditLogPage from './pages/settings/AuditLogPage.jsx';
+import GroupsPage from './pages/settings/GroupsPage.jsx';
 import SpaceSettingsPage from './pages/settings/SpaceSettingsPage.jsx';
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
 import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
@@ -124,6 +125,7 @@ export default function App() {
           <Route path="admin" element={<AdminOverviewPage />} />
           <Route path="admin/system" element={<AdminSystemPage />} />
           <Route path="admin/audit" element={<AuditLogPage />} />
+          <Route path="admin/groups" element={<GroupsPage />} />
           <Route path="admin/apps" element={<AdminAppsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/billing" element={<AdminBillingPage />} />

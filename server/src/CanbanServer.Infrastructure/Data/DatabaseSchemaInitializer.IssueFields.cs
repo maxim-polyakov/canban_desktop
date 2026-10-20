@@ -23,6 +23,19 @@ public static partial class DatabaseSchemaInitializer
             CREATE INDEX IF NOT EXISTS "IX_CustomFieldDefinitions_TeamId" ON "CustomFieldDefinitions"("TeamId");
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_CustomFieldDefinitions_TeamId_Name" ON "CustomFieldDefinitions"("TeamId", lower("Name"));
 
+            ALTER TABLE "CustomFieldDefinitions" ADD COLUMN IF NOT EXISTS "CascadeJson" text NOT NULL DEFAULT '{{}}';
+            ALTER TABLE "CustomFieldDefinitions" ADD COLUMN IF NOT EXISTS "DefaultValueJson" text NULL;
+            ALTER TABLE "CustomFieldDefinitions" ADD COLUMN IF NOT EXISTS "ContextsJson" text NOT NULL DEFAULT '[]';
+
+            CREATE TABLE IF NOT EXISTS "UserGroups" (
+              "Id" uuid PRIMARY KEY, "TeamId" uuid NOT NULL, "Name" varchar(100) NOT NULL, "Description" varchar(500) NULL,
+              "CreatedAt" timestamptz NOT NULL DEFAULT now());
+            CREATE INDEX IF NOT EXISTS "IX_UserGroups_TeamId" ON "UserGroups"("TeamId");
+            CREATE TABLE IF NOT EXISTS "UserGroupMembers" (
+              "GroupId" uuid NOT NULL, "UserId" uuid NOT NULL, "AddedAt" timestamptz NOT NULL DEFAULT now(),
+              PRIMARY KEY ("GroupId", "UserId"));
+            CREATE INDEX IF NOT EXISTS "IX_UserGroupMembers_UserId" ON "UserGroupMembers"("UserId");
+
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "IssueTypeId" uuid NULL;
             ALTER TABLE "Quests" ADD COLUMN IF NOT EXISTS "CustomFieldsJson" text NOT NULL DEFAULT '{{}}';
             CREATE INDEX IF NOT EXISTS "IX_Quests_IssueTypeId" ON "Quests"("IssueTypeId");
@@ -40,6 +53,9 @@ public static partial class DatabaseSchemaInitializer
             END $$;
             SELECT pg_temp.ensure_fk('"IssueTypeDefinitions"','FK_IssueTypeDefinitions_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"CustomFieldDefinitions"','FK_CustomFieldDefinitions_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"UserGroups"','FK_UserGroups_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"UserGroupMembers"','FK_UserGroupMembers_Group','FOREIGN KEY ("GroupId") REFERENCES "UserGroups"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"UserGroupMembers"','FK_UserGroupMembers_User','FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"Quests"','FK_Quests_IssueTypeDefinitions_IssueTypeId','FOREIGN KEY ("IssueTypeId") REFERENCES "IssueTypeDefinitions"("Id") ON DELETE SET NULL');
             """, ct);
     }

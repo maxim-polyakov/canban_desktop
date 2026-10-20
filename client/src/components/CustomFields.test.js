@@ -19,7 +19,12 @@ const fields = [
   { id: 'f-env', name: 'Окружение', fieldType: 'select', options: ['prod', 'stage'], boards: [], issueTypes: [], required: false },
   { id: 'f-contract', name: 'Договор', fieldType: 'text', options: [], boards: [], issueTypes: [], required: false },
   { id: 'f-sev', name: 'Критичность', fieldType: 'select', options: ['S1', 'S2'], boards: [], issueTypes: ['t-incident'], required: true },
+  {
+    id: 'f-region', name: 'Регион', fieldType: 'cascading', options: ['Европа', 'Азия'], children: { Европа: ['Берлин', 'Париж'] },
+    defaultValue: ['Европа'], boards: [], issueTypes: [], required: false,
+  },
 ];
+const refs = { versions: [{ id: 'v1', name: '1.0' }, { id: 'v2', name: '2.0' }], groups: [{ id: 'g1', name: 'Поддержка' }] };
 
 jest.mock('../api.js', () => ({
   issueConfig: {
@@ -27,7 +32,7 @@ jest.mock('../api.js', () => ({
       calls.setValue.push({ questId, fieldId, value });
       return Promise.resolve({ [fieldId]: value });
     },
-    forBoard: () => Promise.resolve({ types: [incident], fields }),
+    forBoard: () => Promise.resolve({ types: [incident], fields, ...refs }),
     catalog: () => Promise.resolve({ teams: [], boards: [], types: [], fields: [] }),
   },
   boards: { getById: () => Promise.resolve({ columns: [{ id: 'c1', kind: 0, order: 0 }] }) },
@@ -76,6 +81,38 @@ test('fields follow their issue type scope and format their values', () => {
   expect(formatFieldValue({ fieldType: 'checkbox' }, true)).toBe('Да');
   expect(formatFieldValue({ fieldType: 'user' }, 'u2', [{ userId: 'u2', displayName: 'Аня' }])).toBe('Аня');
   expect(formatFieldValue({ fieldType: 'text' }, '')).toBe('');
+  expect(formatFieldValue({ fieldType: 'cascading' }, ['Европа', 'Париж'])).toBe('Европа → Париж');
+  expect(formatFieldValue({ fieldType: 'versions' }, ['v2', 'v1'], [], refs)).toBe('2.0, 1.0');
+  expect(formatFieldValue({ fieldType: 'group' }, 'g1', [], refs)).toBe('Поддержка');
+});
+
+test('cascading, version and group pickers save ids and option pairs', async () => {
+  const pickers = [
+    fields[3],
+    { id: 'f-found', name: 'Найдено в', fieldType: 'version', options: [], boards: [], issueTypes: [] },
+    { id: 'f-teams', name: 'Ответственные', fieldType: 'groups', options: [], boards: [], issueTypes: [] },
+  ];
+  const quest = { id: 'q1', issueType: 2, issueTypeId: null, customFields: {} };
+  await render(<CustomFieldsPanel quest={quest} fields={pickers} refs={refs} onSaved={() => {}} />);
+
+  const region = container.querySelector('#custom-field-f-region');
+  expect(container.querySelector('select[aria-label="Регион: уточнение"]')).toBeNull();
+  await change(region, 'Европа');
+  expect(calls.setValue[0]).toEqual({ questId: 'q1', fieldId: 'f-region', value: ['Европа'] });
+  const child = container.querySelector('select[aria-label="Регион: уточнение"]');
+  expect([...child.options].map((o) => o.value)).toEqual(['', 'Берлин', 'Париж']);
+  await change(child, 'Париж');
+  expect(calls.setValue[1]).toEqual({ questId: 'q1', fieldId: 'f-region', value: ['Европа', 'Париж'] });
+
+  const version = container.querySelector('#custom-field-f-found');
+  expect([...version.options].map((o) => o.textContent)).toEqual(['Нет', '1.0', '2.0']);
+  await change(version, 'v2');
+  expect(calls.setValue[2]).toEqual({ questId: 'q1', fieldId: 'f-found', value: 'v2' });
+
+  const support = container.querySelector('[aria-label="Ответственные"] input[type="checkbox"]');
+  await act(async () => { support.click(); });
+  await flush();
+  expect(calls.setValue[3]).toEqual({ questId: 'q1', fieldId: 'f-teams', value: ['g1'] });
 });
 
 test('issue panel shows applicable fields and saves each one', async () => {
@@ -124,5 +161,17 @@ test('create dialog offers custom types and requires their fields', async () => 
   await act(async () => { submit.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
   await flush();
   expect(calls.create).toHaveLength(1);
-  expect(calls.create[0]).toMatchObject({ issueType: 3, issueTypeId: 't-incident', customFields: { 'f-sev': 'S1' } });
+  expect(calls.create[0]).toMatchObject({ issueType: 3, issueTypeId: 't-incident', customFields: { 'f-sev': 'S1', 'f-region': ['Европа'] } });
+});
+
+test('create dialog prefills context defaults and sends null when a default is cleared', async () => {
+  await render(<CreateIssueDialog open onClose={() => {}} boards={[{ id: 'b1', name: 'Разработка' }]} defaultBoardId="b1" />);
+  const region = container.querySelector('select[aria-label="Регион"]');
+  expect(region.value).toBe('Европа');
+  await change(region, '');
+  await change(container.querySelector('input[maxlength="500"]'), 'Без региона');
+  const submit = container.querySelector('button[type="submit"]');
+  await act(async () => { submit.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+  await flush();
+  expect(calls.create[0].customFields).toEqual({ 'f-region': null });
 });

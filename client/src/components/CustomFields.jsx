@@ -1,21 +1,78 @@
 import React, { useEffect, useState } from 'react';
 import { issueConfig } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { fieldApplies, formatFieldValue, isEmptyValue } from '../utils/issueConfig.js';
+import { MULTI_FIELD_TYPES, fieldApplies, formatFieldValue, isEmptyValue } from '../utils/issueConfig.js';
 import './CustomFields.css';
 
 function toDraft(field, value) {
-  if (field.fieldType === 'multiselect') return Array.isArray(value) ? value : [];
+  if (MULTI_FIELD_TYPES.includes(field.fieldType) || field.fieldType === 'cascading') return Array.isArray(value) ? value : [];
   if (field.fieldType === 'checkbox') return value === true;
   if (field.fieldType === 'labels') return Array.isArray(value) ? value.join(', ') : (value ?? '');
   return value === undefined || value === null ? '' : String(value);
 }
 
-export function CustomFieldInput({ field, value, onChange, onCommit, people = [], disabled, id }) {
+function CheckboxGroup({ label, items, value, disabled, onChange }) {
+  return (
+    <div className="custom-field-options" role="group" aria-label={label}>
+      {items.map((item) => (
+        <label key={item.value} className="custom-field-option">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.includes(item.value)}
+            onChange={(e) => onChange(e.target.checked ? [...value, item.value] : value.filter((x) => x !== item.value))}
+          />
+          {item.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+export function CustomFieldInput({ field, value, onChange, onCommit, people = [], refs = {}, disabled, id }) {
   const { t } = useLocalization();
   const commit = (next) => { onChange(next); onCommit?.(next); };
   const common = { id, disabled, 'aria-label': field.name };
+  const versions = (refs.versions || []).map((v) => ({ value: v.id, label: v.name }));
+  const groups = (refs.groups || []).map((g) => ({ value: g.id, label: g.name }));
   switch (field.fieldType) {
+    case 'cascading': {
+      const [parent = '', child = ''] = Array.isArray(value) ? value : [];
+      const children = (field.children || {})[parent] || [];
+      return (
+        <span className="custom-field-cascade">
+          <select {...common} value={parent} onChange={(e) => commit(e.target.value ? [e.target.value] : [])}>
+            <option value="">{t('Нет')}</option>
+            {(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+          {children.length > 0 && (
+            <select
+              disabled={disabled}
+              aria-label={`${field.name}: ${t('уточнение')}`}
+              value={child}
+              onChange={(e) => commit(e.target.value ? [parent, e.target.value] : [parent])}
+            >
+              <option value="">{t('Нет')}</option>
+              {children.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          )}
+        </span>
+      );
+    }
+    case 'version':
+    case 'group':
+      return (
+        <select {...common} value={value} onChange={(e) => commit(e.target.value)}>
+          <option value="">{t('Нет')}</option>
+          {(field.fieldType === 'version' ? versions : groups).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </select>
+      );
+    case 'versions':
+    case 'groups': {
+      const items = field.fieldType === 'versions' ? versions : groups;
+      if (items.length === 0) return <span className="custom-field-empty">{t(field.fieldType === 'versions' ? 'В пространстве нет версий' : 'В команде нет групп')}</span>;
+      return <CheckboxGroup label={field.name} items={items} value={value} disabled={disabled} onChange={commit} />;
+    }
     case 'paragraph':
       return <textarea {...common} rows={3} value={value} maxLength={10000} onChange={(e) => onChange(e.target.value)} onBlur={() => onCommit?.(value)} />;
     case 'number':
@@ -32,21 +89,7 @@ export function CustomFieldInput({ field, value, onChange, onCommit, people = []
         </select>
       );
     case 'multiselect':
-      return (
-        <div className="custom-field-options" role="group" aria-label={field.name}>
-          {field.options.map((option) => (
-            <label key={option} className="custom-field-option">
-              <input
-                type="checkbox"
-                disabled={disabled}
-                checked={value.includes(option)}
-                onChange={(e) => commit(e.target.checked ? [...value, option] : value.filter((x) => x !== option))}
-              />
-              {option}
-            </label>
-          ))}
-        </div>
-      );
+      return <CheckboxGroup label={field.name} items={field.options.map((o) => ({ value: o, label: o }))} value={value} disabled={disabled} onChange={commit} />;
     case 'checkbox':
       return (
         <label className="custom-field-option">
@@ -71,7 +114,7 @@ export function CustomFieldInput({ field, value, onChange, onCommit, people = []
   }
 }
 
-function FieldRow({ quest, field, people, onSaved }) {
+function FieldRow({ quest, field, people, refs, onSaved }) {
   const { t } = useLocalization();
   const stored = quest.customFields?.[field.id];
   const [draft, setDraft] = useState(() => toDraft(field, stored));
@@ -103,29 +146,29 @@ function FieldRow({ quest, field, people, onSaved }) {
         {field.name}{field.required && <span className="app-required"> *</span>}
       </label>
       <div className="custom-field-control">
-        <CustomFieldInput id={inputId} field={field} value={draft} onChange={setDraft} onCommit={save} people={people} disabled={saving} />
+        <CustomFieldInput id={inputId} field={field} value={draft} onChange={setDraft} onCommit={save} people={people} refs={refs} disabled={saving} />
         {error && <p className="issue-drawer-error" role="alert">{error}</p>}
       </div>
     </div>
   );
 }
 
-export default function CustomFieldsPanel({ quest, fields = [], people = [], onSaved }) {
+export default function CustomFieldsPanel({ quest, fields = [], people = [], refs = {}, onSaved }) {
   const { t } = useLocalization();
   const visible = fields.filter((field) => fieldApplies(field, quest.issueType, quest.issueTypeId));
   if (visible.length === 0) return null;
   return (
     <section className="issue-drawer-section custom-fields-panel" aria-label={t('Другие поля')}>
       <h4>{t('Другие поля')}</h4>
-      {visible.map((field) => <FieldRow key={field.id} quest={quest} field={field} people={people} onSaved={onSaved} />)}
+      {visible.map((field) => <FieldRow key={field.id} quest={quest} field={field} people={people} refs={refs} onSaved={onSaved} />)}
     </section>
   );
 }
 
-export function CustomFieldSummary({ quest, fields = [], people = [] }) {
+export function CustomFieldSummary({ quest, fields = [], people = [], refs = {} }) {
   const items = fields
     .filter((field) => fieldApplies(field, quest.issueType, quest.issueTypeId))
-    .map((field) => ({ field, text: formatFieldValue(field, quest.customFields?.[field.id], people) }))
+    .map((field) => ({ field, text: formatFieldValue(field, quest.customFields?.[field.id], people, refs) }))
     .filter((x) => x.text);
   if (items.length === 0) return null;
   return (

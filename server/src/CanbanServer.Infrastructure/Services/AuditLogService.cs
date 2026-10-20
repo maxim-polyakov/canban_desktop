@@ -19,6 +19,7 @@ public enum AuditTarget
     IssueType,
     CustomField,
     AssetSchema,
+    UserGroup,
     /// <summary>Team or board is taken from the request body (TeamId / BoardId property).</summary>
     Body,
     /// <summary>A personal action (sign-in, API tokens) recorded in every team the user belongs to.</summary>
@@ -84,6 +85,9 @@ public partial class AuditLogService
             case AuditTarget.AssetSchema:
                 return await _db.AssetSchemas.AsNoTracking().Where(s => s.Id == id)
                     .Select(s => new AuditScope(s.TeamId, null, null, "assetschema", s.Id, s.Name)).FirstOrDefaultAsync(ct);
+            case AuditTarget.UserGroup:
+                return await _db.UserGroups.AsNoTracking().Where(g => g.Id == id)
+                    .Select(g => new AuditScope(g.TeamId, null, null, "group", g.Id, g.Name)).FirstOrDefaultAsync(ct);
             default:
                 return null;
         }

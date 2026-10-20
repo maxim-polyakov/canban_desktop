@@ -6,7 +6,7 @@ import { boards as boardsApi, people as peopleApi, quests } from '../api.js';
 import { IssueTypeIcon, PriorityIcon, getIssueTypeMeta, getPriorityMeta } from './IssueIcons.jsx';
 import NavIcon from './NavIcons.jsx';
 import { CustomFieldInput } from './CustomFields.jsx';
-import { fieldApplies, isEmptyValue, useBoardIssueConfig } from '../utils/issueConfig.js';
+import { emptyFieldValue, fieldApplies, isEmptyValue, useBoardIssueConfig } from '../utils/issueConfig.js';
 
 // Subtasks need a parent, so they are created from the parent issue instead.
 const ISSUE_TYPES = [2, 1, 3, 0];
@@ -54,7 +54,8 @@ export default function CreateIssueDialog({ open, onClose, boards, defaultBoardI
     if (!needsPeople) return;
     peopleApi.workWith().then((list) => setPeople([...(user?.id ? [{ id: user.id, displayName: user.displayName || user.email }] : []), ...(Array.isArray(list) ? list : [])])).catch(() => {});
   }, [needsPeople, user]);
-  const missingRequired = customFields.some((field) => field.required && isEmptyValue(fieldValues[field.id]));
+  const valueOf = (field) => (field.id in fieldValues ? fieldValues[field.id] : field.defaultValue ?? emptyFieldValue(field));
+  const missingRequired = customFields.some((field) => field.required && isEmptyValue(valueOf(field)));
   const chooseType = (value) => {
     const custom = issueConfig.types.find((type) => type.id === value);
     if (custom) { setIssueTypeId(custom.id); setIssueType(custom.baseType); }
@@ -81,7 +82,9 @@ export default function CreateIssueDialog({ open, onClose, boards, defaultBoardI
         isEpic: issueType === 0,
         issueType,
         issueTypeId,
-        customFields: Object.fromEntries(customFields.filter((field) => !isEmptyValue(fieldValues[field.id])).map((field) => [field.id, fieldValues[field.id]])),
+        customFields: Object.fromEntries(customFields
+          .filter((field) => !isEmptyValue(valueOf(field)) || field.defaultValue != null)
+          .map((field) => [field.id, isEmptyValue(valueOf(field)) ? null : valueOf(field)])),
         priority,
         assigneeIds: assignToMe && user?.id ? [user.id] : [],
         notificationRecipientIds: user?.id ? [user.id] : [],
@@ -151,9 +154,10 @@ export default function CreateIssueDialog({ open, onClose, boards, defaultBoardI
               <span>{field.name}{field.required && <span className="app-required"> *</span>}</span>
               <CustomFieldInput
                 field={field}
-                value={fieldValues[field.id] ?? (field.fieldType === 'multiselect' ? [] : field.fieldType === 'checkbox' ? false : '')}
+                value={valueOf(field)}
                 onChange={(value) => setFieldValues((current) => ({ ...current, [field.id]: value }))}
                 people={people}
+                refs={issueConfig}
               />
               {field.description && <small className="app-modal-hint">{field.description}</small>}
             </div>

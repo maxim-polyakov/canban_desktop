@@ -180,6 +180,7 @@ builder.Services.AddScoped<HomeService>();
 builder.Services.AddScoped<IssueFieldService>();
 builder.Services.AddScoped<AuditLogService>();
 builder.Services.AddScoped<ApiTokenService>();
+builder.Services.AddScoped<UserGroupService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHttpClient("outbox");

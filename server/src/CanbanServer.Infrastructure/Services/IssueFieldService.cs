@@ -310,6 +310,7 @@ public partial class IssueFieldService
         "assignee" => "Исполнитель",
         "priority" => "Приоритет",
         "duedate" => "Срок",
+        "startdate" => "Дата начала",
         "labels" => "Метки",
         "components" => "Компоненты",
         "fixversions" => "Исправить в версиях",

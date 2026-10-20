@@ -16,6 +16,7 @@ function initialValue(key, issue, field) {
     case 'assignee': return issue.assignees?.[0]?.userId ?? issue.assigneeId ?? '';
     case 'priority': return String(issue.priority ?? 2);
     case 'duedate': return issue.dueDate ? String(issue.dueDate).slice(0, 10) : '';
+    case 'startdate': return issue.startDate ? String(issue.startDate).slice(0, 10) : '';
     case 'labels': return issue.labels ?? '';
     case 'storypoints': return issue.storyPoints ?? '';
     case 'originalestimate': return issue.originalEstimateMinutes != null ? String(issue.originalEstimateMinutes / 60) : '';
@@ -29,6 +30,7 @@ function payloadValue(key, value) {
     case 'storypoints': return value === '' ? null : Number(value);
     case 'originalestimate': return value === '' ? null : Math.round(Number(value) * 60);
     case 'duedate':
+    case 'startdate':
     case 'assignee': return value || null;
     default: return value;
   }
@@ -82,7 +84,8 @@ export default function TransitionScreenDialog({ issue, transitions, config, peo
         );
       case 'priority':
         return <select {...common}>{[4, 3, 2, 1, 0].map((p) => <option key={p} value={String(p)}>{t(getPriorityMeta(p).label)}</option>)}</select>;
-      case 'duedate': return <input type="date" {...common} />;
+      case 'duedate':
+      case 'startdate': return <input type="date" {...common} />;
       case 'storypoints': return <input type="number" min="0" max="100" {...common} />;
       case 'originalestimate': return <input type="number" min="0" step="0.25" {...common} />;
       default: return <input {...common} />;

@@ -95,6 +95,9 @@ test('looks like the Jira issue view and saves fields as soon as they change', a
   await change(container.querySelector('select[aria-label="Приоритет"]'), '4');
   expect(mockCalls[0][0]).toBe('update');
   expect(mockCalls[0][2]).toMatchObject({ priority: 4, title: 'Fix login' });
+
+  await change(container.querySelector('input[aria-label="Дата начала"]'), '2026-11-02');
+  expect(mockCalls[1][2]).toMatchObject({ startDate: '2026-11-02T00:00:00Z', startDateSet: true, dueDate: null, dueDateSet: true });
 });
 
 test('status button moves the issue and the comment box saves comments', async () => {

@@ -115,6 +115,7 @@ public class QuestService : IQuestService
                 "description" => !string.IsNullOrWhiteSpace(request.Description) || !string.IsNullOrWhiteSpace(request.DescriptionDocumentJson),
                 "assignee" => assigneeIds.Count > 0,
                 "duedate" => request.DueDate.HasValue,
+                "startdate" => request.StartDate.HasValue,
                 "labels" => !string.IsNullOrEmpty(NormalizeLabels(request.Labels)),
                 "components" => request.ComponentIds?.Count > 0 || !string.IsNullOrWhiteSpace(request.Component),
                 "fixversions" => request.ReleaseIds?.Count > 0 || !string.IsNullOrWhiteSpace(request.FixVersion),
@@ -144,6 +145,7 @@ public class QuestService : IQuestService
             ReporterId = userId,
             Order = maxOrder + 1,
             DueDate = request.DueDate,
+            StartDate = request.StartDate,
             CreatedAt = DateTime.UtcNow,
             Category = request.Category,
             XpReward = request.XpReward,
@@ -226,7 +228,8 @@ public class QuestService : IQuestService
         if (request.Title != null && request.Title != q.Title) changes.Add("изменено название");
         if (request.Description != null && request.Description != q.Description) changes.Add("изменено описание");
         if (assigneesChanged) changes.Add("изменены исполнители");
-        if (request.DueDate != null && request.DueDate != q.DueDate) changes.Add("изменён срок");
+        if ((request.DueDateSet || request.DueDate != null) && request.DueDate != q.DueDate) changes.Add("изменён срок");
+        if (request.StartDateSet && request.StartDate != q.StartDate) changes.Add("изменена дата начала");
         if (request.XpReward != null && request.XpReward != q.XpReward) changes.Add("изменена награда XP");
         if ((request.IssueType != null && request.IssueType != q.IssueType) || typeIdChanged) changes.Add("изменён тип задачи");
         if (request.Priority != null && request.Priority != q.Priority) changes.Add("изменён приоритет");
@@ -247,7 +250,16 @@ public class QuestService : IQuestService
         if (request.Description != null) { auditChanges.Add(("description", q.Description, request.Description)); q.Description = request.Description; }
         if (requestedAssigneeIds != null && assigneesChanged)
             q.AssigneeId = requestedAssigneeIds.Count == 0 ? null : requestedAssigneeIds[0];
-        if (request.DueDate != null) q.DueDate = request.DueDate;
+        if (request.DueDateSet || request.DueDate != null)
+        {
+            auditChanges.Add(("duedate", q.DueDate?.ToString("yyyy-MM-dd"), request.DueDate?.ToString("yyyy-MM-dd")));
+            q.DueDate = request.DueDate;
+        }
+        if (request.StartDateSet)
+        {
+            auditChanges.Add(("startdate", q.StartDate?.ToString("yyyy-MM-dd"), request.StartDate?.ToString("yyyy-MM-dd")));
+            q.StartDate = request.StartDate;
+        }
         if (request.Category != null) q.Category = request.Category.Value;
         if (request.XpReward != null) q.XpReward = request.XpReward.Value;
         if (request.IssueType != null)
@@ -786,6 +798,14 @@ public class QuestService : IQuestService
                         ? DateTime.SpecifyKind(d, DateTimeKind.Utc) : throw new ArgumentException("Неверная дата");
                     if (due != quest.DueDate) await _jira.AddChangeAsync(quest.Id, userId, "updated", "duedate", quest.DueDate?.ToString("yyyy-MM-dd"), due?.ToString("yyyy-MM-dd"), ct);
                     quest.DueDate = due;
+                    break;
+                }
+                case "startdate":
+                {
+                    DateTime? start = Empty(value) ? null : DateTime.TryParse(value.GetString(), null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var d)
+                        ? DateTime.SpecifyKind(d, DateTimeKind.Utc) : throw new ArgumentException("Неверная дата");
+                    if (start != quest.StartDate) await _jira.AddChangeAsync(quest.Id, userId, "updated", "startdate", quest.StartDate?.ToString("yyyy-MM-dd"), start?.ToString("yyyy-MM-dd"), ct);
+                    quest.StartDate = start;
                     break;
                 }
                 case "labels":

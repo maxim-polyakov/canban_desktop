@@ -91,7 +91,7 @@ public class IssueLayoutService
     /// <summary>Built-in fields that screens and field configurations can arrange; custom fields are "cf:{id}".</summary>
     public static readonly string[] SystemFields =
     {
-        "summary", "description", "assignee", "priority", "duedate", "labels", "components", "fixversions", "storypoints", "originalestimate", "sprint",
+        "summary", "description", "assignee", "priority", "duedate", "startdate", "labels", "components", "fixversions", "storypoints", "originalestimate", "sprint",
     };
     private const int MaxObjectsPerKind = 200;
     private const int MaxTabs = 20;

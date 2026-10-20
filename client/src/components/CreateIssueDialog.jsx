@@ -14,7 +14,7 @@ const ISSUE_TYPES = [2, 1, 3, 0];
 const PRIORITIES = [4, 3, 2, 1, 0];
 const BACKLOG_KIND = 0;
 const ARCHIVE_KIND = 5;
-const EMPTY_SYSTEM = { dueDate: '', labels: '', storyPoints: '', estimateHours: '', componentId: '', releaseId: '' };
+const EMPTY_SYSTEM = { dueDate: '', startDate: '', labels: '', storyPoints: '', estimateHours: '', componentId: '', releaseId: '' };
 
 export function pickCreateColumn(columns = []) {
   const usable = columns.filter((c) => c.kind !== ARCHIVE_KIND).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -85,6 +85,7 @@ export default function CreateIssueDialog({ open, onClose, boards, defaultBoardI
   const systemMissing = (requires('description') && !description.trim())
     || (requires('assignee') && !assignToMe)
     || (requires('duedate') && !system.dueDate)
+    || (requires('startdate') && !system.startDate)
     || (requires('labels') && !system.labels.trim())
     || (requires('storypoints') && system.storyPoints === '')
     || (requires('originalestimate') && system.estimateHours === '')
@@ -126,6 +127,7 @@ export default function CreateIssueDialog({ open, onClose, boards, defaultBoardI
         assigneeIds: assignToMe && user?.id && shows('assignee') ? [user.id] : [],
         notificationRecipientIds: user?.id ? [user.id] : [],
         ...(shows('duedate') && system.dueDate ? { dueDate: `${system.dueDate}T00:00:00Z` } : {}),
+        ...(shows('startdate') && system.startDate ? { startDate: `${system.startDate}T00:00:00Z` } : {}),
         ...(shows('labels') && system.labels.trim() ? { labels: system.labels.trim() } : {}),
         ...(shows('storypoints') && system.storyPoints !== '' ? { storyPoints: Number(system.storyPoints) } : {}),
         ...(shows('originalestimate') && Number.isFinite(hours) ? { originalEstimateMinutes: Math.round(hours * 60) } : {}),
@@ -205,6 +207,13 @@ export default function CreateIssueDialog({ open, onClose, boards, defaultBoardI
               <span>{t('Срок')}<Required when={requires('duedate')} /></span>
               <input type="date" aria-label={t('Срок')} value={system.dueDate} onChange={(e) => setSys({ dueDate: e.target.value })} />
               {hint('duedate')}
+            </label>
+          )}
+          {shows('startdate') && (
+            <label className="app-field">
+              <span>{t('Дата начала')}<Required when={requires('startdate')} /></span>
+              <input type="date" aria-label={t('Дата начала')} value={system.startDate} onChange={(e) => setSys({ startDate: e.target.value })} />
+              {hint('startdate')}
             </label>
           )}
           {shows('labels') && (

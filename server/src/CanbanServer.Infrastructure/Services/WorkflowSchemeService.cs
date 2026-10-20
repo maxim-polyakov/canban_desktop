@@ -418,6 +418,7 @@ public class WorkflowSchemeService
                 "description" => !string.IsNullOrWhiteSpace(quest.Description) || !string.IsNullOrWhiteSpace(quest.DescriptionDocumentJson),
                 "assignee" => quest.AssigneeId.HasValue || quest.Assignees.Count > 0,
                 "duedate" => quest.DueDate.HasValue,
+                "startdate" => quest.StartDate.HasValue,
                 "labels" => !string.IsNullOrWhiteSpace(quest.Labels),
                 "components" => !string.IsNullOrWhiteSpace(quest.Component) || await _db.QuestComponents.AnyAsync(c => c.QuestId == quest.Id, ct),
                 "fixversions" => !string.IsNullOrWhiteSpace(quest.FixVersion) || await _db.QuestReleases.AnyAsync(r => r.QuestId == quest.Id, ct),

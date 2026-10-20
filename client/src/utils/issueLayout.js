@@ -5,6 +5,7 @@ export const SYSTEM_FIELDS = [
   ['assignee', 'Исполнитель'],
   ['priority', 'Приоритет'],
   ['duedate', 'Срок'],
+  ['startdate', 'Дата начала'],
   ['labels', 'Метки'],
   ['components', 'Компоненты'],
   ['fixversions', 'Исправить в версиях'],

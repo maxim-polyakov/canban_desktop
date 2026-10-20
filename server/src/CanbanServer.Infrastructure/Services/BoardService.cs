@@ -189,7 +189,8 @@ public class BoardService : IBoardService
         q.QuestComponents.Select(x => x.ComponentId).ToList(),
         q.QuestReleases.Select(x => x.ReleaseId).ToList(),
         q.IssueTypeId,
-        IssueFieldService.ReadValues(q.CustomFieldsJson));
+        IssueFieldService.ReadValues(q.CustomFieldsJson),
+        q.StartDate);
 
     private static string NormalizeKey(string? key)
     {

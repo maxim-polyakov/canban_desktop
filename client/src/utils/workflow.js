@@ -11,7 +11,7 @@ export const STATUS_KINDS = [
 ];
 
 /** Fields a transition screen can change; other screen fields are shown on the issue only. */
-export const TRANSITION_SCREEN_FIELDS = ['summary', 'description', 'assignee', 'priority', 'duedate', 'labels', 'storypoints', 'originalestimate'];
+export const TRANSITION_SCREEN_FIELDS = ['summary', 'description', 'assignee', 'priority', 'duedate', 'startdate', 'labels', 'storypoints', 'originalestimate'];
 
 /** The space's workflow for an issue, or null when the space keeps its own transitions. */
 export function issueWorkflow(workflow, issue) {

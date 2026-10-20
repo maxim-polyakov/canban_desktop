@@ -102,6 +102,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [priority, setPriority] = useState(2);
   const [labels, setLabels] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [startDate, setStartDate] = useState('');
   const [sprintId, setSprintId] = useState('');
   const [component, setComponent] = useState('');
   const [fixVersion, setFixVersion] = useState('');
@@ -171,6 +172,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     setPriority(q?.priority ?? 2);
     setLabels(q?.labels ?? '');
     setDueDate(q?.dueDate ? String(q.dueDate).slice(0, 10) : '');
+    setStartDate(q?.startDate ? String(q.startDate).slice(0, 10) : '');
     setSprintId(q?.sprintId ?? '');
     setComponent(q?.componentId ?? q?.component ?? '');
     setFixVersion(q?.fixVersionId ?? q?.fixVersion ?? '');
@@ -257,7 +259,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const save = async (patch = {}) => {
     if (!questId || !quest) return;
     const s = {
-      title, description, xpReward, assigneeIds, issueType, issueTypeId, priority, labels, sprintId, dueDate,
+      title, description, xpReward, assigneeIds, issueType, issueTypeId, priority, labels, sprintId, dueDate, startDate,
       component, fixVersion, storyPoints, originalEstimate, remainingEstimate, ...patch,
     };
     if (!String(s.title).trim()) { setTitle(quest.title ?? ''); return; }
@@ -278,7 +280,10 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
         labels: s.labels.trim(),
         sprintId: s.sprintId || null,
         sprintIdSet: true,
-        dueDate: s.dueDate ? new Date(s.dueDate).toISOString() : null,
+        dueDate: s.dueDate ? `${s.dueDate}T00:00:00Z` : null,
+        dueDateSet: true,
+        startDate: s.startDate ? `${s.startDate}T00:00:00Z` : null,
+        startDateSet: true,
         originalEstimateMinutes: s.originalEstimate === '' ? null : Number(s.originalEstimate),
         remainingEstimateMinutes: s.remainingEstimate === '' ? null : Number(s.remainingEstimate),
         componentId: s.component || null,
@@ -968,6 +973,11 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                   {shown('duedate') && (
                     <Row label={t('Срок исполнения')}>
                       <input type="date" className="iv-input" value={dueDate} aria-label={t('Срок исполнения')} onChange={(e) => { setDueDate(e.target.value); save({ dueDate: e.target.value }); }} />
+                    </Row>
+                  )}
+                  {shown('startdate') && (
+                    <Row label={t('Дата начала')}>
+                      <input type="date" className="iv-input" value={startDate} aria-label={t('Дата начала')} onChange={(e) => { setStartDate(e.target.value); save({ startDate: e.target.value }); }} />
                     </Row>
                   )}
                   {shown('labels') && (

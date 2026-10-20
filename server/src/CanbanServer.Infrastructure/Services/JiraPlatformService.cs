@@ -149,6 +149,7 @@ public sealed class JiraPlatformService : IJiraPlatformService
                     {
                         "description" => !string.IsNullOrWhiteSpace(quest.Description) || !string.IsNullOrWhiteSpace(quest.DescriptionDocumentJson),
                         "duedate" => quest.DueDate.HasValue,
+                        "startdate" => quest.StartDate.HasValue,
                         "storypoints" => quest.StoryPoints.HasValue,
                         "remainingestimate" => quest.RemainingEstimateMinutes.HasValue,
                         "fixversion" => !string.IsNullOrWhiteSpace(quest.FixVersion),
@@ -556,6 +557,7 @@ public sealed class JiraPlatformService : IJiraPlatformService
             AssigneeId = source.AssigneeId,
             Order = source.Order + 1,
             DueDate = source.DueDate,
+            StartDate = source.StartDate,
             CreatedAt = DateTime.UtcNow,
             Category = source.Category,
             XpReward = source.XpReward,

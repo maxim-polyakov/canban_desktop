@@ -17,6 +17,7 @@ const ROLES = [
 const SYSTEM_FIELDS = [
   { value: 'description', label: 'Описание' },
   { value: 'duedate', label: 'Срок' },
+  { value: 'startdate', label: 'Дата начала' },
   { value: 'storypoints', label: 'Story Points' },
   { value: 'remainingestimate', label: 'Оставшееся время' },
   { value: 'fixversion', label: 'Версия исправления' },

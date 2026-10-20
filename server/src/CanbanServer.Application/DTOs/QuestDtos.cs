@@ -44,7 +44,8 @@ public record QuestDto(
     List<Guid>? ComponentIds = null,
     List<Guid>? ReleaseIds = null,
     Guid? IssueTypeId = null,
-    Dictionary<string, JsonElement>? CustomFields = null
+    Dictionary<string, JsonElement>? CustomFields = null,
+    DateTime? StartDate = null
 );
 
 public record CreateQuestRequest(
@@ -74,7 +75,8 @@ public record CreateQuestRequest(
     List<Guid>? ComponentIds = null,
     List<Guid>? ReleaseIds = null,
     Guid? IssueTypeId = null,
-    Dictionary<string, JsonElement>? CustomFields = null
+    Dictionary<string, JsonElement>? CustomFields = null,
+    DateTime? StartDate = null
 );
 
 /// <summary>AssigneeIds имеет приоритет над legacy AssigneeId. Set-флаги позволяют явно очистить список.</summary>
@@ -114,7 +116,10 @@ public record UpdateQuestRequest(
     List<Guid>? ReleaseIds = null,
     bool ReleaseIdsSet = false,
     Guid? IssueTypeId = null,
-    bool IssueTypeIdSet = false
+    bool IssueTypeIdSet = false,
+    DateTime? StartDate = null,
+    bool StartDateSet = false,
+    bool DueDateSet = false
 );
 
 /// <summary>Запрос на перемещение квеста (drag-n-drop): новая колонка и порядок.</summary>

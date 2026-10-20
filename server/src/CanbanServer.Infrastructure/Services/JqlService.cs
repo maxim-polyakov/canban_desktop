@@ -179,6 +179,7 @@ public sealed class JqlService : IJqlQueryService
         "created" => q.CreatedAt,
         "updated" => context.UpdatedAt(q),
         "duedate" => q.DueDate,
+        "startdate" => q.StartDate,
         "resolution" or "resolved" or "resolutiondate" => q.CompletedAt,
         "board" or "boardid" => q.BoardId,
         // Key prefixes aren't unique across spaces, so the id is matched too.

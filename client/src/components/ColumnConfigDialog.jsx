@@ -3,8 +3,9 @@ import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import NavIcon from './NavIcons.jsx';
 import { boards } from '../api.js';
 import {
-  STATUS_CATEGORIES, draftFromLayout, draftProblem, draftToRequest, moveStatus, shiftStatus, statusTone,
+  STATUS_CATEGORIES, draftFromLayout, draftProblem, draftToRequest, moveStatus, shiftStatus, statusIssueTypes, statusTone,
 } from '../utils/boardColumnLayout.js';
+import { IssueTypeIcon } from './IssueIcons.jsx';
 import './ColumnConfigDialog.css';
 
 let seq = 0;
@@ -64,7 +65,7 @@ function AddStatusForm({ statuses, onCancel, onAdd }) {
   );
 }
 
-export default function ColumnConfigDialog({ boardId, layout, onClose, onPublished }) {
+export default function ColumnConfigDialog({ boardId, layout, issueConfig, onClose, onPublished }) {
   const { t } = useLocalization();
   const [draft, setDraft] = useState(() => draftFromLayout(layout));
   const [dirty, setDirty] = useState(false);
@@ -172,6 +173,11 @@ export default function ColumnConfigDialog({ boardId, layout, onClose, onPublish
             status.isNew && { label: t('Удалить статус'), danger: true, run: () => removeNewStatus(id) },
           ]}
         />
+        <div className="ccd-status-types">
+          {statusIssueTypes(id, issueConfig).map((type) => (
+            <IssueTypeIcon key={type.token} issueType={type.issueType} typeId={type.typeId} size={14} title={t(type.name)} />
+          ))}
+        </div>
       </div>
     );
   };

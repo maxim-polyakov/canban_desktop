@@ -1,4 +1,19 @@
 import { spaceFeatures } from './spaceFeatures.js';
+import { BASE_TYPES } from './issueConfig.js';
+
+/** Issue types whose workflow uses the status; without shared workflows every type uses every status. */
+export function statusIssueTypes(statusId, config) {
+  const all = [
+    ...BASE_TYPES.map((type) => ({ token: String(type.value), issueType: type.value, typeId: null, name: type.label })),
+    ...(config?.types || []).map((type) => ({ token: type.id, issueType: type.baseType, typeId: type.id, name: type.name })),
+  ];
+  const workflows = config?.workflow?.types;
+  if (!workflows) return all;
+  return all.filter(({ token }) => {
+    const workflow = workflows[token] ?? workflows.default;
+    return !workflow || (workflow.statuses || []).includes(statusId);
+  });
+}
 
 export const STATUS_CATEGORIES = [
   { kind: 0, label: 'К выполнению', tone: 'todo' },

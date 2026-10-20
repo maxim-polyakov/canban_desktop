@@ -1,6 +1,14 @@
 import {
-  buildBoardColumns, draftFromLayout, draftProblem, draftToRequest, isScrumBoard, moveStatus, resolveLayoutDrop, shiftStatus,
+  buildBoardColumns, draftFromLayout, draftProblem, draftToRequest, isScrumBoard, moveStatus, resolveLayoutDrop, shiftStatus, statusIssueTypes,
 } from './boardColumnLayout.js';
+
+test('status shows the issue types whose workflow uses it', () => {
+  const custom = { id: 't9', name: 'Инцидент', baseType: 3 };
+  expect(statusIssueTypes('s1', { types: [custom], workflow: null }).map((x) => x.token)).toEqual(['0', '1', '2', '3', '4', 't9']);
+  const workflow = { types: { 2: { statuses: ['s1', 's2'] }, t9: { statuses: ['s2'] }, default: { statuses: ['s1'] } } };
+  expect(statusIssueTypes('s2', { types: [custom], workflow }).map((x) => x.token)).toEqual(['2', 't9']);
+  expect(statusIssueTypes('s1', { types: [custom], workflow }).map((x) => x.token)).toEqual(['0', '1', '2', '3', '4']);
+});
 
 const statuses = [
   { id: 's1', title: 'To Do', kind: 0, quests: [{ id: 'q1', columnId: 's1' }] },

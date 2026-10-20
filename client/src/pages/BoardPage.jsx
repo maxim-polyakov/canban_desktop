@@ -527,6 +527,7 @@ export default function BoardPage() {
         <ColumnConfigDialog
           boardId={boardId}
           layout={columnLayout}
+          issueConfig={issueConfig}
           onClose={() => setColumnConfigOpen(false)}
           onPublished={(saved) => { setColumnLayout(saved); setColumnConfigOpen(false); loadBoard(); }}
         />

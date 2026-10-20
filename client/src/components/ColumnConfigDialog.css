@@ -97,6 +97,7 @@
 
 .ccd-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
   padding: 0.45rem 0.5rem;
@@ -104,6 +105,17 @@
   background: var(--surface-overlay, #fff);
   box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
   cursor: grab;
+}
+
+.ccd-status-types {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.ccd-status-types:empty {
+  display: none;
 }
 
 .ccd-status.is-dragging {

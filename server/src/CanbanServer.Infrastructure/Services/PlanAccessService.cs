@@ -11,7 +11,7 @@ public sealed class PlanRequiredException : Exception
     public string RequiredPlan { get; }
 }
 
-/// <summary>Effective plans: a team gets the plan of its owner; a person gets the best plan among their teams.</summary>
+    /// <summary>Effective plans: a team gets the plan of its owner; personal feature access uses the user's own subscription.</summary>
 public class PlanAccessService
 {
     /// <summary>Paid features stay on for a few days after the period ends while the renewal is retried.</summary>
@@ -50,20 +50,7 @@ public class PlanAccessService
     }
 
     public async Task<string> PlanForUserAsync(Guid userId, CancellationToken ct)
-    {
-        var owners = await _db.Teams.AsNoTracking()
-            .Where(t => t.OwnerId != null && (t.OwnerId == userId || t.Members.Any(m => m.UserId == userId)))
-            .Select(t => t.OwnerId!.Value).Distinct().ToListAsync(ct);
-        if (!owners.Contains(userId)) owners.Add(userId);
-        var best = BillingPlans.Free;
-        foreach (var owner in owners)
-        {
-            var plan = await PlanOfOwnerAsync(owner, ct);
-            if (BillingPlans.Rank(plan) > BillingPlans.Rank(best)) best = plan;
-            if (best == BillingPlans.Enterprise) break;
-        }
-        return best;
-    }
+        => await PlanOfOwnerAsync(userId, ct);
 
     public async Task EnsureUserAsync(Guid userId, string minPlan, CancellationToken ct)
     {

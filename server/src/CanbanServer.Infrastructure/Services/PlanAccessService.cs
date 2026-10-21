@@ -11,7 +11,7 @@ public sealed class PlanRequiredException : Exception
     public string RequiredPlan { get; }
 }
 
-    /// <summary>Effective plans: a team gets the plan of its owner; personal feature access uses the user's own subscription.</summary>
+/// <summary>Effective plans: a team gets the plan of its owner; personal feature access uses the user's own subscription.</summary>
 public class PlanAccessService
 {
     /// <summary>Paid features stay on for a few days after the period ends while the renewal is retried.</summary>

@@ -6,6 +6,8 @@ jest.mock('../../i18n/LocalizationContext.jsx', () => ({
   useLocalization: () => ({ t: (value) => value }),
 }));
 
+beforeAll(() => { global.IS_REACT_ACT_ENVIRONMENT = true; });
+
 test('SLA badge marks breached and warning clocks', () => {
   const container = document.createElement('div');
   const root = createRoot(container);

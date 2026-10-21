@@ -10,7 +10,9 @@ import StartSprintDialog from '../components/StartSprintDialog.jsx';
 import IssueActionsMenu from '../components/IssueActionsMenu.jsx';
 import BoardToolbar from '../components/BoardToolbar.jsx';
 import SplitIssueDialog from '../components/SplitIssueDialog.jsx';
+import QuickCreateIssue from '../components/QuickCreateIssue.jsx';
 import { matchesBoardFilters } from '../utils/boardLanes.js';
+import { useBoardIssueConfig } from '../utils/issueConfig.js';
 import './BacklogPage.css';
 
 const BACKLOG_COLUMN_KIND = 0;
@@ -249,27 +251,13 @@ function SprintMenu({ sprint, onEdit, onDelete, t }) {
   );
 }
 
-function InlineCreate({ onCreate, t }) {
+function InlineCreate({ members, issueTypes, onCreate, t }) {
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [busy, setBusy] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setBusy(true);
-    try {
-      await onCreate(title.trim());
-      setTitle('');
-    } finally { setBusy(false); }
-  };
   if (!open) return <button type="button" className="bl-create" onClick={() => setOpen(true)}>+ {t('Создать')}</button>;
   return (
-    <form className="bl-create-form" onSubmit={submit}>
-      <IssueTypeIcon issueType={2} size={16} />
-      <input autoFocus value={title} disabled={busy} placeholder={t('Что нужно сделать?')} aria-label={t('Что нужно сделать?')}
-        onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { setOpen(false); setTitle(''); } }}
-        onBlur={() => { if (!title.trim()) setOpen(false); }} />
-    </form>
+    <div className="bl-create-form">
+      <QuickCreateIssue members={members} issueTypes={issueTypes} onCreate={onCreate} onCancel={() => setOpen(false)} />
+    </div>
   );
 }
 
@@ -294,6 +282,7 @@ export default function BacklogPage() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [toast, setToast] = useState('');
+  const issueTypes = useBoardIssueConfig(boardId).types;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -410,13 +399,11 @@ export default function BacklogPage() {
     await refresh();
   };
 
-  const createQuest = async (title, sprintId = null) => {
+  const createQuest = async (data, sprintId = null) => {
     const column = columns.find((c) => c.kind === BACKLOG_COLUMN_KIND) ?? columns[0];
-    if (!column) return;
-    try {
-      await quests.create({ title, columnId: column.id, category: 0, xpReward: 10, isEpic: false, issueType: 2, priority: 2, sprintId });
-      await refresh();
-    } catch (e) { report(e, 'Не удалось создать задачу.'); }
+    if (!column) throw new Error('В пространстве нет колонок.');
+    await quests.create({ ...data, columnId: column.id, category: 0, xpReward: 10, isEpic: data.issueType === 0, priority: 2, sprintId });
+    await refresh();
   };
 
   const handleSplit = async ({ update, creates }) => {
@@ -522,6 +509,7 @@ export default function BacklogPage() {
         filters={filters}
         onFiltersChange={setFilters}
         labels={labels}
+        issueTypes={issueTypes}
         searchPlaceholder="Поиск по бэклогу"
       />
 
@@ -568,7 +556,7 @@ export default function BacklogPage() {
                     )}
                     {all.length > 0 && shown.length === 0 && <li className="bl-empty">{t('Нет задач, соответствующих фильтрам.')}</li>}
                   </DropList>
-                  <InlineCreate onCreate={(title) => createQuest(title, sprint.id)} t={t} />
+                  <InlineCreate members={members} issueTypes={issueTypes} onCreate={(data) => createQuest(data, sprint.id)} t={t} />
                 </>
               )}
             </section>
@@ -599,7 +587,7 @@ export default function BacklogPage() {
                 {backlogQuests.length === 0 && <li className="bl-empty">{t('Бэклог пуст.')}</li>}
                 {backlogQuests.length > 0 && shownBacklog.length === 0 && <li className="bl-empty">{t('Нет задач, соответствующих фильтрам.')}</li>}
               </DropList>
-              <InlineCreate onCreate={(title) => createQuest(title)} t={t} />
+              <InlineCreate members={members} issueTypes={issueTypes} onCreate={(data) => createQuest(data)} t={t} />
             </>
           )}
         </section>

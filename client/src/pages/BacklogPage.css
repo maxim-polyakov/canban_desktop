@@ -422,25 +422,12 @@
 .bl-create:hover { background: var(--nav-hover, rgba(9, 30, 66, 0.06)); color: var(--text); }
 
 .bl-create-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin-top: 2px;
-  padding: 0 8px;
-  border: 2px solid var(--accent, #0c66e4);
-  border-radius: 3px;
-  background: var(--surface);
 }
 
-.bl-create-form input {
-  flex: 1;
-  min-width: 0;
-  height: 36px;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
+@media (hover: none) {
+  .bl-add-epic,
+  .bl-rename { visibility: visible; }
 }
 
 .bl-summary {
@@ -476,10 +463,10 @@
   .bl-section-header { flex-wrap: wrap; }
   .bl-sprint-goal,
   .bl-points,
-  .bl-add-epic,
-  .bl-epic-lozenge,
   .bl-rename { display: none; }
-  .bl-row { gap: 6px; min-height: 44px; }
-  .bl-status { max-width: 96px; }
-  .bl-create-form input { font-size: 16px; }
+  .bl-row { flex-wrap: wrap; gap: 6px; min-height: 44px; padding: 6px 8px; }
+  .bl-title-wrap { flex: 1 1 calc(100% - 120px); }
+  .bl-row > .bl-spacer { display: none; }
+  .bl-epic-lozenge { max-width: 120px; }
+  .bl-status { max-width: 110px; }
 }

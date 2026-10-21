@@ -30,7 +30,20 @@ public class BillingTests
         var free = BillingPlans.Find(BillingPlans.Free);
         Assert.Empty(BillingPlans.Violations(free, 10, 0, 10));
         Assert.Equal(2, BillingPlans.Violations(free, 11, 3L * 1024 * 1024 * 1024, 0).Count);
-        Assert.Empty(BillingPlans.Violations(BillingPlans.Find(BillingPlans.Premium), 500, long.MaxValue / 2, 10_000));
+        Assert.Empty(BillingPlans.Violations(BillingPlans.Find(BillingPlans.Premium), 500, 500L * 1024 * 1024 * 1024, 10_000));
+        Assert.Single(BillingPlans.Violations(BillingPlans.Find(BillingPlans.Premium), 500, 501L * 1024 * 1024 * 1024, 10_000));
+    }
+
+    [Fact]
+    public void StorageLimitsAndWarningsMatchPublishedPlans()
+    {
+        var premium = BillingPlans.Find(BillingPlans.Premium);
+        Assert.Equal(500L * 1024 * 1024 * 1024, BillingPlans.StorageLimitBytes(premium));
+        Assert.Equal(BillingPlans.Enterprise, BillingPlans.NextWithMoreStorage(premium)?.Id);
+        Assert.Equal(0, StorageQuotaMonitorService.AlertLevel(699, 1000));
+        Assert.Equal(70, StorageQuotaMonitorService.AlertLevel(700, 1000));
+        Assert.Equal(85, StorageQuotaMonitorService.AlertLevel(850, 1000));
+        Assert.Equal(95, StorageQuotaMonitorService.AlertLevel(950, 1000));
     }
 
     [Fact]

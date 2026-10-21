@@ -135,22 +135,7 @@ export const quests = {
   uploadAttachment: async (questId, file) => {
     const formData = new FormData();
     formData.append('file', file);
-    const token = getToken();
-    const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(`${API_BASE}/api/quests/${questId}/attachments`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-    if (res.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.dispatchEvent(new Event('auth-logout'));
-    }
-    const text = await res.text();
-    if (!res.ok) throw new Error(text || res.statusText);
-    return text ? JSON.parse(text) : null;
+    return apiForm(`/api/quests/${questId}/attachments`, formData);
   },
   getAttachmentDownload: (questId, attachmentId) =>
     apiJson(`/api/quests/${questId}/attachments/${attachmentId}/download-url`),

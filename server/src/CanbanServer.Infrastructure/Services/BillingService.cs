@@ -23,7 +23,7 @@ public static class BillingPlans
     {
         new BillingPlan(Free, "Free", "Для небольших команд, которые только начинают", 0, 10, 2, 10, true),
         new BillingPlan(Standard, "Standard", "Для растущих команд, которым нужны роли и больше места", 690, 50000, 250, 100, true),
-        new BillingPlan(Premium, "Premium", "Для планирования между командами и масштабирования", 1290, 50000, null, null, true),
+        new BillingPlan(Premium, "Premium", "Для планирования между командами и масштабирования", 1290, 50000, 500, null, true),
         new BillingPlan(Enterprise, "Enterprise", "Для организаций с повышенными требованиями к безопасности и поддержке", null, null, null, null, false),
     };
 
@@ -50,6 +50,13 @@ public static class BillingPlans
 
     public static int Rank(string plan) => All.ToList().FindIndex(p => p.Id == plan);
 
+    public static long? StorageLimitBytes(BillingPlan plan) =>
+        plan.StorageGb is int gb ? gb * 1024L * 1024 * 1024 : null;
+
+    public static BillingPlan? NextWithMoreStorage(BillingPlan plan) =>
+        All.Skip(Rank(plan.Id) + 1)
+            .FirstOrDefault(candidate => candidate.StorageGb == null || candidate.StorageGb > plan.StorageGb);
+
     public static decimal MonthlyAmount(BillingPlan plan, int users) => (plan.PricePerUser ?? 0) * Math.Max(users, 1);
 
     public static decimal InvoiceAmount(BillingPlan plan, string cycle, int users) =>
@@ -70,7 +77,7 @@ public static class BillingPlans
     {
         var result = new List<string>();
         if (plan.MaxUsers is int maxUsers && users > maxUsers) result.Add($"В плане {plan.Name} до {maxUsers} пользователей, у вас {users}");
-        if (plan.StorageGb is int gb && storageBytes > gb * 1024L * 1024 * 1024) result.Add($"В плане {plan.Name} до {gb} ГБ хранилища");
+        if (plan.StorageGb is int gb && storageBytes > StorageLimitBytes(plan)) result.Add($"В плане {plan.Name} до {gb} ГБ хранилища");
         if (plan.AutomationRules is int rules && automationRules > rules) result.Add($"В плане {plan.Name} до {rules} правил автоматизации, у вас {automationRules}");
         return result;
     }

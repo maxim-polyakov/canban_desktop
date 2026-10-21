@@ -84,4 +84,29 @@ public class PlanAccessService
         var next = BillingPlans.All.First(p => p.MaxUsers == null || p.MaxUsers > max);
         throw new PlanRequiredException(next.Id, $"В плане {plan.Name} до {max} пользователей. Чтобы добавить больше, перейдите на {next.Name}.");
     }
+
+    /// <summary>Checks the attachment allowance shared by all teams owned by the same account.</summary>
+    public async Task EnsureStorageAsync(Guid teamId, Guid actorId, long incomingBytes, CancellationToken ct)
+    {
+        if (incomingBytes <= 0) return;
+        var ownerId = await _db.Teams.AsNoTracking().Where(t => t.Id == teamId).Select(t => t.OwnerId).FirstOrDefaultAsync(ct);
+        if (ownerId == null) throw new KeyNotFoundException("Team not found");
+        var plan = BillingPlans.Find(await PlanOfOwnerAsync(ownerId, ct));
+        var limit = BillingPlans.StorageLimitBytes(plan);
+        if (limit == null) return;
+
+        var teamIds = _db.Teams.Where(t => t.OwnerId == ownerId).Select(t => t.Id);
+        var used = await _db.QuestAttachments.AsNoTracking()
+            .Where(a => teamIds.Contains(a.Quest.Board.TeamId))
+            .SumAsync(a => (long?)a.SizeBytes, ct) ?? 0;
+        if (used <= limit.Value - incomingBytes) return;
+
+        var next = BillingPlans.NextWithMoreStorage(plan);
+        var message = $"В плане {plan.Name} доступно до {plan.StorageGb} ГБ вложений. Удалите ненужные файлы"
+            + (next == null ? "." : $" или перейдите на {next.Name}.");
+        if (actorId == ownerId && next != null) throw new PlanRequiredException(next.Id, message);
+        throw new InvalidOperationException(actorId == ownerId
+            ? message
+            : $"Хранилище команды заполнено. Попросите владельца удалить ненужные файлы{(next == null ? "." : $" или перейти на {next.Name}.")}");
+    }
 }

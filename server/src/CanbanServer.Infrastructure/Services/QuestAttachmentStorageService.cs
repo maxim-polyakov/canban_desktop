@@ -113,6 +113,34 @@ public class QuestAttachmentStorageService : IQuestAttachmentStorageService
         }
     }
 
+    public async Task<long?> GetTotalStoredBytesAsync(CancellationToken ct = default)
+    {
+        if (_s3Client == null || string.IsNullOrEmpty(_bucket))
+            return null;
+
+        try
+        {
+            long total = 0;
+            string? continuationToken = null;
+            do
+            {
+                var response = await _s3Client.ListObjectsV2Async(new ListObjectsV2Request
+                {
+                    BucketName = _bucket,
+                    ContinuationToken = continuationToken,
+                }, ct);
+                total += response.S3Objects.Sum(item => item.Size);
+                continuationToken = response.IsTruncated ? response.NextContinuationToken : null;
+            } while (continuationToken != null);
+            return total;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Не удалось получить объём занятого места в S3");
+            return null;
+        }
+    }
+
     public string? CreateDownloadUrl(string storageKey, string fileName, TimeSpan validFor)
     {
         if (!IsAllowedKey(storageKey) || _s3Client == null || string.IsNullOrEmpty(_bucket))

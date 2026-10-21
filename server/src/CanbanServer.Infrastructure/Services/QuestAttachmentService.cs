@@ -16,16 +16,19 @@ public class QuestAttachmentService : IQuestAttachmentService
     private readonly IQuestNotificationService _notifications;
     private readonly ILogger<QuestAttachmentService> _logger;
     private readonly PermissionSchemeService _permissions;
+    private readonly PlanAccessService _plans;
 
     public QuestAttachmentService(
         CanbanDbContext db,
         IQuestAttachmentStorageService storage,
         IQuestNotificationService notifications,
         ILogger<QuestAttachmentService> logger,
-        PermissionSchemeService permissions)
+        PermissionSchemeService permissions,
+        PlanAccessService plans)
     {
         _db = db;
         _permissions = permissions;
+        _plans = plans;
         _storage = storage;
         _notifications = notifications;
         _logger = logger;
@@ -85,6 +88,7 @@ public class QuestAttachmentService : IQuestAttachmentService
         if (access.Status != QuestAttachmentOperationStatus.Success)
             return (access.Status, null);
 
+        await _plans.EnsureStorageAsync(access.TeamId!.Value, userId, sizeBytes, ct);
         var safeFileName = NormalizeFileName(fileName);
         var safeContentType = NormalizeContentType(contentType);
         var storageKey = await _storage.UploadAsync(

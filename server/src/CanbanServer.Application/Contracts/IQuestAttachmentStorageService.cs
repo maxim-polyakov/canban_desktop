@@ -12,6 +12,9 @@ public interface IQuestAttachmentStorageService
 
     Task<bool> DeleteAsync(string storageKey, CancellationToken ct = default);
 
+    /// <summary>Total bytes currently stored in the configured bucket, or null when storage is unavailable.</summary>
+    Task<long?> GetTotalStoredBytesAsync(CancellationToken ct = default);
+
     string? CreateDownloadUrl(
         string storageKey,
         string fileName,

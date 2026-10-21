@@ -195,6 +195,7 @@ builder.Services.AddScoped<PlanAccessService>();
 builder.Services.AddSingleton<YooKassaClient>();
 builder.Services.AddHttpClient(YooKassaClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddHostedService<BillingRenewalService>();
+builder.Services.AddHostedService<StorageQuotaMonitorService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHttpClient("outbox");
 builder.Services.AddHttpClient(GitHubAppClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(20));

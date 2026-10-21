@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Link } from '../i18n/navigation.jsx';
 import {
   clone as cloneApi, components as componentsApi, history as historyApi,
   integrations, questHierarchy, questLinks, quests, releases as releasesApi,
@@ -23,6 +24,7 @@ import { AiDescriptionAssist, AiSummary } from './AiAssist.jsx';
 import MentionTextarea, { MentionText } from './MentionTextarea.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
+import { planIncludes, useBilling } from '../utils/billing.js';
 import './IssueDetailDrawer.css';
 import './IssueView.css';
 
@@ -84,6 +86,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const panel = variant === 'panel';
   const { user } = useAuth();
   const { locale, t } = useLocalization();
+  const billing = useBilling();
+  const assetsAvailable = planIncludes(billing?.plan || 'free', 'premium');
   const [quest, setQuest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [boardSprints, setBoardSprints] = useState([]);
@@ -1061,7 +1065,11 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
 
               <details className="iv-panel">
                 <summary>{t('Ресурсы')}</summary>
-                <div className="iv-panel-body"><IssueAssetsField questId={questId} /></div>
+                <div className="iv-panel-body">
+                  {assetsAvailable
+                    ? <IssueAssetsField questId={questId} />
+                    : <p className="issue-drawer-empty">{t('Активы доступны в Premium.')} <Link to="/admin/billing/plans?required=premium">{t('Посмотреть планы')}</Link></p>}
+                </div>
               </details>
 
               <details className="iv-panel">

@@ -5,6 +5,9 @@ import IssueDetailDrawer from './IssueDetailDrawer.jsx';
 jest.mock('../i18n/LocalizationContext.jsx', () => ({
   useLocalization: () => ({ t: (s) => s, locale: 'ru', language: 'ru' }),
 }));
+jest.mock('../i18n/navigation.jsx', () => ({
+  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
+}));
 jest.mock('../context/AuthContext.jsx', () => ({ useAuth: () => ({ user: { id: 'u1', displayName: 'Max' } }) }));
 jest.mock('./IssueIcons.jsx', () => ({ IssueTypeIcon: () => <i />, PriorityIcon: () => <i /> }));
 jest.mock('./AssigneeAvatar.jsx', () => () => <i />);
@@ -17,6 +20,10 @@ jest.mock('./CustomFields.jsx', () => () => <div />);
 jest.mock('./TransitionScreenDialog.jsx', () => () => <div />);
 jest.mock('./AiAssist.jsx', () => ({ AiDescriptionAssist: () => null, AiSummary: () => null }));
 jest.mock('../utils/navHistory.js', () => ({ rememberIssue: () => {} }));
+jest.mock('../utils/billing.js', () => ({
+  useBilling: () => ({ plan: 'free' }),
+  planIncludes: (plan, required) => ['free', 'standard', 'premium', 'enterprise'].indexOf(plan) >= ['free', 'standard', 'premium', 'enterprise'].indexOf(required),
+}));
 jest.mock('../utils/issueConfig.js', () => ({
   BASE_TYPES: [{ value: 2, label: 'Задача' }, { value: 3, label: 'Ошибка' }],
   typeChoice: (issueType, issueTypeId) => issueTypeId || String(issueType ?? 2),
@@ -90,6 +97,7 @@ test('looks like the Jira issue view and saves fields as soon as they change', a
   expect(container.textContent).toContain('Добавить подзадачу');
   expect(container.textContent).toContain('Добавить связанную задачу');
   expect(container.textContent).toContain('Сведения');
+  expect(container.textContent).toContain('Активы доступны в Premium.');
   expect(container.querySelector('.iv-person').textContent).toContain('Max');
   expect(button('Сохранить')).toBeUndefined();
 

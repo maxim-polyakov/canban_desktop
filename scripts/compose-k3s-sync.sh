@@ -704,13 +704,22 @@ for row in "${sync_services[@]}"; do
   fi
 
   if ! image_id=$(docker image inspect "$source_image" --format '{{.Id}}' 2>/dev/null); then
-    if [[ "$skip_build" == true ]]; then
+    # A Compose build can replace/prune an external image tag while earlier
+    # services are being published. Re-pull explicit images at the point of
+    # rollout instead of failing after the application services have deployed.
+    if [[ "$explicit_image" == 1 ]]; then
+      log "explicit image disappeared before rollout; pulling $source_image again"
+      docker pull "$source_image" || die "docker pull failed for $source_image"
+      image_id=$(docker image inspect "$source_image" --format '{{.Id}}' 2>/dev/null) ||
+        die "Docker image not found after pull: $source_image"
+    elif [[ "$skip_build" == true ]]; then
       log "no local image $source_image; applying schema patches only"
       apply_schema_patches "$namespace" "$deployment" "$service" "$source_image"
       ((schema_patched += 1))
       continue
+    else
+      die "Docker image not found after build: $source_image"
     fi
-    die "Docker image not found after build: $source_image"
   fi
   short_id=${image_id#sha256:}
   short_id=${short_id:0:16}

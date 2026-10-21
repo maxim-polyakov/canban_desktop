@@ -60,6 +60,7 @@ export default function BoardPage() {
   const [columnLayout, setColumnLayout] = useState(null);
   const [columnConfigOpen, setColumnConfigOpen] = useState(false);
   const [sprintsLoaded, setSprintsLoaded] = useState(false);
+  const [sprintsLoadedFor, setSprintsLoadedFor] = useState(null);
 
   useEffect(() => {
     setGroupBy(localStorage.getItem(groupKey(boardId)) || 'none');
@@ -74,6 +75,7 @@ export default function BoardPage() {
   };
 
   const loadSeqRef = useRef(0);
+  const sprintLoadSeqRef = useRef(0);
   const loadSprintsRef = useRef(null);
   const pendingMovesRef = useRef(0);
 
@@ -148,24 +150,30 @@ export default function BoardPage() {
   }, [board?.teamId, loadMembers]);
 
   const loadSprints = useCallback(async () => {
+    const seq = ++sprintLoadSeqRef.current;
     if (!boardId) {
       setBoardSprints([]);
       setActiveSprintQuests([]);
+      setSprintsLoadedFor(null);
       return;
     }
     try {
       const result = await sprintsApi.getByBoard(boardId);
       const list = Array.isArray(result) ? result : [];
       const active = list.filter((sprint) => sprint.status === 1);
-      const issueLists = await Promise.all(active.map((sprint) =>
-        quests.filter(boardId, { sprintId: sprint.id }).catch(() => [])));
+      const activeIds = new Set(active.map((sprint) => String(sprint.id).toLowerCase()));
+      const allIssues = active.length ? await quests.filter(boardId) : [];
+      if (seq !== sprintLoadSeqRef.current) return;
       setBoardSprints(list);
-      setActiveSprintQuests(issueLists.flat().filter(Boolean));
+      setActiveSprintQuests((Array.isArray(allIssues) ? allIssues : [])
+        .filter((issue) => activeIds.has(String(issue.sprintId).toLowerCase())));
     } catch {
-      setBoardSprints([]);
-      setActiveSprintQuests([]);
+      if (seq !== sprintLoadSeqRef.current) return;
     } finally {
-      setSprintsLoaded(true);
+      if (seq === sprintLoadSeqRef.current) {
+        setSprintsLoaded(true);
+        setSprintsLoadedFor(boardId);
+      }
     }
   }, [boardId]);
   loadSprintsRef.current = loadSprints;
@@ -368,7 +376,7 @@ export default function BoardPage() {
     } catch (e) { window.alert(t(e.message || 'Не удалось выполнить массовое изменение.')); }
   };
 
-  if (loading) return <div className="page">Загрузка доски...</div>;
+  if (loading || !sprintsLoaded || sprintsLoadedFor !== boardId) return <div className="page">Загрузка доски...</div>;
   if (error) return <div className="page">Ошибка: {error}</div>;
   if (!board) return <div className="page">Доска не найдена.</div>;
 
@@ -378,7 +386,10 @@ export default function BoardPage() {
   const activeSprint = boardSprints.find((sprint) => sprint.status === 1);
   const noActiveSprint = scrum && sprintsLoaded && sprintIds.size === 0;
   const visibleStatuses = scrum
-    ? boardColumns.map((column) => ({ ...column, quests: activeSprintQuests.filter((quest) => quest.columnId === column.id) }))
+    ? boardColumns.map((column) => ({
+      ...column,
+      quests: activeSprintQuests.filter((quest) => String(quest.columnId).toLowerCase() === String(column.id).toLowerCase()),
+    }))
     : boardColumns;
   const layoutMode = !!columnLayout?.configured;
   const viewColumns = buildBoardColumns(visibleStatuses, columnLayout);

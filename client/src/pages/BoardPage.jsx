@@ -21,7 +21,6 @@ import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 const ARCHIVE_COLUMN_KIND = 5;
-const DONE_COLUMN_KIND = 3;
 
 const EMPTY_FILTERS = { assigneeIds: [], types: [], priorities: [], labels: [] };
 const groupKey = (boardId) => `board-group:${boardId}`;
@@ -49,7 +48,7 @@ export default function BoardPage() {
   const [editBoardOpen, setEditBoardOpen] = useState(false);
   const [editBoardName, setEditBoardName] = useState('');
   const [editBoardDesc, setEditBoardDesc] = useState('');
-  const [archiving, setArchiving] = useState(false);
+  const [completingSprint, setCompletingSprint] = useState(false);
 
   const [queryText, setQueryText] = useState('');
   const [boardFilters, setBoardFilters] = useState(EMPTY_FILTERS);
@@ -267,16 +266,17 @@ export default function BoardPage() {
     }
   };
 
-  const handleArchiveCompleted = async () => {
-    if (!boardId || archiving) return;
-    setArchiving(true);
+  const handleCompleteSprint = async (sprintId) => {
+    if (!sprintId || completingSprint) return;
+    if (!window.confirm(t('Завершить спринт? Незавершённые задачи вернутся в бэклог.'))) return;
+    setCompletingSprint(true);
     try {
-      await quests.archiveCompleted(boardId);
-      await loadBoard();
+      await sprintsApi.complete(sprintId, { moveIncompleteToBacklog: true });
+      await Promise.all([loadBoard(), loadSprints()]);
     } catch (e) {
-      console.error(e);
+      window.alert(t(e.message || 'Не удалось завершить спринт.'));
     } finally {
-      setArchiving(false);
+      setCompletingSprint(false);
     }
   };
 
@@ -355,6 +355,7 @@ export default function BoardPage() {
   const boardColumns = (board.columns ?? []).filter((column) => column.kind !== ARCHIVE_COLUMN_KIND);
   const scrum = isScrumBoard(board, boardSprints);
   const sprintIds = activeSprintIds(boardSprints);
+  const activeSprint = boardSprints.find((sprint) => sprint.status === 1);
   const noActiveSprint = scrum && sprintsLoaded && sprintIds.size === 0;
   const visibleStatuses = scrum
     ? boardColumns.map((column) => ({ ...column, quests: (column.quests ?? column.Quests ?? []).filter((q) => sprintIds.has(q.sprintId)) }))
@@ -367,10 +368,6 @@ export default function BoardPage() {
       return handleMoveQuest(id, drop.statusId, drop.order);
     }
     : handleMoveQuest;
-  const completedQuestCount = boardColumns
-    .filter((column) => column.kind === DONE_COLUMN_KIND)
-    .reduce((total, column) => total + ((column.quests ?? column.Quests ?? []).length), 0);
-
   const textFilter = buildQuestFilter(queryText, { currentUserId: user?.id, members, sprints: boardSprints });
   const filtering = Boolean(queryText.trim()) || Object.values(boardFilters).some((list) => list.length > 0);
   const questMatchesFilter = (quest) => textFilter(quest) && matchesBoardFilters(quest, boardFilters);
@@ -417,15 +414,17 @@ export default function BoardPage() {
         issueTypes={issueConfig.types}
         labels={boardLabels}
       >
+        {scrum && activeSprint && (
+          <button type="button" className="board-btn" disabled={completingSprint} onClick={() => handleCompleteSprint(activeSprint.id)}>
+            {t(completingSprint ? 'Завершение...' : 'Завершить спринт')}
+          </button>
+        )}
         <div className="board-more">
           <button type="button" className="board-btn board-more-btn" aria-label={t('Действия с доской')} title={t('Действия с доской')} aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}>⋯</button>
           {moreOpen && (
             <>
               <div className="board-more-backdrop" onClick={() => setMoreOpen(false)} />
               <div className="board-more-menu" role="menu">
-                <button type="button" role="menuitem" disabled={archiving || completedQuestCount === 0} onClick={() => { setMoreOpen(false); handleArchiveCompleted(); }}>
-                  {archiving ? t('Архивация...') : `${t('Архивировать выполненные')} (${completedQuestCount})`}
-                </button>
                 <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setEditBoardOpen(true); }}>{t('Изменить название и описание')}</button>
                 <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setColumnConfigOpen(true); }}>{t('Настроить столбцы')}</button>
                 <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); navigate(`/board/${boardId}/settings`); }}>{t('Настроить доску')}</button>

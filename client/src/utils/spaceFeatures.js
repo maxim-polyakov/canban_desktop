@@ -14,7 +14,6 @@ export const FEATURE_TABS = [
   ['development', 'development', '/development', 'code', 'Среда разработки'],
   ['reports', 'reports', '/reports', 'reports', 'Отчёты'],
   ['releases', 'releases', '/releases', 'releases', 'Релизы'],
-  ['archive', 'archive', '/archive', 'archive', 'Архив'],
 ];
 
 export const FEATURE_DESCRIPTIONS = {
@@ -29,13 +28,12 @@ export const FEATURE_DESCRIPTIONS = {
   development: 'Метрики разработки, репозитории, ветки и pull request',
   reports: 'Диаграммы и отчёты по работе команды',
   releases: 'Версии и релизы',
-  archive: 'Выполненные задачи, убранные с доски',
 };
 
 export const BOARD_CHANGED_EVENT = 'canban:board-changed';
 export const notifyBoardChanged = (board) => window.dispatchEvent(new CustomEvent(BOARD_CHANGED_EVENT, { detail: { board } }));
 
-const LEGACY = ['summary', 'board', 'backlog', 'timeline', 'docs', 'forms', 'development', 'releases', 'reports', 'archive'];
+const LEGACY = ['summary', 'board', 'backlog', 'timeline', 'docs', 'forms', 'development', 'releases', 'reports'];
 
 export function spaceFeatures(board) {
   const raw = board?.features ?? board?.Features ?? '';

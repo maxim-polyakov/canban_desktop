@@ -31,9 +31,8 @@
   display: flex;
   flex-direction: column;
   min-width: 280px;
-  max-height: 70vh;
   padding: 6px 0;
-  overflow-y: auto;
+  overflow: visible;
   background: var(--surface-overlay, #fff);
   border-radius: 6px;
   box-shadow: var(--overlay-shadow, 0 8px 12px rgba(30, 31, 33, 0.15), 0 0 1px rgba(30, 31, 33, 0.31));
@@ -90,6 +89,8 @@
   right: calc(100% + 2px);
   min-width: 220px;
   max-width: 320px;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .iam-check {

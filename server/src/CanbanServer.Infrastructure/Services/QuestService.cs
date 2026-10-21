@@ -502,6 +502,12 @@ public class QuestService : IQuestService
                 }
             }
         }
+        else if (!isMovedToDone && oldColumnKind == ColumnKind.Done)
+        {
+            // Reopening an issue clears its resolution state; otherwise the backlog keeps
+            // rendering it as completed even though its current status is To Do/In Progress.
+            quest.CompletedAt = null;
+        }
 
         await _db.SaveChangesAsync(ct);
         if (justCompleted)

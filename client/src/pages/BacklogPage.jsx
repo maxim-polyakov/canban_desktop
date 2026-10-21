@@ -176,6 +176,7 @@ function IssueRow({ quest, active, columns, epics, members, onOpen, onUpdate, on
   });
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState(quest.title);
+  const column = columns.find((item) => item.id === quest.columnId);
   const saveTitle = () => {
     setRenaming(false);
     if (title.trim() && title.trim() !== quest.title) onUpdate({ title: title.trim() });
@@ -191,7 +192,7 @@ function IssueRow({ quest, active, columns, epics, members, onOpen, onUpdate, on
     >
       <input className="bl-check" type="checkbox" checked={selected} aria-label={t('Выбрать ${key}', { key: quest.issueKey })} onPointerDown={(e) => e.stopPropagation()} onChange={(e) => onSelect(quest.id, e.target.checked)} />
       <IssueTypeIcon issueType={quest.issueType} typeId={quest.issueTypeId} size={16} />
-      <button type="button" className={`bl-key ${quest.completedAt ? 'is-done' : ''}`} onClick={() => onOpen(quest.id)}>{quest.issueKey}</button>
+      <button type="button" className={`bl-key ${column?.kind === DONE_COLUMN_KIND ? 'is-done' : ''}`} onClick={() => onOpen(quest.id)}>{quest.issueKey}</button>
       {renaming ? (
         <input
           className="bl-title-input"

@@ -514,6 +514,9 @@ public sealed class JiraPlatformService : IJiraPlatformService
     {
         var quests = await _db.Quests.Include(q => q.Assignees).Where(q => q.BoardId == boardId && request.QuestIds.Contains(q.Id)).ToListAsync(ct);
         var shared = request.ColumnId.HasValue ? await _workflows.ResolveAsync(boardId, ct) : null;
+        var targetKind = request.ColumnId.HasValue
+            ? await _db.Columns.Where(c => c.Id == request.ColumnId && c.BoardId == boardId).Select(c => (ColumnKind?)c.Kind).FirstOrDefaultAsync(ct)
+            : null;
         if (shared != null)
         {
             var (_, permission) = await _access.GetBoardAccessAsync(boardId, userId, ct);
@@ -526,7 +529,11 @@ public sealed class JiraPlatformService : IJiraPlatformService
         foreach (var quest in quests)
         {
             if (request.SprintIdSet) quest.SprintId = request.SprintId;
-            if (request.ColumnId.HasValue) quest.ColumnId = request.ColumnId.Value;
+            if (request.ColumnId.HasValue)
+            {
+                quest.ColumnId = request.ColumnId.Value;
+                quest.CompletedAt = targetKind == ColumnKind.Done ? quest.CompletedAt ?? DateTime.UtcNow : null;
+            }
             if (request.Labels != null) quest.Labels = request.Labels;
             if (request.Priority.HasValue) quest.Priority = request.Priority.Value;
             if (request.IssueType.HasValue) quest.IssueType = request.IssueType.Value;

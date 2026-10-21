@@ -43,6 +43,7 @@ export default function BoardPage() {
   const [pendingTransition, setPendingTransition] = useState(null);
   const issueConfig = useBoardIssueConfig(boardId);
   const [boardSprints, setBoardSprints] = useState([]);
+  const [activeSprintQuests, setActiveSprintQuests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editBoardOpen, setEditBoardOpen] = useState(false);
@@ -146,12 +147,26 @@ export default function BoardPage() {
     loadMembers(board.teamId);
   }, [board?.teamId, loadMembers]);
 
-  const loadSprints = useCallback(() => {
-    if (!boardId) { setBoardSprints([]); return; }
-    sprintsApi.getByBoard(boardId)
-      .then((list) => setBoardSprints(Array.isArray(list) ? list : []))
-      .catch(() => setBoardSprints([]))
-      .finally(() => setSprintsLoaded(true));
+  const loadSprints = useCallback(async () => {
+    if (!boardId) {
+      setBoardSprints([]);
+      setActiveSprintQuests([]);
+      return;
+    }
+    try {
+      const result = await sprintsApi.getByBoard(boardId);
+      const list = Array.isArray(result) ? result : [];
+      const active = list.filter((sprint) => sprint.status === 1);
+      const issueLists = await Promise.all(active.map((sprint) =>
+        quests.filter(boardId, { sprintId: sprint.id }).catch(() => [])));
+      setBoardSprints(list);
+      setActiveSprintQuests(issueLists.flat().filter(Boolean));
+    } catch {
+      setBoardSprints([]);
+      setActiveSprintQuests([]);
+    } finally {
+      setSprintsLoaded(true);
+    }
   }, [boardId]);
   loadSprintsRef.current = loadSprints;
 
@@ -159,6 +174,11 @@ export default function BoardPage() {
     setSprintsLoaded(false);
     loadSprints();
   }, [loadSprints]);
+
+  const refreshBoard = useCallback(
+    () => Promise.all([loadBoard(), loadSprints()]),
+    [loadBoard, loadSprints],
+  );
 
   const handleMoveQuest = async (questIdMoved, targetColumnId, newOrder) => {
     const col = board?.columns?.find((c) => c.id === targetColumnId);
@@ -204,7 +224,7 @@ export default function BoardPage() {
       else if (issueConfig.workflow) window.alert(t(e.message));
     } finally {
       pendingMovesRef.current -= 1;
-      if (pendingMovesRef.current === 0) loadBoard();
+      if (pendingMovesRef.current === 0) refreshBoard();
     }
   };
 
@@ -226,7 +246,7 @@ export default function BoardPage() {
         order,
         kind: isDoneColumn ? 3 : 4,
       });
-      await loadBoard();
+      await refreshBoard();
     } catch (e) {
       console.error(e);
     }
@@ -236,7 +256,7 @@ export default function BoardPage() {
     if (!boardId || !columnIdsInOrder?.length) return;
     try {
       await columns.reorder(boardId, columnIdsInOrder);
-      await loadBoard();
+      await refreshBoard();
     } catch (e) {
       console.error(e);
     }
@@ -248,7 +268,7 @@ export default function BoardPage() {
     try {
       await boards.update(boardId, { name: editBoardName.trim() || undefined, description: editBoardDesc.trim() || undefined });
       setEditBoardOpen(false);
-      await loadBoard();
+      await refreshBoard();
     } catch (e) {
       console.error(e);
     }
@@ -272,7 +292,7 @@ export default function BoardPage() {
     setCompletingSprint(true);
     try {
       await sprintsApi.complete(sprintId, { moveIncompleteToBacklog: true });
-      await Promise.all([loadBoard(), loadSprints()]);
+      await refreshBoard();
     } catch (e) {
       window.alert(t(e.message || 'Не удалось завершить спринт.'));
     } finally {
@@ -284,7 +304,7 @@ export default function BoardPage() {
     if (!title?.trim()) return;
     try {
       await columns.update(columnId, { title: title.trim() });
-      await loadBoard();
+      await refreshBoard();
     } catch (e) {
       console.error(e);
     }
@@ -293,7 +313,7 @@ export default function BoardPage() {
   const handleUpdateColumnKind = async (columnId, kind) => {
     try {
       await columns.update(columnId, { kind });
-      await loadBoard();
+      await refreshBoard();
     } catch (e) {
       console.error(e);
     }
@@ -321,7 +341,7 @@ export default function BoardPage() {
     if (!window.confirm(t('Удалить колонку и все квесты в ней?'))) return;
     try {
       const ok = await columns.delete(columnId);
-      if (ok) await loadBoard();
+      if (ok) await refreshBoard();
     } catch (e) {
       console.error(e);
     }
@@ -331,7 +351,7 @@ export default function BoardPage() {
     if (!window.confirm(t('Удалить квест?'))) return;
     try {
       const ok = await quests.delete(questIdToDelete);
-      if (ok) await loadBoard();
+      if (ok) await refreshBoard();
     } catch (e) {
       console.error(e);
     }
@@ -344,7 +364,7 @@ export default function BoardPage() {
     try {
       await bulk.update(boardId, selectedQuestIds, fields);
       setSelectedQuestIds([]);
-      await loadBoard();
+      await refreshBoard();
     } catch (e) { window.alert(t(e.message || 'Не удалось выполнить массовое изменение.')); }
   };
 
@@ -358,7 +378,7 @@ export default function BoardPage() {
   const activeSprint = boardSprints.find((sprint) => sprint.status === 1);
   const noActiveSprint = scrum && sprintsLoaded && sprintIds.size === 0;
   const visibleStatuses = scrum
-    ? boardColumns.map((column) => ({ ...column, quests: (column.quests ?? column.Quests ?? []).filter((q) => sprintIds.has(q.sprintId)) }))
+    ? boardColumns.map((column) => ({ ...column, quests: activeSprintQuests.filter((quest) => quest.columnId === column.id) }))
     : boardColumns;
   const layoutMode = !!columnLayout?.configured;
   const viewColumns = buildBoardColumns(visibleStatuses, columnLayout);
@@ -381,7 +401,7 @@ export default function BoardPage() {
     members,
     issueTypes: issueConfig.types,
     onMoveQuest: moveOnBoard,
-    onRefresh: loadBoard,
+    onRefresh: refreshBoard,
     onRefreshColumnQuests: layoutMode || scrum ? undefined : handleRefreshColumnQuests,
     onDeleteQuest: handleDeleteQuest,
     onQuestClick: openIssue,
@@ -527,7 +547,7 @@ export default function BoardPage() {
           layout={columnLayout}
           issueConfig={issueConfig}
           onClose={() => setColumnConfigOpen(false)}
-          onPublished={(saved) => { setColumnLayout(saved); setColumnConfigOpen(false); loadBoard(); }}
+          onPublished={(saved) => { setColumnLayout(saved); setColumnConfigOpen(false); refreshBoard(); }}
         />
       )}
 
@@ -537,7 +557,7 @@ export default function BoardPage() {
           members={members}
           columns={boardColumns}
           onClose={closeIssue}
-          onChanged={loadBoard}
+          onChanged={refreshBoard}
         />
       )}
       {pendingTransition && (
@@ -552,7 +572,7 @@ export default function BoardPage() {
             const { issue, targetColumnId, newOrder } = pendingTransition;
             await quests.move({ questId: issue.id, targetColumnId, newOrder, ...choice });
             setPendingTransition(null);
-            loadBoard();
+            refreshBoard();
           }}
         />
       )}

@@ -24,6 +24,19 @@ public static partial class DatabaseSchemaInitializer
         await EnsureVotesSchemaAsync(db, ct);
         await EnsureFilterSubscriptionsSchemaAsync(db, ct);
 
+        // Older moves out of Done left CompletedAt populated, so reopened issues still
+        // looked resolved in the backlog and reports. Keep resolution aligned with status.
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            UPDATE "Quests" q
+            SET "CompletedAt" = NULL
+            FROM "Columns" c
+            WHERE q."ColumnId" = c."Id"
+              AND c."Kind" NOT IN (3, 5)
+              AND q."CompletedAt" IS NOT NULL;
+            """,
+            ct);
+
         await db.Database.ExecuteSqlRawAsync(
             """
             CREATE TABLE IF NOT EXISTS "QuestAssignees" (

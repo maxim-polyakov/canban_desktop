@@ -19,6 +19,11 @@ public static class NotificationEvents
     public const string Archived = "ISSUE_ARCHIVED";
     public const string Commented = "ISSUE_COMMENTED";
     public const string CommentDeleted = "ISSUE_COMMENT_DELETED";
+    public const string AgentReplied = "SERVICE_DESK_AGENT_REPLIED";
+    public const string SlaWarning = "SERVICE_DESK_SLA_WARNING";
+    public const string SlaBreached = "SERVICE_DESK_SLA_BREACHED";
+    public const string ApprovalPending = "SERVICE_DESK_APPROVAL_PENDING";
+    public const string ApprovalDecided = "SERVICE_DESK_APPROVAL_DECIDED";
 
     public static readonly NotificationEvent[] All =
     {
@@ -31,6 +36,11 @@ public static class NotificationEvents
         new(Archived, "Задача архивирована"),
         new(Commented, "Новый комментарий"),
         new(CommentDeleted, "Комментарий удалён"),
+        new(AgentReplied, "Ответ агента Service Desk"),
+        new(SlaWarning, "Предупреждение SLA"),
+        new(SlaBreached, "Нарушение SLA"),
+        new(ApprovalPending, "Требуется согласование"),
+        new(ApprovalDecided, "Согласование завершено"),
     };
 
     /// <summary>Resolved when moved into Done, reopened when moved out of it, otherwise a plain transition.</summary>

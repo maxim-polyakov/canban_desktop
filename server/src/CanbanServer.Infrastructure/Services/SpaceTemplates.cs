@@ -20,7 +20,7 @@ public sealed record SpaceTemplate(
 /// <summary>Jira-like space template gallery: each template defines its workflow (columns), work types and enabled views.</summary>
 public static class SpaceTemplates
 {
-    public static readonly string[] AllFeatures = { "summary", "backlog", "board", "list", "timeline", "calendar", "docs", "forms", "development", "reports", "releases", "archive" };
+    public static readonly string[] AllFeatures = { "summary", "backlog", "board", "list", "timeline", "calendar", "docs", "forms", "development", "reports", "releases", "archive", "service-desk" };
     /// <summary>Built-in avatar keys; must match SPACE_AVATAR_PRESETS in the client.</summary>
     public static readonly string[] AvatarPresets =
     {
@@ -172,7 +172,7 @@ public static class SpaceTemplates
             "ИТ-отделам и службам поддержки",
             new[] { IssueType.Task, IssueType.Bug, IssueType.Subtask },
             new[] { Todo("Открыта"), Doing(), Step("Ожидает пользователя"), Done("Решена") },
-            new[] { "summary", "list", "board", "reports", "archive" }),
+            new[] { "summary", "list", "board", "reports", "archive", "forms", "service-desk" }, Featured: true),
         new SpaceTemplate("legal-requests", "operations", "lock", "Юридические запросы",
             "Регистрируйте запросы к юристам, согласуйте договоры и фиксируйте решения.",
             "Юридическим отделам",

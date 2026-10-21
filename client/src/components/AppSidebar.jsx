@@ -25,6 +25,7 @@ export const CUSTOMIZABLE_NAV = [
   ['apps', 'appsAdd', 'Приложения'],
   ['plans', 'plans', 'Планы'],
   ['spaces', 'spaces', 'Разделы'],
+  ['portal', 'help', 'Service Desk'],
   ['recommended', 'template', 'Рекомендации'],
   ['filters', 'filters', 'Фильтры'],
   ['dashboards', 'dashboards', 'Дашборды'],
@@ -434,6 +435,8 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
           {flyoutItem('spaces', 'backlog', 'Другие разделы', otherSpacesContent, 'Разделы')}
         </>
       )}
+
+      {shown('portal') && item('/portal', 'help', 'Service Desk', { active: pathname.startsWith('/portal') })}
 
       {shown('recommended') && (
         <>

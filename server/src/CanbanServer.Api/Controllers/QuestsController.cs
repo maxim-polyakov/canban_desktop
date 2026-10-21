@@ -366,7 +366,7 @@ public class QuestsController : ControllerBase
         if (!userId.HasValue) return Unauthorized();
         if (!await Can(questId, JiraPermissions.AddComments, ct)) return Forbid();
         if (string.IsNullOrWhiteSpace(request.Text) || request.Text.Trim().Length > 5000) return BadRequest("Комментарий должен содержать от 1 до 5000 символов.");
-        var result = await _collaborationService.AddCommentAsync(questId, userId.Value, request.Text, request.DocumentJson, ct);
+        var result = await _collaborationService.AddCommentAsync(questId, userId.Value, request.Text, request.DocumentJson, ct, request.IsInternal);
         return result.Status switch { QuestAttachmentOperationStatus.Success => Ok(result.Comment), QuestAttachmentOperationStatus.NotFound => NotFound(), QuestAttachmentOperationStatus.Forbidden => Forbid(), _ => BadRequest() };
     }
 

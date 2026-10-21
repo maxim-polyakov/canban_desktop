@@ -108,24 +108,34 @@ public class QuestCollaborationService : IQuestCollaborationService
     {
         var access = await _access.CheckQuestAccessAsync(questId, userId, ct);
         if (access != QuestAttachmentOperationStatus.Success) return (access, new());
+        var isAgent = await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.ServiceDeskAgent, ct)
+            || await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.ManageServiceDesk, ct);
         var comments = await _db.QuestComments.AsNoTracking().Include(c => c.AuthorUser)
-            .Where(c => c.QuestId == questId).OrderBy(c => c.CreatedAt).ToListAsync(ct);
+            .Where(c => c.QuestId == questId && (isAgent || !c.IsInternal)).OrderBy(c => c.CreatedAt).ToListAsync(ct);
         return (QuestAttachmentOperationStatus.Success, comments.Select(Map).ToList());
     }
 
-    public async Task<(QuestAttachmentOperationStatus Status, QuestCommentDto? Comment)> AddCommentAsync(Guid questId, Guid userId, string text, string? documentJson = null, CancellationToken ct = default)
+    public async Task<(QuestAttachmentOperationStatus Status, QuestCommentDto? Comment)> AddCommentAsync(Guid questId, Guid userId, string text, string? documentJson = null, CancellationToken ct = default, bool isInternal = false)
     {
         var access = await _access.CheckQuestAccessAsync(questId, userId, ct);
         if (access != QuestAttachmentOperationStatus.Success) return (access, null);
+        if (isInternal && !await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.ServiceDeskAgent, ct)
+            && !await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.ManageServiceDesk, ct))
+            return (QuestAttachmentOperationStatus.Forbidden, null);
         if (!string.IsNullOrWhiteSpace(documentJson)) _ = System.Text.Json.JsonDocument.Parse(documentJson);
-        var comment = new QuestComment { Id = Guid.NewGuid(), QuestId = questId, AuthorUserId = userId, Text = text.Trim(), DocumentJson = documentJson, CreatedAt = DateTime.UtcNow };
+        var comment = new QuestComment { Id = Guid.NewGuid(), QuestId = questId, AuthorUserId = userId, Text = text.Trim(), DocumentJson = documentJson, IsInternal = isInternal, CreatedAt = DateTime.UtcNow };
         _db.QuestComments.Add(comment);
         await _db.SaveChangesAsync(ct);
         await _mentions.NotifyIssueAsync(questId, userId, MentionService.Parse(comment.Text), "комментарии", comment.Text, ct);
         comment.AuthorUser = await _db.Users.FirstAsync(u => u.Id == userId, ct);
         var boardId = await _db.Quests.Where(q => q.Id == questId).Select(q => q.BoardId).FirstAsync(ct);
         await _boardHub.NotifyBoardUpdatedAsync(boardId, ct);
-        await _notifications.NotifyAsync(questId, userId, "Новый комментарий", MentionService.ToPlainText(comment.Text), ct, NotificationEvents.Commented);
+        var eventKey = isInternal ? NotificationEvents.Commented : NotificationEvents.AgentReplied;
+        var isAgent = await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.ServiceDeskAgent, ct)
+            || await _permissions.HasOnQuestAsync(questId, userId, JiraPermissions.ManageServiceDesk, ct);
+        await _notifications.NotifyAsync(questId, userId, isInternal ? "Внутренняя заметка" : isAgent ? "Ответ агента" : "Новый комментарий",
+            MentionService.ToPlainText(comment.Text), ct, isInternal ? NotificationEvents.Commented : isAgent ? eventKey : NotificationEvents.Commented);
+        if (!isInternal) await ServiceDeskService.TryCompleteFirstResponseAsync(_db, questId, userId, ct);
         return (QuestAttachmentOperationStatus.Success, Map(comment));
     }
 
@@ -146,7 +156,7 @@ public class QuestCollaborationService : IQuestCollaborationService
         return QuestAttachmentOperationStatus.Success;
     }
 
-    private static QuestCommentDto Map(QuestComment c) => new(c.Id, c.QuestId, c.AuthorUserId, c.AuthorUser.DisplayName, c.AuthorUser.AvatarUrl, c.Text, c.CreatedAt, c.DocumentJson);
+    private static QuestCommentDto Map(QuestComment c) => new(c.Id, c.QuestId, c.AuthorUserId, c.AuthorUser.DisplayName, c.AuthorUser.AvatarUrl, c.Text, c.CreatedAt, c.DocumentJson, c.IsInternal);
 
     private static Dictionary<string, string?> NormalizeExternalRecipients(
         IReadOnlyCollection<ExternalNotificationRecipientDto>? externalRecipients)

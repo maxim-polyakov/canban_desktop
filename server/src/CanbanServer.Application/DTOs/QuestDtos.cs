@@ -131,8 +131,8 @@ public record MoveQuestRequest(Guid QuestId, Guid TargetColumnId, int NewOrder, 
 public record ReorderQuestsRequest(Guid ColumnId, List<Guid> QuestIdsInOrder);
 public record ArchiveCompletedQuestsResult(int ArchivedCount);
 public record UpdateQuestNotificationRecipientsRequest(List<Guid> UserIds, List<ExternalNotificationRecipientDto>? ExternalNotificationRecipients);
-public record CreateQuestCommentRequest(string Text, string? DocumentJson = null);
-public record QuestCommentDto(Guid Id, Guid QuestId, Guid AuthorUserId, string AuthorName, string? AuthorAvatarUrl, string Text, DateTime CreatedAt, string? DocumentJson = null);
+public record CreateQuestCommentRequest(string Text, string? DocumentJson = null, bool IsInternal = false);
+public record QuestCommentDto(Guid Id, Guid QuestId, Guid AuthorUserId, string AuthorName, string? AuthorAvatarUrl, string Text, DateTime CreatedAt, string? DocumentJson = null, bool IsInternal = false);
 
 public record QuestFilterRequest(
     Guid? SprintId = null,

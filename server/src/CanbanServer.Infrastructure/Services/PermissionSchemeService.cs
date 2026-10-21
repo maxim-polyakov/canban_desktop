@@ -33,6 +33,9 @@ public static class JiraPermissions
     public const string WorkOnIssues = "WORK_ON_ISSUES";
     public const string DeleteAllWorklogs = "DELETE_ALL_WORKLOGS";
     public const string DeleteOwnWorklogs = "DELETE_OWN_WORKLOGS";
+    public const string ServiceDeskAgent = "SERVICE_DESK_AGENT";
+    public const string ManageServiceDesk = "MANAGE_SERVICE_DESK";
+    public const string ApproveRequests = "APPROVE_REQUESTS";
 
     public static readonly JiraPermission[] All =
     {
@@ -57,6 +60,9 @@ public static class JiraPermissions
         new(WorkOnIssues, "Учёт времени", "Учёт времени", BoardPermission.Work, true),
         new(DeleteAllWorklogs, "Удаление любого учёта времени", "Учёт времени", BoardPermission.Manage, true),
         new(DeleteOwnWorklogs, "Удаление своего учёта времени", "Учёт времени", BoardPermission.Work, true),
+        new(ServiceDeskAgent, "Агент Service Desk", "Service Desk", BoardPermission.Work, false),
+        new(ManageServiceDesk, "Управление Service Desk", "Service Desk", BoardPermission.Manage, false),
+        new(ApproveRequests, "Согласование заявок", "Service Desk", BoardPermission.Work, true),
     };
 
     public static JiraPermission? Find(string key) => All.FirstOrDefault(p => p.Key == key);

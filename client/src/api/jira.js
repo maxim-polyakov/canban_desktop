@@ -202,6 +202,34 @@ export const billing = {
   autoRenew: (enabled) => apiJson('/api/billing/auto-renew', json('PUT', { enabled })),
 };
 
+const deskUrl = (boardId, path = '') => `/api/boards/${boardId}/service-desk${path}`;
+export const serviceDesk = {
+  getSettings: (boardId) => apiJson(deskUrl(boardId)),
+  updateSettings: (boardId, data) => apiJson(deskUrl(boardId), json('PUT', data)),
+  listRequestTypes: (boardId, portal = false) => apiJson(deskUrl(boardId, `/request-types${buildQuery({ portal })}`)),
+  createRequestType: (boardId, data) => apiJson(deskUrl(boardId, '/request-types'), json('POST', data)),
+  updateRequestType: (boardId, id, data) => apiJson(deskUrl(boardId, `/request-types/${id}`), json('PUT', data)),
+  deleteRequestType: (boardId, id) => remove(deskUrl(boardId, `/request-types/${id}`)),
+  listQueues: (boardId, counts = true) => apiJson(deskUrl(boardId, `/queues${buildQuery({ counts })}`)),
+  createQueue: (boardId, data) => apiJson(deskUrl(boardId, '/queues'), json('POST', data)),
+  updateQueue: (boardId, id, data) => apiJson(deskUrl(boardId, `/queues/${id}`), json('PUT', data)),
+  deleteQueue: (boardId, id) => remove(deskUrl(boardId, `/queues/${id}`)),
+  queueIssues: (boardId, id, page = 1, pageSize = 50) => apiJson(deskUrl(boardId, `/queues/${id}/issues${buildQuery({ page, pageSize })}`)),
+  assignQueue: (boardId, id, data) => apiJson(deskUrl(boardId, `/queues/${id}/assign`), json('POST', data)),
+  listPolicies: (boardId) => apiJson(deskUrl(boardId, '/sla-policies')),
+  createPolicy: (boardId, data) => apiJson(deskUrl(boardId, '/sla-policies'), json('POST', data)),
+  updatePolicy: (boardId, id, data) => apiJson(deskUrl(boardId, `/sla-policies/${id}`), json('PUT', data)),
+  deletePolicy: (boardId, id) => remove(deskUrl(boardId, `/sla-policies/${id}`)),
+  createApproval: (boardId, questId, data) => apiJson(deskUrl(boardId, `/requests/${questId}/approvals`), json('POST', data)),
+  decideApproval: (id, data) => apiJson(`/api/service-desk/approvals/${id}/decide`, json('POST', data)),
+  listPortals: () => apiJson('/api/portal'),
+  getPortal: (slug) => apiJson(`/api/portal/${encodeURIComponent(slug)}`),
+  myRequests: (slug) => slug ? apiJson(`/api/portal/${encodeURIComponent(slug)}/requests`) : apiJson('/api/portal/requests/mine'),
+  createRequest: (slug, typeId, data) => apiJson(`/api/portal/${encodeURIComponent(slug)}/request-types/${typeId}/requests`, json('POST', data)),
+  getRequest: (slug, questId) => apiJson(`/api/portal/${encodeURIComponent(slug)}/requests/${questId}`),
+  addComment: (slug, questId, data) => apiJson(`/api/portal/${encodeURIComponent(slug)}/requests/${questId}/comments`, json('POST', data)),
+};
+
 export const savedFilters = {
   getAll: () => apiJson('/api/savedFilters'),
   create: (data) => apiJson('/api/savedFilters', json('POST', data)),

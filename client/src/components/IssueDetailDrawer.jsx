@@ -156,6 +156,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
 
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [commentInternal, setCommentInternal] = useState(false);
   const [commentSaving, setCommentSaving] = useState(false);
   const [commentError, setCommentError] = useState('');
 
@@ -409,9 +410,10 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     setCommentSaving(true);
     setCommentError('');
     try {
-      const comment = await quests.addComment(questId, newComment.trim());
+      const comment = await quests.addComment(questId, newComment.trim(), { isInternal: commentInternal });
       if (comment) setComments((current) => [...current, comment]);
       setNewComment('');
+      setCommentInternal(false);
       setCommentFocused(false);
     } catch (e) {
       setCommentError(e.message || 'Не удалось добавить комментарий.');
@@ -605,7 +607,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
         <li key={`c-${item.id}`} className="iv-activity-item">
           <AssigneeAvatar userId={item.authorUserId} displayName={item.authorName} avatarUrl={item.authorAvatarUrl} size={32} />
           <div className="iv-activity-body">
-            <div className="iv-activity-head"><strong>{item.authorName}</strong><span>{formatDate(item.createdAt)}</span></div>
+            <div className="iv-activity-head"><strong>{item.authorName}</strong><span>{formatDate(item.createdAt)}</span>{item.isInternal ? <span className="iv-lozenge">{t('Внутренний')}</span> : null}</div>
             <p className="iv-comment-text"><MentionText text={item.text} currentUserId={user?.id} /></p>
             {item.authorUserId === user?.id && (
               <button type="button" className="iv-link-btn" onClick={() => handleDeleteComment(item)}>{t('Удалить')}</button>
@@ -895,8 +897,12 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                       />
                       {commentFocused || newComment ? (
                         <div className="iv-editor-actions">
+                          <label className="iv-check">
+                            <input type="checkbox" checked={commentInternal} onChange={(e) => setCommentInternal(e.target.checked)} />
+                            {t('Внутренняя заметка')}
+                          </label>
                           <button type="button" className="app-btn app-btn-primary" onClick={handleAddComment} disabled={commentSaving || !newComment.trim()}>{commentSaving ? '…' : t('Сохранить')}</button>
-                          <button type="button" className="app-btn app-btn-subtle" onClick={() => { setNewComment(''); setCommentFocused(false); }}>{t('Отмена')}</button>
+                          <button type="button" className="app-btn app-btn-subtle" onClick={() => { setNewComment(''); setCommentInternal(false); setCommentFocused(false); }}>{t('Отмена')}</button>
                         </div>
                       ) : (
                         <div className="iv-starters">

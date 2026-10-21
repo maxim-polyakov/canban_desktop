@@ -4,7 +4,7 @@ export { API_BASE, PLAN_REQUIRED_EVENT, api, apiForm, apiJson, buildQuery, getTo
 export {
   adminInfo, ai, apiTokens, contributingTeams, assets, audit, automations, billing, bulk, clone, filterSubscriptions, home, kudos, people, personalSettings, spaces, components, dashboards, history, importExport,
   integrations, issueConfig, issueLayouts, myWork, notificationSchemes, notifications, permissionSchemes, permissions, plans, questHierarchy, questLinks,
-  releases, reports, savedFilters, search, sharedWorkflows, spaceContent, userGroups, votes, workflows, worklogs,
+  releases, reports, savedFilters, search, serviceDesk, sharedWorkflows, spaceContent, userGroups, votes, workflows, worklogs,
 } from './api/jira.js';
 
 export const auth = {
@@ -151,7 +151,7 @@ export const quests = {
       return true;
     }),
   getComments: (questId) => apiJson(`/api/quests/${questId}/comments`),
-  addComment: (questId, text) => apiJson(`/api/quests/${questId}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
+  addComment: (questId, text, options = {}) => apiJson(`/api/quests/${questId}/comments`, { method: 'POST', body: JSON.stringify({ text, documentJson: options.documentJson || null, isInternal: !!options.isInternal }) }),
   deleteComment: (questId, commentId) =>
     api(`/api/quests/${questId}/comments/${commentId}`, { method: 'DELETE' }).then((r) => {
       if (!r.ok) throw new Error(r.statusText);

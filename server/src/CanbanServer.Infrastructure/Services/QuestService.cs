@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using CanbanServer.Application.Contracts;
 using CanbanServer.Application.DTOs;
 using CanbanServer.Domain.Entities;
@@ -25,6 +26,7 @@ public class QuestService : IQuestService
     private readonly WorkflowSchemeService _workflows;
     private readonly PermissionSchemeService _permissions;
     private readonly MentionService _mentions;
+    private readonly IServiceProvider _services;
 
     public QuestService(
         CanbanDbContext db,
@@ -42,7 +44,8 @@ public class QuestService : IQuestService
         IssueFieldService fields,
         WorkflowSchemeService workflows,
         PermissionSchemeService permissions,
-        MentionService mentions)
+        MentionService mentions,
+        IServiceProvider services)
     {
         _db = db;
         _mentions = mentions;
@@ -60,6 +63,7 @@ public class QuestService : IQuestService
         _cache = cache;
         _fields = fields;
         _workflows = workflows;
+        _services = services;
     }
 
     public async Task<QuestDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -413,6 +417,8 @@ public class QuestService : IQuestService
 
         var (_, permission) = await _access.GetBoardAccessAsync(quest.BoardId, userId, ct);
         if (permission == null) return null;
+        if (quest.ColumnId != targetColumn.Id)
+            await _services.GetRequiredService<ServiceDeskService>().EnsureTransitionAllowedAsync(quest.Id, request.Transition, userId, ct);
         var shared = quest.ColumnId == targetColumn.Id || quest.Column.Kind == ColumnKind.Archive || targetColumn.Kind == ColumnKind.Archive
             ? null : await _workflows.ResolveAsync(quest.BoardId, ct);
         string? postFunctions;
@@ -523,6 +529,7 @@ public class QuestService : IQuestService
         {
             await _notificationService.NotifyAsync(quest.Id, userId, "Статус задачи изменён", $"Перемещено из «{oldColumnTitle}» в «{targetColumn.Title}».", ct,
                 NotificationEvents.ForMove(oldColumnKind, targetColumn.Kind));
+            await _services.GetRequiredService<ServiceDeskService>().OnQuestMovedAsync(quest.Id, targetColumn.Title, targetColumn.Kind, ct);
         }
         await _cache.InvalidateAsync("board:detail:" + quest.BoardId, ct);
         await _boardHub.NotifyBoardUpdatedAsync(quest.BoardId, ct);

@@ -23,6 +23,7 @@ public static partial class DatabaseSchemaInitializer
         await EnsureApiTokensSchemaAsync(db, ct);
         await EnsureVotesSchemaAsync(db, ct);
         await EnsureFilterSubscriptionsSchemaAsync(db, ct);
+        await EnsureServiceDeskSchemaAsync(db, ct);
 
         // Older moves out of Done left CompletedAt populated, so reopened issues still
         // looked resolved in the backlog and reports. Keep resolution aligned with status.

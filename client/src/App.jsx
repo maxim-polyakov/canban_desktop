@@ -51,6 +51,8 @@ import { NotificationSchemesPage, PermissionSchemesPage } from './pages/settings
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
 import { AdminBillingChangePage, AdminBillingPage, AdminBillingPaymentPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
 import { LegalPage, OfferPage, PricingPage, PrivacyPage } from './pages/LegalPages.jsx';
+import { PortalCatalogPage, PortalCreatePage, PortalHomePage, PortalRequestPage } from './pages/service-desk/PortalPages.jsx';
+import { ServiceDeskQueuesPage, ServiceDeskSettingsPage } from './pages/service-desk/ServiceDeskPages.jsx';
 import { useApplyTheme, usePrefs } from './utils/preferences.js';
 import { planIncludes, useAccessPlan } from './utils/billing.js';
 
@@ -179,11 +181,17 @@ export default function App() {
           <Route path="board/:boardId/forms" element={<SpaceFormsListPage />} />
           <Route path="board/:boardId/forms/:formId" element={<SpaceFormEditPage />} />
           <Route path="board/:boardId/forms/:formId/submit" element={<SpaceFormSubmitPage />} />
+          <Route path="board/:boardId/service-desk" element={<ServiceDeskSettingsPage />} />
+          <Route path="board/:boardId/service-desk/queues" element={<ServiceDeskQueuesPage />} />
           <Route path="board/:boardId/development" element={<SpaceDevelopmentPage />} />
           <Route path="board/:boardId/list" element={<SpaceListPage />} />
           <Route path="board/:boardId/calendar" element={<SpaceCalendarPage />} />
           <Route path="board/:boardId/features" element={<SpaceFeaturesPage mode="features" />} />
           <Route path="board/:boardId/access" element={<SpaceFeaturesPage mode="access" />} />
+          <Route path="portal" element={<PortalHomePage />} />
+          <Route path="portal/:slug" element={<PortalCatalogPage />} />
+          <Route path="portal/:slug/new/:typeId" element={<PortalCreatePage />} />
+          <Route path="portal/:slug/requests/:questId" element={<PortalRequestPage />} />
           <Route path="issues" element={<IssueNavigatorPage />} />
           <Route path="browse/:issueKey" element={<BrowseIssuePage />} />
           <Route path="filters" element={<FiltersPage />} />

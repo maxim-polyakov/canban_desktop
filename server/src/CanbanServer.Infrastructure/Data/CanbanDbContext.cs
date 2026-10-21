@@ -84,6 +84,13 @@ public class CanbanDbContext : DbContext
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
     public DbSet<AuditSetting> AuditSettings => Set<AuditSetting>();
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
+    public DbSet<ServiceDeskSettings> ServiceDeskSettings => Set<ServiceDeskSettings>();
+    public DbSet<ServiceRequestType> ServiceRequestTypes => Set<ServiceRequestType>();
+    public DbSet<ServiceQueue> ServiceQueues => Set<ServiceQueue>();
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
+    public DbSet<SlaClock> SlaClocks => Set<SlaClock>();
+    public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
+    public DbSet<ApprovalDecision> ApprovalDecisions => Set<ApprovalDecision>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

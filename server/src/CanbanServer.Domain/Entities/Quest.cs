@@ -47,6 +47,8 @@ public class Quest
     public int? OriginalEstimateMinutes { get; set; }
     public int? RemainingEstimateMinutes { get; set; }
     public string? DescriptionDocumentJson { get; set; }
+    /// <summary>Service Desk request type that created this issue; null for regular tasks.</summary>
+    public Guid? RequestTypeId { get; set; }
 
     public Column Column { get; set; } = null!;
     public Board Board { get; set; } = null!;

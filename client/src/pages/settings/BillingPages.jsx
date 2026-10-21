@@ -80,7 +80,7 @@ export function AdminBillingPage() {
 
       <SettingsSection title={t('Использование')} description={t('Считается по командам, которыми вы владеете.')}>
         <UsageBar label="Пользователи" used={data.usage.users} limit={data.limits.maxUsers} />
-        <UsageBar label="Хранилище вложений" used={data.usage.storageBytes} limit={data.limits.storageGb == null ? null : data.limits.storageGb * GB} format={formatBytes} />
+        <UsageBar label="Общее хранилище организации" used={data.usage.storageBytes} limit={data.limits.storageGb == null ? null : data.limits.storageGb * GB} format={formatBytes} />
         <UsageBar label="Правила автоматизации" used={data.usage.automationRules} limit={data.limits.automationRules} />
         <p className="settings-row-desc">{t('Команды')}: {data.usage.teams} · {t('Разделы')}: {data.usage.spaces}</p>
       </SettingsSection>
@@ -178,7 +178,7 @@ export function AdminBillingPlansPage() {
               )}
               <ul className="billing-plan-limits">
                 <li>{p.maxUsers == null ? t('Без ограничений по пользователям') : `${t('До')} ${p.maxUsers.toLocaleString(locale)} ${t('пользователей')}`}</li>
-                <li>{p.storageGb == null ? t('Хранилище без ограничений') : `${p.storageGb} ${t('ГБ хранилища')}`}</li>
+                <li>{p.storageGb == null ? t('Общее хранилище организации без ограничений') : `${p.storageGb} ${t('ГБ общего хранилища на организацию')}`}</li>
                 <li>{p.automationRules == null ? t('Автоматизация без ограничений') : `${p.automationRules} ${t('правил автоматизации')}`}</li>
               </ul>
               {isCurrent(p) ? (

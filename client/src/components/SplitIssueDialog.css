@@ -1,0 +1,103 @@
+.sid-modal {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.sid-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sid-hint {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.85rem;
+}
+
+.sid-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 8px;
+  padding: 0 36px 0 24px;
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sid-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sid-key {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sid-part {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sid-row {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 16px minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 8px;
+}
+
+.sid-title,
+.sid-points,
+.sid-target select {
+  min-height: 36px;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface-sunken);
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.sid-title:focus,
+.sid-points:focus,
+.sid-target select:focus {
+  outline: none;
+  border-color: var(--accent, #0c66e4);
+  background: var(--surface);
+}
+
+.sid-points {
+  width: 72px;
+  text-align: center;
+}
+
+.sid-add {
+  align-self: flex-start;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--accent, #0c66e4);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sid-add:hover { background: var(--nav-hover, rgba(9, 30, 66, 0.06)); }
+
+.sid-target {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 320px;
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+  font-weight: 600;
+}

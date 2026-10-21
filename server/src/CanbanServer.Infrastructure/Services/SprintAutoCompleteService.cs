@@ -8,7 +8,7 @@ namespace CanbanServer.Infrastructure.Services;
 /// <summary>Jira's «Автоматически завершать спринт»: closes sprints at their end date.</summary>
 public sealed class SprintAutoCompleteService : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(15);
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<SprintAutoCompleteService> _logger;
 
@@ -20,7 +20,7 @@ public sealed class SprintAutoCompleteService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try { await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken); }
+        try { await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken); }
         catch (OperationCanceledException) { return; }
         while (!stoppingToken.IsCancellationRequested)
         {

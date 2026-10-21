@@ -9,6 +9,7 @@ import IssueDetailDrawer from '../components/IssueDetailDrawer.jsx';
 import StartSprintDialog from '../components/StartSprintDialog.jsx';
 import IssueActionsMenu from '../components/IssueActionsMenu.jsx';
 import BoardToolbar from '../components/BoardToolbar.jsx';
+import SplitIssueDialog from '../components/SplitIssueDialog.jsx';
 import { matchesBoardFilters } from '../utils/boardLanes.js';
 import './BacklogPage.css';
 
@@ -115,7 +116,7 @@ function EstimateCell({ quest, onUpdate, t }) {
   const commit = () => {
     setEditing(false);
     const next = String(value).trim() === '' ? null : Number(value);
-    if (next !== null && (!Number.isFinite(next) || next < 0)) return;
+    if (next !== null && (!Number.isInteger(next) || next < 0)) return;
     if (next !== (quest.storyPoints ?? null)) onUpdate({ storyPoints: next, storyPointsSet: true });
   };
   if (editing) {
@@ -288,6 +289,7 @@ export default function BacklogPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [startingSprint, setStartingSprint] = useState(null);
   const [editingSprint, setEditingSprint] = useState(null);
+  const [splitting, setSplitting] = useState(null);
   const [collapsed, setCollapsed] = useState([]);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -417,24 +419,15 @@ export default function BacklogPage() {
     } catch (e) { report(e, 'Не удалось создать задачу.'); }
   };
 
-  const splitQuest = async (quest) => {
-    const title = window.prompt(t('Название новой задачи, которая будет отделена от ${key}', { key: quest.issueKey }), quest.title);
-    if (!title?.trim()) return;
-    const created = await quests.create({
-      title: title.trim(),
-      columnId: quest.columnId,
-      category: quest.category ?? 0,
-      xpReward: quest.xpReward ?? 10,
-      isEpic: false,
-      issueType: quest.issueType,
-      issueTypeId: quest.issueTypeId ?? null,
-      priority: quest.priority,
-      labels: quest.labels || null,
-      sprintId: quest.sprintId ?? null,
-      parentQuestId: quest.parentQuestId ?? null,
-      assigneeIds: quest.assigneeIds ?? [],
-    });
-    setToast(t('Создана задача ${key}', { key: created?.issueKey ?? '' }));
+  const handleSplit = async ({ update, creates }) => {
+    if (Object.keys(update).length) await quests.update(splitting.id, update);
+    const keys = [];
+    for (const payload of creates) {
+      const created = await quests.create(payload);
+      if (created?.issueKey) keys.push(created.issueKey);
+    }
+    setSplitting(null);
+    setToast(t('Задача ${key} разделена: ${keys}', { key: splitting.issueKey, keys: keys.join(', ') }));
     await refresh();
   };
 
@@ -449,7 +442,7 @@ export default function BacklogPage() {
       loadEpics={loadEpics}
       onMove={(sprintId) => quests.update(quest.id, { sprintId, sprintIdSet: true }).then(refresh)}
       onUpdate={(patch) => quests.update(quest.id, patch).then(refresh)}
-      onSplit={() => splitQuest(quest)}
+      onSplit={() => setSplitting(quest)}
       onDelete={() => deleteQuest(quest)}
       onNotify={setToast}
     />
@@ -632,6 +625,9 @@ export default function BacklogPage() {
           onStart={handleStartSprint}
           onClose={() => setStartingSprint(null)}
         />
+      )}
+      {splitting && (
+        <SplitIssueDialog quest={splitting} sprints={sprintList} onSplit={handleSplit} onClose={() => setSplitting(null)} />
       )}
       {editingSprint && (
         <StartSprintDialog sprint={editingSprint} mode="edit" onStart={handleEditSprint} onClose={() => setEditingSprint(null)} />

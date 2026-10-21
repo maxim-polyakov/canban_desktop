@@ -204,17 +204,8 @@ function SpaceHeader({ board, boardId, tab }) {
           )}
         </span>
         <h1 className="app-space-title" title={name}>{name}</h1>
-        <button
-          type="button"
-          className={`app-icon-btn app-space-star ${starred ? 'is-starred' : ''}`}
-          aria-label={starred ? t('Убрать из отмеченных') : t('Отметить')}
-          onClick={() => toggleStarredBoard({ id: boardId, name, teamName: board?.teamName })}
-        >
-          <NavIcon name="star" filled={starred} />
-        </button>
-        <OnboardingButton board={board} boardId={boardId} />
         <span className="app-space-teams">
-          <button type="button" className={`app-icon-btn ${teams.length ? 'app-space-teams-btn' : ''}`} onClick={() => setTeamsOpen(true)}
+          <button type="button" className={`app-icon-btn app-space-team-trigger ${teams.length ? 'has-teams' : ''}`} onClick={() => setTeamsOpen(true)}
             aria-label={t('Участвующие команды')} title={teams.length ? teams.map((x) => x.name).join(', ') : t('Привязать участвующие команды')}>
             {teams.length === 0 ? <NavIcon name="teams" /> : (
               <span className="app-space-teams-stack">
@@ -225,6 +216,15 @@ function SpaceHeader({ board, boardId, tab }) {
           </button>
         </span>
         {teamsOpen && <ContributingTeamsDialog boardId={boardId} onClose={closeTeams} onSaved={setTeams} />}
+        <button
+          type="button"
+          className={`app-icon-btn app-space-star ${starred ? 'is-starred' : ''}`}
+          aria-label={starred ? t('Убрать из отмеченных') : t('Отметить')}
+          onClick={() => toggleStarredBoard({ id: boardId, name, teamName: board?.teamName })}
+        >
+          <NavIcon name="star" filled={starred} />
+        </button>
+        <OnboardingButton board={board} boardId={boardId} />
         <div className="app-space-more" ref={ref}>
           <button type="button" className="app-icon-btn" aria-label={t('Настройки раздела')} aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
             <NavIcon name="more" />

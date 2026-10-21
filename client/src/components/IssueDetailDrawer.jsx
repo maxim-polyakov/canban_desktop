@@ -400,7 +400,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       const ok = await quests.delete(questId);
       if (ok) { onChanged?.(); onClose?.(); }
     } catch (e) {
-      console.error(e);
+      setAuxError(e.message || t('Не удалось удалить задачу.'));
     }
   };
 
@@ -716,6 +716,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
           </div>
         </header>
 
+        {auxError && <p className="issue-drawer-error" role="alert">{auxError}</p>}
         {loading && !quest ? (
           <div className="iv-placeholder">{t('Загрузка…')}</div>
         ) : !quest ? (
@@ -1091,7 +1092,6 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                 </div>
               </details>
 
-              {auxError && <p className="issue-drawer-error" role="alert">{auxError}</p>}
               <p className="iv-meta">
                 {t('Создано')} {formatDate(quest.createdAt)}
                 {quest.completedAt && <><br />{t('Выполнено')} {formatDate(quest.completedAt)}</>}

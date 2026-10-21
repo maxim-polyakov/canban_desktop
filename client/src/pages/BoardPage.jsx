@@ -361,7 +361,7 @@ export default function BoardPage() {
       const ok = await quests.delete(questIdToDelete);
       if (ok) await refreshBoard();
     } catch (e) {
-      console.error(e);
+      window.alert(t(e.message || 'Не удалось удалить задачу.'));
     }
   };
 

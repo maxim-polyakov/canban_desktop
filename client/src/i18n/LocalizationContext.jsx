@@ -61,6 +61,7 @@ const EN_OVERRIDES = {
   'Завершение...': 'Completing...',
   'Завершить спринт? Незавершённые задачи вернутся в бэклог.': 'Complete the sprint? Incomplete issues will return to the backlog.',
   'Не удалось завершить спринт.': 'Could not complete the sprint.',
+  'Не удалось удалить задачу.': 'Could not delete the issue.',
   'Активы доступны в Premium.': 'Assets are available on Premium.',
   'Посмотреть планы': 'View plans',
   'Создать задачу': 'Create issue',

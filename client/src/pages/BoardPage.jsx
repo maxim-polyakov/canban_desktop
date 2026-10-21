@@ -24,6 +24,8 @@ const ARCHIVE_COLUMN_KIND = 5;
 
 const EMPTY_FILTERS = { assigneeIds: [], types: [], priorities: [], labels: [] };
 const groupKey = (boardId) => `board-group:${boardId}`;
+export const isBoardViewReady = (boardId, boardLoadedFor, sprintsLoaded, sprintsLoadedFor) =>
+  boardLoadedFor === boardId && sprintsLoaded && sprintsLoadedFor === boardId;
 const PRIORITY_FILTER_OPTIONS = [
   { value: '', label: 'Все приоритеты' },
   { value: '4', label: 'Высший' },
@@ -39,6 +41,7 @@ export default function BoardPage() {
   const { user } = useAuth();
   const { t } = useLocalization();
   const [board, setBoard] = useState(null);
+  const [boardLoadedFor, setBoardLoadedFor] = useState(null);
   const [members, setMembers] = useState([]);
   const [pendingTransition, setPendingTransition] = useState(null);
   const issueConfig = useBoardIssueConfig(boardId);
@@ -63,6 +66,12 @@ export default function BoardPage() {
   const [sprintsLoadedFor, setSprintsLoadedFor] = useState(null);
 
   useEffect(() => {
+    setBoard(null);
+    setBoardLoadedFor(null);
+    setColumnLayout(null);
+    setMembers([]);
+    setLoading(true);
+    setError('');
     setGroupBy(localStorage.getItem(groupKey(boardId)) || 'none');
     setBoardFilters(EMPTY_FILTERS);
     setQueryText('');
@@ -87,13 +96,16 @@ export default function BoardPage() {
       // A stale response would snap an optimistically moved card back to its old column.
       if (seq !== loadSeqRef.current || pendingMovesRef.current > 0) return;
       setBoard(data);
+      setBoardLoadedFor(boardId);
       setColumnLayout(layout);
       setEditBoardName(data?.name ?? '');
       setEditBoardDesc(data?.description ?? '');
     } catch (e) {
+      if (seq !== loadSeqRef.current) return;
       setError(e.message);
+      setBoardLoadedFor(boardId);
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) setLoading(false);
     }
   }, [boardId]);
 
@@ -376,7 +388,7 @@ export default function BoardPage() {
     } catch (e) { window.alert(t(e.message || 'Не удалось выполнить массовое изменение.')); }
   };
 
-  if (loading || !sprintsLoaded || sprintsLoadedFor !== boardId) return <div className="page">Загрузка доски...</div>;
+  if (loading || !isBoardViewReady(boardId, boardLoadedFor, sprintsLoaded, sprintsLoadedFor)) return <div className="page">Загрузка доски...</div>;
   if (error) return <div className="page">Ошибка: {error}</div>;
   if (!board) return <div className="page">Доска не найдена.</div>;
 

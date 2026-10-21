@@ -363,3 +363,10 @@ export const apiTokens = {
   revoke: (id) => remove(`/api/me/tokens/${id}`),
   revokeAll: () => apiJson('/api/me/tokens', { method: 'DELETE' }),
 };
+
+export const ai = {
+  status: () => apiJson('/api/ai/status'),
+  summarize: (questId, language) => apiJson(`/api/ai/quests/${questId}/summary`, json('POST', { language })),
+  description: (data) => apiJson('/api/ai/description', json('POST', data)),
+  jql: (data) => apiJson('/api/ai/jql', json('POST', data)),
+};

@@ -15,6 +15,7 @@ jest.mock('./IssueAssetsField.jsx', () => () => <div />);
 jest.mock('./CreateBranchPanel.jsx', () => () => <div />);
 jest.mock('./CustomFields.jsx', () => () => <div />);
 jest.mock('./TransitionScreenDialog.jsx', () => () => <div />);
+jest.mock('./AiAssist.jsx', () => ({ AiDescriptionAssist: () => null, AiSummary: () => null }));
 jest.mock('../utils/navHistory.js', () => ({ rememberIssue: () => {} }));
 jest.mock('../utils/issueConfig.js', () => ({
   BASE_TYPES: [{ value: 2, label: 'Задача' }, { value: 3, label: 'Ошибка' }],

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { search, savedFilters, spaces as spacesApi, people as peopleApi } from '../api.js';
+import { ai, search, savedFilters, spaces as spacesApi, people as peopleApi } from '../api.js';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import { Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import NavIcon from '../components/NavIcons.jsx';
 import FilterSubscriptionsDialog from '../components/FilterSubscriptionsDialog.jsx';
+import { SparkleIcon } from '../components/AiAssist.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { IssueTypeIcon, PriorityIcon, getIssueTypeMeta, getPriorityMeta } from '../components/IssueIcons.jsx';
 import { isFilterStarred, toggleStarredFilter, useNavHistory } from '../utils/navHistory.js';
@@ -84,7 +85,7 @@ function Person({ name, avatarUrl, empty }) {
 const STATUS_CLASS = { new: 'is-new', indeterminate: 'is-progress', done: 'is-done' };
 
 export default function IssueNavigatorPage() {
-  const { t, locale } = useLocalization();
+  const { t, locale, language } = useLocalization();
   const location = useLocation();
   const navigate = useNavigate();
   const { viewedIssues } = useNavHistory();
@@ -117,6 +118,9 @@ export default function IssueNavigatorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [aiText, setAiText] = useState('');
+  const [aiResult, setAiResult] = useState(null);
+  const [aiBusy, setAiBusy] = useState(false);
 
   useEffect(() => {
     savedFilters.getAll().then((v) => setSaved(Array.isArray(v) ? v : v?.items || [])).catch(() => setSaved([]));
@@ -165,6 +169,7 @@ export default function IssueNavigatorPage() {
 
   const switchMode = (next) => {
     if (next === mode) return;
+    if (next === 'ai') { setNotice(''); setMode('ai'); return; }
     if (next === 'jql') { setJqlText(appliedJql ?? ''); setMode('jql'); return; }
     const parsed = parseBasicJql(jqlText);
     if (!parsed) { setNotice(t('Этот запрос слишком сложен для базового режима. Измените его в JQL.')); return; }
@@ -172,6 +177,26 @@ export default function IssueNavigatorPage() {
     setCriteria(parsed);
     setAppliedJql(buildJql(parsed));
     setMode('basic');
+  };
+
+  const runAi = async (e) => {
+    e.preventDefault();
+    const text = aiText.trim();
+    if (!text || aiBusy) return;
+    setAiBusy(true);
+    setError('');
+    try {
+      const res = await ai.jql({ text, language });
+      setAiResult(res);
+      setJqlText(res?.jql || '');
+      setAppliedJql(res?.jql || '');
+      setPage(1);
+    } catch (err) {
+      setAiResult(null);
+      setError(t(err?.message || 'ИИ не смог ответить.'));
+    } finally {
+      setAiBusy(false);
+    }
   };
 
   const runJql = (e) => {
@@ -302,8 +327,15 @@ export default function IssueNavigatorPage() {
         <div className="inav-segment" role="tablist" aria-label={t('Режим поиска')}>
           <button type="button" role="tab" aria-selected={mode === 'basic'} className={mode === 'basic' ? 'is-active' : ''} onClick={() => switchMode('basic')}>{t('Базовый')}</button>
           <button type="button" role="tab" aria-selected={mode === 'jql'} className={mode === 'jql' ? 'is-active' : ''} onClick={() => switchMode('jql')}>JQL</button>
+          <button type="button" role="tab" aria-selected={mode === 'ai'} className={`inav-ai-tab ${mode === 'ai' ? 'is-active' : ''}`} onClick={() => switchMode('ai')}><SparkleIcon size={14} />{t('ИИ')}</button>
         </div>
-        {mode === 'basic' ? (
+        {mode === 'ai' ? (
+          <form className="inav-jql inav-ai" onSubmit={runAi}>
+            <input value={aiText} onChange={(e) => setAiText(e.target.value)} aria-label={t('Поиск на естественном языке')}
+              placeholder={t('Например: мои открытые баги с высоким приоритетом за неделю')} />
+            <button type="submit" className="inav-btn inav-btn-primary" disabled={aiBusy || !aiText.trim()}>{aiBusy ? '…' : t('Искать')}</button>
+          </form>
+        ) : mode === 'basic' ? (
           <>
             <label className="inav-search">
               <NavIcon name="search" size={14} />
@@ -366,6 +398,14 @@ export default function IssueNavigatorPage() {
           </form>
         )}
       </div>
+      {mode === 'ai' && aiResult && (
+        <div className="inav-ai-result" role="status">
+          <SparkleIcon size={14} />
+          <span>{aiResult.explanation}</span>
+          <code>{aiResult.jql || '—'}</code>
+          <button type="button" className="inav-link" onClick={() => switchMode('jql')}>{t('Изменить в JQL')}</button>
+        </div>
+      )}
       {notice && <p className="inav-notice" role="status">{notice}</p>}
       {missingFilter && <p className="inav-error" role="alert">{t('Фильтр не найден или у вас нет к нему доступа.')}</p>}
       {error && <p className="inav-error" role="alert">{error}</p>}

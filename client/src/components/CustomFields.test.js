@@ -12,6 +12,7 @@ jest.mock('../i18n/LocalizationContext.jsx', () => ({
 jest.mock('../context/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { id: 'u1', displayName: 'Me', email: 'me@example.com' } }),
 }));
+jest.mock('./AiAssist.jsx', () => ({ AiDescriptionAssist: () => null }));
 
 const calls = { setValue: [], create: [] };
 const incident = { id: 't-incident', teamId: 'team', name: 'Инцидент', baseType: 3, icon: '🔥', color: '#e5493a' };

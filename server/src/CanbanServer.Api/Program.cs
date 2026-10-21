@@ -198,6 +198,9 @@ builder.Services.AddHostedService<OutboxDispatcher>();
 builder.Services.AddHostedService<AuditRetentionService>();
 builder.Services.AddHostedService<FilterSubscriptionDispatcher>();
 builder.Services.AddHostedService<SprintAutoCompleteService>();
+builder.Services.AddHttpClient(AiClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(60));
+builder.Services.AddSingleton<AiClient>();
+builder.Services.AddScoped<AiService>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration
 var redisConfig = builder.Configuration["Redis:Configuration"];

@@ -19,6 +19,7 @@ import { fieldRule } from '../utils/issueLayout.js';
 import { issueWorkflow, needsTransitionDialog, reachableColumns, transitionsTo } from '../utils/workflow.js';
 import { statusTone } from '../utils/boardColumnLayout.js';
 import TransitionScreenDialog from './TransitionScreenDialog.jsx';
+import { AiDescriptionAssist, AiSummary } from './AiAssist.jsx';
 import MentionTextarea, { MentionText } from './MentionTextarea.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
@@ -742,6 +743,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                 </span>
                 <input ref={attachmentInputRef} type="file" className="issue-drawer-file-input" onChange={handleUploadAttachment} />
               </div>
+              <AiSummary questId={questId} />
 
               {shown('description') && (
                 <section className="iv-section">
@@ -766,6 +768,9 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                       {description.trim() ? <RichTextPreview value={serializeRichText(description)} currentUserId={user?.id} /> : <span className="iv-placeholder-text">{t('Редактировать описание')}</span>}
                     </button>
                   )}
+                  <AiDescriptionAssist compact boardId={quest.boardId} title={title} issueType={issueType} issueTypeName={currentTypeLabel}
+                    description={description}
+                    onAccept={(text) => { setDescription(text); setEditingDescription(false); setDescriptionPreview(false); save({ description: text }); }} />
                 </section>
               )}
 

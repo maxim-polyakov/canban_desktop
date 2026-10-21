@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { boards as boardsApi, components as componentsApi, people as peopleApi, quests } from '../api.js';
 import { IssueTypeIcon, PriorityIcon, getIssueTypeMeta, getPriorityMeta } from './IssueIcons.jsx';
 import NavIcon from './NavIcons.jsx';
+import { AiDescriptionAssist } from './AiAssist.jsx';
 import { CustomFieldInput, configuredField } from './CustomFields.jsx';
 import { emptyFieldValue, fieldApplies, isEmptyValue, useBoardIssueConfig } from '../utils/issueConfig.js';
 import { DEFAULT_CREATE_FIELDS, arrangeFields, fieldRule, onScreen, screenTabs, typeToken } from '../utils/issueLayout.js';
@@ -190,6 +191,11 @@ export default function CreateIssueDialog({ open, onClose, boards, defaultBoardI
               <textarea rows={5} value={description} onChange={(e) => setDescription(e.target.value)} />
               {hint('description')}
             </label>
+          )}
+          {shows('description') && (
+            <AiDescriptionAssist compact boardId={boardId} title={title} issueType={issueType}
+              issueTypeName={issueConfig.types.find((type) => type.id === issueTypeId)?.name || t(getIssueTypeMeta(issueType).label)}
+              description={description} onAccept={setDescription} />
           )}
           {shows('priority') && (
             <label className="app-field">

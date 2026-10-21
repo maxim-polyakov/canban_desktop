@@ -229,9 +229,9 @@ function DropList({ id, data, children }) {
 function PointsLozenges({ points, t }) {
   return (
     <span className="bl-points" aria-label={t('Оценка по статусам')}>
-      <span className="bl-points-todo" title={t('К выполнению')}>{points.todo}</span>
-      <span className="bl-points-progress" title={t('В работе')}>{points.progress}</span>
-      <span className="bl-points-done" title={t('Готово')}>{points.done}</span>
+      <span className="bl-points-todo" title={`${t('К выполнению')} — ${t('Оценка')}: ${points.todo}`}>{points.todo}</span>
+      <span className="bl-points-progress" title={`${t('В работе')} — ${t('Оценка')}: ${points.progress}`}>{points.progress}</span>
+      <span className="bl-points-done" title={`${t('Готово')} — ${t('Оценка')}: ${points.done}`}>{points.done}</span>
     </span>
   );
 }

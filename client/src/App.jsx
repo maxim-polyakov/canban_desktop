@@ -50,6 +50,7 @@ import { WorkflowDesignerPage, WorkflowsPage } from './pages/settings/WorkflowPa
 import { NotificationSchemesPage, PermissionSchemesPage } from './pages/settings/PermissionSchemePages.jsx';
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
 import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
+import { LegalPage, OfferPage, PricingPage, PrivacyPage } from './pages/LegalPages.jsx';
 import { useApplyTheme, usePrefs } from './utils/preferences.js';
 
 const HOME_REDIRECTS = { spaces: '/spaces', issues: '/issues' };
@@ -82,6 +83,10 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/forgot-password/code" element={<ForgotPasswordCodePage />} />
         <Route path="/forgot-password/reset" element={<ForgotPasswordResetPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/offer" element={<OfferPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/legal" element={<LegalPage />} />
         <Route
           path="/"
           element={

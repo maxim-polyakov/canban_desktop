@@ -60,6 +60,12 @@ export default function LoginPage() {
         <p className="auth-footer">
           Нет аккаунта? <Link to="/register">Регистрация</Link>
         </p>
+        <div className="auth-legal-links">
+          <Link to="/pricing">Тарифы</Link>
+          <Link to="/offer">Оферта</Link>
+          <Link to="/privacy">Конфиденциальность</Link>
+          <Link to="/legal">Реквизиты</Link>
+        </div>
       </form>
     </div>
   );

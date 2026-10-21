@@ -131,6 +131,7 @@ public class PermissionSchemeService
             var from = permission.DefaultLevel switch { BoardPermission.View => 0, BoardPermission.Work => 1, BoardPermission.Manage => 2, _ => 3 };
             data.Grants[permission.Key] = RoleOrder.Skip(from).Select(r => new PermissionGrant { Type = "role", Value = r }).ToList();
         }
+        data.Grants[JiraPermissions.Delete].Add(new PermissionGrant { Type = "reporter" });
         return data;
     }
 

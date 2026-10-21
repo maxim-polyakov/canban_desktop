@@ -41,6 +41,9 @@ public class PermissionSchemeTests
         Assert.False(Scope("viewer").Has(JiraPermissions.Assignable));
         Assert.False(Scope("member").Has(JiraPermissions.Delete));
         Assert.True(Scope("lead").Has(JiraPermissions.Delete));
+        var reporter = Guid.NewGuid();
+        Assert.True(Scope("member", userId: reporter).Has(JiraPermissions.Delete, new Quest { ReporterId = reporter }));
+        Assert.False(Scope("member", userId: reporter).Has(JiraPermissions.Delete, new Quest { ReporterId = Guid.NewGuid() }));
         Assert.True(Scope("lead").Has(JiraPermissions.DeleteAllComments));
         Assert.Null(Scope(null).Level);
     }

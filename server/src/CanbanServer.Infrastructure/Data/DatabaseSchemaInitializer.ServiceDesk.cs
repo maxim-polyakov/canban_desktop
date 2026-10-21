@@ -54,7 +54,7 @@ public static partial class DatabaseSchemaInitializer
               "FirstResponseMinutes" integer NOT NULL DEFAULT 240,
               "ResolutionMinutes" integer NOT NULL DEFAULT 1440,
               "PauseStatusTitlesJson" text NOT NULL DEFAULT '["Ожидает пользователя"]',
-              "CalendarJson" text NOT NULL DEFAULT '{"timezone":"Europe/Moscow","weekdays":[1,2,3,4,5],"start":"09:00","end":"18:00"}');
+              "CalendarJson" text NOT NULL DEFAULT '{{"timezone":"Europe/Moscow","weekdays":[1,2,3,4,5],"start":"09:00","end":"18:00"}}');
             CREATE INDEX IF NOT EXISTS "IX_SlaPolicies_BoardId" ON "SlaPolicies"("BoardId");
 
             CREATE TABLE IF NOT EXISTS "SlaClocks" (

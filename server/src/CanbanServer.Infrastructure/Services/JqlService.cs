@@ -146,12 +146,31 @@ public sealed class JqlService : IJqlQueryService
         {
             "currentuser" => context.UserId,
             "opensprints" => q.Sprint?.Status == SprintStatus.Active ? q.SprintId : null,
-            "now" => context.Now,
-            "startofday" => context.Now.Date,
-            "startofweek" => context.Now.Date.AddDays(-(((int)context.Now.DayOfWeek + 6) % 7)),
-            "startofmonth" => new DateTime(context.Now.Year, context.Now.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+            "now" => Shift(context.Now, value.Argument, 'd'),
+            "startofday" => Shift(DayStart(context.Now), value.Argument, 'd'),
+            "endofday" => Shift(DayStart(context.Now).AddDays(1).AddTicks(-1), value.Argument, 'd'),
+            "startofweek" => Shift(WeekStart(context.Now), value.Argument, 'w'),
+            "endofweek" => Shift(WeekStart(context.Now).AddDays(7).AddTicks(-1), value.Argument, 'w'),
+            "startofmonth" => Shift(MonthStart(context.Now), value.Argument, 'M'),
+            "endofmonth" => Shift(MonthStart(context.Now).AddMonths(1).AddTicks(-1), value.Argument, 'M'),
+            "startofyear" => Shift(new DateTime(context.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc), value.Argument, 'y'),
+            "endofyear" => Shift(new DateTime(context.Now.Year + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(-1), value.Argument, 'y'),
             _ => throw new ArgumentException($"Unsupported JQL function '{value.Value}()'")
         };
+    }
+
+    private static DateTime DayStart(DateTime now) => DateTime.SpecifyKind(now.Date, DateTimeKind.Utc);
+    private static DateTime WeekStart(DateTime now) => DayStart(now).AddDays(-(((int)now.DayOfWeek + 6) % 7));
+    private static DateTime MonthStart(DateTime now) => new(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>Jira date function offsets: startOfWeek(-1) is last week, startOfDay(-7d) is a week ago; a bare number uses the function's unit.</summary>
+    private static DateTime Shift(DateTime value, string? argument, char unit)
+    {
+        var text = argument?.Trim();
+        if (string.IsNullOrEmpty(text)) return value;
+        if (char.IsDigit(text[^1])) text += unit;
+        if (!RelativeDate.IsMatch(text)) throw new ArgumentException($"Invalid JQL date offset '{argument}'");
+        return ParseDate(text, value)!.Value;
     }
 
     private static object? Field(Quest q, string field, JqlContext context) => field switch

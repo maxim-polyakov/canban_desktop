@@ -88,8 +88,9 @@ public sealed class JqlParser
         var token = NeedAny(TokenKind.Word, TokenKind.String, TokenKind.Number);
         if (Take(TokenKind.LeftParen))
         {
+            var argument = Is(TokenKind.RightParen) ? null : NeedAny(TokenKind.Word, TokenKind.String, TokenKind.Number).Text;
             Need(TokenKind.RightParen);
-            return new JqlValue(token.Text, true);
+            return new JqlValue(token.Text, true, argument);
         }
         return new JqlValue(token.Text);
     }

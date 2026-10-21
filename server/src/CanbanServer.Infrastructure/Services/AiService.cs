@@ -151,7 +151,8 @@ public sealed class AiService
             priority (Highest, High, Medium, Low, Lowest), assignee, reporter, watcher, voter, votes, watchers, sprint, labels, component, fixVersion,
             storyPoints, created, updated, duedate, startdate, resolved, resolution (Unresolved — не решена), project (ключ пространства).
             Операторы: =, !=, >, >=, <, <=, ~ (содержит), !~, IN (...), NOT IN (...), IS EMPTY, IS NOT EMPTY, AND, OR, NOT, скобки, ORDER BY поле ASC|DESC.
-            Функции: currentUser(), openSprints() (только как sprint IN (openSprints())), now(), startOfDay(), startOfWeek(), startOfMonth().
+            Функции: currentUser(), openSprints() (только как sprint IN (openSprints())), now(), startOfDay(), endOfDay(), startOfWeek(), endOfWeek(), startOfMonth(), endOfMonth(), startOfYear(), endOfYear();
+            у функций дат может быть смещение: startOfWeek(-1) — начало прошлой недели, startOfDay(-7d) — неделю назад.
             Относительные даты пиши в кавычках: "-7d", "-2w", "-1M", "-4h". Строки со пробелами бери в двойные кавычки.
             Пользователей указывай только через currentUser() или их id из списка ниже, никогда не по имени.
             Пользователи: {{(people.Count == 0 ? "нет" : string.Join("; ", people.Select(p => $"{p.DisplayName} = {p.UserId}")))}}.

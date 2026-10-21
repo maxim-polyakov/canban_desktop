@@ -53,6 +53,24 @@ public class JqlAndAccessTests
     }
 
     [Fact]
+    public void Jql_DateFunctions_AcceptJiraOffsets()
+    {
+        var now = new DateTime(2026, 10, 21, 15, 30, 0, DateTimeKind.Utc); // Wednesday
+        bool At(string jql, DateTime created) => JqlService.Matches(new JqlParser(jql).Parse(), new Quest { CreatedAt = created, Column = new Column() },
+            new JqlService.JqlContext(Guid.NewGuid(), now, q => q.CreatedAt));
+
+        Assert.True(At("created >= startOfDay(-7d)", new DateTime(2026, 10, 14, 0, 0, 0, DateTimeKind.Utc)));
+        Assert.False(At("created >= startOfDay(-7d)", new DateTime(2026, 10, 13, 23, 59, 0, DateTimeKind.Utc)));
+        Assert.True(At("created >= startOfWeek(-1) AND created < startOfWeek()", new DateTime(2026, 10, 12, 9, 0, 0, DateTimeKind.Utc)));
+        Assert.False(At("created >= startOfWeek(-1) AND created < startOfWeek()", new DateTime(2026, 10, 19, 9, 0, 0, DateTimeKind.Utc)));
+        Assert.True(At("created >= startOfMonth(-1) AND created <= endOfMonth(-1)", new DateTime(2026, 9, 30, 23, 0, 0, DateTimeKind.Utc)));
+        Assert.True(At("created <= endOfDay() AND created >= startOfYear()", now.AddHours(8)));
+        Assert.False(At("created <= endOfDay()", now.AddHours(9)));
+        Assert.True(At("created >= startOfDay(\"-1d\")", now.AddHours(-20)));
+        Assert.Throws<ArgumentException>(() => At("created >= startOfDay(abc)", now));
+    }
+
+    [Fact]
     public void Jql_Project_MatchesKeyOrSpaceId()
     {
         var me = Guid.NewGuid();

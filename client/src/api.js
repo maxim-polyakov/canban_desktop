@@ -1,6 +1,6 @@
 import { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
 
-export { API_BASE, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
+export { API_BASE, PLAN_REQUIRED_EVENT, api, apiForm, apiJson, buildQuery, getToken } from './api/transport.js';
 export {
   adminInfo, ai, apiTokens, contributingTeams, assets, audit, automations, billing, bulk, clone, filterSubscriptions, home, kudos, people, personalSettings, spaces, components, dashboards, history, importExport,
   integrations, issueConfig, issueLayouts, myWork, notificationSchemes, notifications, permissionSchemes, permissions, plans, questHierarchy, questLinks,

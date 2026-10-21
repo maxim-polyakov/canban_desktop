@@ -14,19 +14,22 @@ public class TeamService : ITeamService
     private readonly IQuestAttachmentService _attachmentService;
     private readonly IBoardHub _boardHub;
     private readonly IConfiguration _config;
+    private readonly PlanAccessService _plans;
 
     public TeamService(
         CanbanDbContext db,
         IAchievementService achievementService,
         IQuestAttachmentService attachmentService,
         IBoardHub boardHub,
-        IConfiguration config)
+        IConfiguration config,
+        PlanAccessService plans)
     {
         _db = db;
         _achievementService = achievementService;
         _attachmentService = attachmentService;
         _boardHub = boardHub;
         _config = config;
+        _plans = plans;
     }
 
     /// <summary>Teams created by a service account are led by a real person, so its spaces show a human lead.</summary>
@@ -70,9 +73,11 @@ public class TeamService : ITeamService
         return teams.Select(t =>
         {
             var ownerId = t.OwnerId ?? t.Members.FirstOrDefault(m => m.Role == TeamRole.Admin)?.UserId;
+            var canManage = ownerId == userId || t.Members.Any(m => m.UserId == userId && m.Role == TeamRole.Admin);
             return new TeamWithBoardsDto(
                 new TeamDto(t.Id, t.Name, t.Description, t.CreatedAt, ownerId, t.Key),
-                (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(BoardDto.From).OrderBy(b => b.Order).ToList()
+                (boardsGrouped.GetValueOrDefault(t.Id) ?? new List<Board>()).Select(BoardDto.From).OrderBy(b => b.Order).ToList(),
+                canManage
             );
         }).ToList();
     }
@@ -142,6 +147,7 @@ public class TeamService : ITeamService
     public async Task<bool> AddMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default)
     {
         if (await _db.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == userId, ct)) return false;
+        await _plans.EnsureSeatAsync(teamId, userId, ct);
         _db.TeamMembers.Add(new TeamMember
         {
             Id = Guid.NewGuid(),
@@ -225,6 +231,7 @@ public class TeamService : ITeamService
             return false;
         if (await _db.TeamInvites.AnyAsync(i => i.TeamId == teamId && i.InvitedUserId == userId, ct))
             return false;
+        await _plans.EnsureSeatAsync(teamId, userId, ct);
         _db.TeamInvites.Add(new TeamInvite
         {
             Id = Guid.NewGuid(),
@@ -262,6 +269,7 @@ public class TeamService : ITeamService
             await _db.SaveChangesAsync(ct);
             return true;
         }
+        await _plans.EnsureSeatAsync(invite.TeamId, userId, ct);
         _db.TeamMembers.Add(new TeamMember
         {
             Id = Guid.NewGuid(),

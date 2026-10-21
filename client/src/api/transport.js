@@ -1,4 +1,5 @@
 export const API_BASE = process.env.REACT_APP_API_URL || '';
+export const PLAN_REQUIRED_EVENT = 'canban:plan-required';
 
 export function getToken() {
   return localStorage.getItem('token');
@@ -44,12 +45,29 @@ export function responseErrorMessage(status, text, statusText = '') {
 function responseError(response, text) {
   const error = new Error(responseErrorMessage(response.status, text, response.statusText));
   error.status = response.status;
+  try {
+    const body = JSON.parse(text);
+    error.code = body?.code;
+    error.requiredPlan = body?.requiredPlan;
+  } catch {
+    // A non-JSON error response has no structured billing metadata.
+  }
   return error;
+}
+
+function handlePlanRequired(response, text) {
+  if (response.status !== 402) return;
+  let requiredPlan = 'standard';
+  try { requiredPlan = JSON.parse(text)?.requiredPlan || requiredPlan; } catch { /* use the safe default */ }
+  window.dispatchEvent(new CustomEvent(PLAN_REQUIRED_EVENT, {
+    detail: { requiredPlan, returnTo: `${window.location.pathname}${window.location.search}` },
+  }));
 }
 
 export async function apiJson(url, options = {}) {
   const response = await api(url, options);
   const text = await response.text();
+  handlePlanRequired(response, text);
   if (!response.ok) throw responseError(response, text);
   return text ? JSON.parse(text) : null;
 }
@@ -61,6 +79,7 @@ export async function apiForm(url, formData, options = {}) {
   const response = await fetch(API_BASE + url, { ...options, method: options.method || 'POST', headers, body: formData });
   handleUnauthorized(response);
   const text = await response.text();
+  handlePlanRequired(response, text);
   if (!response.ok) throw responseError(response, text);
   return text ? JSON.parse(text) : null;
 }

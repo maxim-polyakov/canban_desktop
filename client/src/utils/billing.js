@@ -32,6 +32,19 @@ export function useBilling() {
   return data;
 }
 
+/** Best plan available through the user's teams, used for feature gates. */
+export function useAccessPlan() {
+  const [plan, setPlan] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    billingApi.access().then((data) => { if (alive) setPlan(data?.plan || 'free'); }).catch(() => { if (alive) setPlan('free'); });
+    const refresh = () => billingApi.access().then((data) => { if (alive) setPlan(data?.plan || 'free'); }).catch(() => {});
+    window.addEventListener(BILLING_CHANGED_EVENT, refresh);
+    return () => { alive = false; window.removeEventListener(BILLING_CHANGED_EVENT, refresh); };
+  }, []);
+  return plan;
+}
+
 export function formatMoney(value, locale) {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(Number(value) || 0);
 }

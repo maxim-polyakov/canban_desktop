@@ -49,9 +49,10 @@ import { FieldConfigurationsPage, ScreensPage } from './pages/settings/IssueLayo
 import { WorkflowDesignerPage, WorkflowsPage } from './pages/settings/WorkflowPages.jsx';
 import { NotificationSchemesPage, PermissionSchemesPage } from './pages/settings/PermissionSchemePages.jsx';
 import { AdminAppsPage, AdminOverviewPage, AdminSystemPage, AdminUsersPage } from './pages/settings/AdminPages.jsx';
-import { AdminBillingChangePage, AdminBillingPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
+import { AdminBillingChangePage, AdminBillingPage, AdminBillingPaymentPage, AdminBillingPlansPage } from './pages/settings/BillingPages.jsx';
 import { LegalPage, OfferPage, PricingPage, PrivacyPage } from './pages/LegalPages.jsx';
 import { useApplyTheme, usePrefs } from './utils/preferences.js';
+import { planIncludes, useAccessPlan } from './utils/billing.js';
 
 const HOME_REDIRECTS = { spaces: '/spaces', issues: '/issues' };
 
@@ -66,6 +67,16 @@ function ProtectedRoute({ children }) {
   const { t } = useLocalization();
   if (loading) return <div className="page">{t('Загрузка...')}</div>;
   if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function PlanRoute({ minPlan, returnTo, children }) {
+  const plan = useAccessPlan();
+  const { t } = useLocalization();
+  if (plan == null) return <div className="page">{t('Загрузка...')}</div>;
+  if (!planIncludes(plan, minPlan)) {
+    return <Navigate to={`/admin/billing/plans?required=${minPlan}&returnTo=${encodeURIComponent(returnTo)}`} replace />;
+  }
   return children;
 }
 
@@ -98,10 +109,10 @@ export default function App() {
           <Route index element={<HomeRoute />} />
           <Route path="for-you" element={<ForYouPage />} />
           <Route path="spaces" element={<SpacesPage />} />
-          <Route path="spaces/templates" element={<SpaceTemplatesPage />} />
-          <Route path="plans" element={<PlansListPage />} />
-          <Route path="plans/new" element={<CreatePlanPage />} />
-          <Route path="plans/:planId" element={<PlanPage />} />
+          <Route path="spaces/templates" element={<PlanRoute minPlan="standard" returnTo="/spaces/templates"><SpaceTemplatesPage /></PlanRoute>} />
+          <Route path="plans" element={<PlanRoute minPlan="premium" returnTo="/plans"><PlansListPage /></PlanRoute>} />
+          <Route path="plans/new" element={<PlanRoute minPlan="premium" returnTo="/plans/new"><CreatePlanPage /></PlanRoute>} />
+          <Route path="plans/:planId" element={<PlanRoute minPlan="premium" returnTo="/plans"><PlanPage /></PlanRoute>} />
           <Route path="spaces/templates/:templateId" element={<SpaceTemplatesPage />} />
           <Route path="teams" element={<TeamsHomePage />} />
           <Route path="teams/list" element={<TeamsListPage />} />
@@ -120,10 +131,10 @@ export default function App() {
           <Route path="goals/archived" element={<HomeDirectoryPage key="goals-archived" kind="goals" view="archived" />} />
           <Route path="goals/updates" element={<HomeUpdatesPage key="goals-updates" kind="goals" />} />
           <Route path="goals/:itemId/:tab?" element={<HomeItemPage key="goals-item" kind="goals" />} />
-          <Route path="assets" element={<AssetsHomePage />} />
-          <Route path="assets/search" element={<AssetSearchPage />} />
-          <Route path="assets/schema/:schemaId" element={<AssetSchemaPage />} />
-          <Route path="assets/object/:objectId" element={<AssetObjectPage />} />
+          <Route path="assets" element={<PlanRoute minPlan="premium" returnTo="/assets"><AssetsHomePage /></PlanRoute>} />
+          <Route path="assets/search" element={<PlanRoute minPlan="premium" returnTo="/assets/search"><AssetSearchPage /></PlanRoute>} />
+          <Route path="assets/schema/:schemaId" element={<PlanRoute minPlan="premium" returnTo="/assets"><AssetSchemaPage /></PlanRoute>} />
+          <Route path="assets/object/:objectId" element={<PlanRoute minPlan="premium" returnTo="/assets"><AssetObjectPage /></PlanRoute>} />
           <Route path="settings/personal/general" element={<PersonalGeneralPage />} />
           <Route path="settings/personal/notifications" element={<PersonalNotificationsPage />} />
           <Route path="settings/personal/security" element={<PersonalSecurityPage />} />
@@ -145,6 +156,7 @@ export default function App() {
           <Route path="admin/billing" element={<AdminBillingPage />} />
           <Route path="admin/billing/plans" element={<AdminBillingPlansPage />} />
           <Route path="admin/billing/change" element={<AdminBillingChangePage />} />
+          <Route path="admin/billing/payment" element={<AdminBillingPaymentPage />} />
           <Route path="board/:boardId/settings" element={<SpaceSettingsPage />} />
           <Route path="board/:boardId/fields" element={<SpaceFieldsPage />} />
           <Route path="board/:boardId" element={<BoardPage />} />

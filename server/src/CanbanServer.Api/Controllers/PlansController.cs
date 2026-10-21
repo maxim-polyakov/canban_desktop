@@ -8,6 +8,7 @@ namespace CanbanServer.Api.Controllers;
 
 [ApiController]
 [Authorize]
+[RequiresPlan(BillingPlans.Premium)]
 [Route("api/plans")]
 public class PlansController : ControllerBase
 {

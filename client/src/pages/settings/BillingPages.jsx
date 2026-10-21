@@ -250,6 +250,10 @@ export function AdminBillingChangePage() {
     setError('');
     try {
       const data = await billingApi.change(plan, cycle);
+      if (data?.confirmationUrl) {
+        window.location.assign(data.confirmationUrl);
+        return;
+      }
       notifyBillingChanged(data);
       navigate('/admin/billing?changed=1');
     } catch (e) {
@@ -290,7 +294,7 @@ export function AdminBillingChangePage() {
           {quote.amount > 0 && (
             <label className="billing-agree">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-              {t('Я согласен с условиями подписки. Счёт выставляется на оплату по реквизитам организации.')}
+              {t('Я согласен с условиями подписки и публичной офертой. После подтверждения откроется защищённая страница оплаты ЮKassa.')}
             </label>
           )}
           <div className="settings-actions billing-change-actions">
@@ -300,6 +304,67 @@ export function AdminBillingChangePage() {
             </button>
           </div>
         </>
+      )}
+    </SettingsShell>
+  );
+}
+
+export function AdminBillingPaymentPage() {
+  const { t, locale } = useLocalization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const paymentId = new URLSearchParams(location.search).get('id');
+  const [payment, setPayment] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!paymentId) { setError(t('Платёж не найден.')); return undefined; }
+    let alive = true;
+    let timer;
+    const check = async () => {
+      try {
+        const result = await billingApi.payment(paymentId);
+        if (!alive) return;
+        setPayment(result);
+        if (result.status === 'succeeded') {
+          const data = await loadBilling(true);
+          if (data) notifyBillingChanged(data);
+          navigate('/admin/billing?changed=1', { replace: true });
+          return;
+        }
+        if (result.status === 'pending') timer = window.setTimeout(check, 2500);
+      } catch (e) {
+        if (alive) setError(e.message);
+      }
+    };
+    check();
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [navigate, paymentId, t]);
+
+  return (
+    <SettingsShell
+      nav={ADMIN_NAV}
+      breadcrumbs={[['Настройки Канбан', '/admin'], ['Платежи', '/admin/billing'], ['Статус платежа']]}
+      title={t('Статус платежа')}
+    >
+      {error && <p className="settings-save-status is-error" role="alert">{error}</p>}
+      {!error && !payment && <p className="settings-empty">{t('Проверяем платёж…')}</p>}
+      {payment?.status === 'pending' && (
+        <div className="settings-card">
+          <h2>{t('Ожидаем подтверждения оплаты')}</h2>
+          <p>{t('Не закрывайте страницу. Обычно подтверждение занимает несколько секунд.')}</p>
+          <strong>{formatMoney(payment.amount, locale)}</strong>
+          {payment.confirmationUrl && (
+            <p><a className="app-btn app-btn-primary" href={payment.confirmationUrl}>{t('Вернуться к оплате')}</a></p>
+          )}
+        </div>
+      )}
+      {payment?.status === 'canceled' && (
+        <div className="billing-alert" role="alert">
+          <strong>{t('Платёж не прошёл')}</strong>
+          <p>{payment.error || t('Попробуйте другой способ оплаты.')}</p>
+          <Link className="app-btn app-btn-primary" to="/admin/billing/plans">{t('Выбрать тариф')}</Link>
+        </div>
       )}
     </SettingsShell>
   );

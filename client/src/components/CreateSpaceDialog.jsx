@@ -8,6 +8,7 @@ import { WorkflowPreview } from '../pages/spaces/SpaceTemplatesPage.jsx';
 import '../pages/spaces/SpaceTemplates.css';
 
 const NEW_TEAM = '__new__';
+export const manageableSpaceTeams = (teams = []) => teams.filter(({ team }) => team.canManage);
 
 const TYPE_POINTS = {
   team: ['Настройка за несколько минут', 'Свои статусы, поля и типы работ', 'Подходит для независимых команд'],
@@ -34,14 +35,18 @@ export default function CreateSpaceDialog({ open, initialTemplate, teamsWithBoar
     () => teamsWithBoards.flatMap(({ team, boards }) => boards.map((b) => ({ ...b, teamName: team.name }))),
     [teamsWithBoards],
   );
+  const manageableTeams = useMemo(
+    () => manageableSpaceTeams(teamsWithBoards),
+    [teamsWithBoards],
+  );
 
   useEffect(() => {
     if (!open) return;
     setStep('type'); setManagementType('team');
     setName(''); setKey(''); setKeyTouched(false); setError(''); setNewTeamName('');
     setAccess('private'); setCopySettings(false); setCopyFrom('');
-    setTeamId(teamsWithBoards[0]?.team.id || NEW_TEAM);
-  }, [open, initialTemplate, teamsWithBoards]);
+    setTeamId(manageableTeams[0]?.team.id || NEW_TEAM);
+  }, [open, initialTemplate, manageableTeams]);
 
   if (!open) return null;
 
@@ -146,9 +151,12 @@ export default function CreateSpaceDialog({ open, initialTemplate, teamsWithBoar
               <label className="app-field">
                 <span>{t('Команда')} <span className="app-required">*</span></span>
                 <select value={teamId} onChange={(e) => setTeamId(e.target.value)}>
-                  {teamsWithBoards.map(({ team }) => <option key={team.id} value={team.id}>{team.name}</option>)}
+                  {manageableTeams.map(({ team }) => <option key={team.id} value={team.id}>{team.name}</option>)}
                   <option value={NEW_TEAM}>{t('+ Новая команда')}</option>
                 </select>
+                {manageableTeams.length === 0 && (
+                  <small className="wiz-access-desc">{t('В существующих командах у вас нет прав администратора. Будет создана новая команда.')}</small>
+                )}
               </label>
               {teamId === NEW_TEAM && (
                 <label className="app-field">

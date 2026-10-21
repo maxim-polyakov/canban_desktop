@@ -34,6 +34,39 @@ public class BillingTests
     }
 
     [Fact]
+    public void PaidPlanLapsesToFreeAfterGrace()
+    {
+        var now = new DateTime(2026, 10, 21, 12, 0, 0, DateTimeKind.Utc);
+        Assert.Equal(BillingPlans.Premium, PlanAccessService.Effective("premium", now.AddDays(5), now));
+        Assert.Equal(BillingPlans.Premium, PlanAccessService.Effective("premium", now.AddDays(-2), now));
+        Assert.Equal(BillingPlans.Free, PlanAccessService.Effective("premium", now.AddDays(-4), now));
+        Assert.Equal(BillingPlans.Standard, PlanAccessService.Effective("standard", null, now));
+        Assert.Equal(BillingPlans.Free, PlanAccessService.Effective(null, null, now));
+        Assert.Equal(new DateTime(2026, 11, 21, 12, 0, 0, DateTimeKind.Utc), BillingPlans.PeriodEnd("monthly", now));
+        Assert.Equal(new DateTime(2027, 10, 21, 12, 0, 0, DateTimeKind.Utc), BillingPlans.PeriodEnd("annual", now));
+    }
+
+    [Fact]
+    public void ParsesYooKassaPayment()
+    {
+        var p = YooKassaClient.Parse("""
+            {"id":"2d9a8b5c-000f-5000-9000-1b6e2f3c4d5e","status":"succeeded","paid":true,"amount":{"value":"1380.00","currency":"RUB"},
+             "confirmation":{"type":"redirect","confirmation_url":"https://yoomoney.ru/checkout/payments/v2/contract?orderId=1"},
+             "payment_method":{"type":"bank_card","id":"2d9a8b5c-000f-5000-9000-1b6e2f3c4d5e","saved":true,"title":"Bank card *4444"}}
+            """);
+        Assert.Equal("succeeded", p.Status);
+        Assert.True(p.Paid);
+        Assert.Equal(1380m, p.Amount);
+        Assert.True(p.PaymentMethodSaved);
+        Assert.Equal("Bank card *4444", p.PaymentMethodTitle);
+        Assert.StartsWith("https://yoomoney.ru/", p.ConfirmationUrl);
+
+        var canceled = YooKassaClient.Parse("""{"id":"x","status":"canceled","paid":false,"amount":{"value":"690.00"},"cancellation_details":{"party":"payment_network","reason":"insufficient_funds"}}""");
+        Assert.Equal("insufficient_funds", canceled.CancellationReason);
+        Assert.Null(canceled.PaymentMethodId);
+    }
+
+    [Fact]
     public void NextInvoiceDate()
     {
         var now = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc);

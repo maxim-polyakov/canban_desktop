@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { boards as boardsApi, teams as teamsApi, character as characterApi, contributingTeams, notifications as notificationsApi, search as searchApi } from '../api.js';
+import { PLAN_REQUIRED_EVENT, boards as boardsApi, teams as teamsApi, character as characterApi, contributingTeams, notifications as notificationsApi, search as searchApi } from '../api.js';
 import NavIcon from './NavIcons.jsx';
 import ContributingTeamsDialog, { TeamAvatar } from './ContributingTeamsDialog.jsx';
 import SpaceAvatar, { SpaceAvatarPicker } from './SpaceAvatar.jsx';
@@ -58,7 +58,12 @@ function normalizeTeams(list) {
   return (Array.isArray(list) ? list : []).map((item) => {
     const team = item.team ?? item.Team ?? {};
     return {
-      team: { id: team.id ?? team.Id, name: team.name ?? team.Name ?? 'Команда', key: team.key ?? team.Key ?? 'KAN' },
+      team: {
+        id: team.id ?? team.Id,
+        name: team.name ?? team.Name ?? 'Команда',
+        key: team.key ?? team.Key ?? 'KAN',
+        canManage: item.canManage ?? item.CanManage ?? false,
+      },
       boards: (item.boards ?? item.Boards ?? []).map((b) => ({
         id: b.id ?? b.Id,
         name: b.name ?? b.Name ?? 'Доска',
@@ -285,6 +290,16 @@ export default function Layout() {
   const [createSpace, setCreateSpace] = useState(null);
   const homeKind = isHomeHubPath(location.pathname) ? (location.pathname.startsWith('/goals') ? 'goals' : 'projects') : null;
   const closeCreate = useCallback(() => setCreateOpen(false), []);
+
+  useEffect(() => {
+    const onPlanRequired = (event) => {
+      const plan = event.detail?.requiredPlan || 'standard';
+      const returnTo = event.detail?.returnTo || location.pathname;
+      navigate(`/admin/billing/plans?required=${encodeURIComponent(plan)}&returnTo=${encodeURIComponent(returnTo)}`);
+    };
+    window.addEventListener(PLAN_REQUIRED_EVENT, onPlanRequired);
+    return () => window.removeEventListener(PLAN_REQUIRED_EVENT, onPlanRequired);
+  }, [location.pathname, navigate]);
 
   const loadTeams = useCallback(() => {
     teamsApi.getMyTeamsWithBoards()

@@ -14,8 +14,13 @@ public record BoardPermissionSchemeRequest(Guid? PermissionSchemeId);
 public class PermissionSchemesController : ControllerBase
 {
     private readonly PermissionSchemeService _schemes;
+    private readonly PlanAccessService _plans;
 
-    public PermissionSchemesController(PermissionSchemeService schemes) => _schemes = schemes;
+    public PermissionSchemesController(PermissionSchemeService schemes, PlanAccessService plans)
+    {
+        _schemes = schemes;
+        _plans = plans;
+    }
 
     private Guid Me => User.GetUserId() ?? throw new UnauthorizedAccessException();
 
@@ -23,10 +28,12 @@ public class PermissionSchemesController : ControllerBase
     public async Task<ActionResult> Catalog([FromQuery] Guid teamId, CancellationToken ct) => Ok(await _schemes.CatalogAsync(Me, teamId, ct));
 
     [Audit("issueconfig.permissionscheme.create", AuditTarget.Body, ObjectType = "permissionscheme")]
+    [RequiresPlan(BillingPlans.Standard)]
     [HttpPost("permission-schemes")]
     public async Task<ActionResult> Create([FromBody] IssueLayoutRequest request, CancellationToken ct) => Ok(await _schemes.CreateAsync(Me, request, ct));
 
     [Audit("issueconfig.permissionscheme.update", AuditTarget.IssueLayout, ObjectType = "permissionscheme")]
+    [RequiresPlan(BillingPlans.Standard)]
     [HttpPut("permission-schemes/{id:guid}")]
     public async Task<ActionResult> Update(Guid id, [FromBody] IssueLayoutRequest request, CancellationToken ct) => Ok(await _schemes.UpdateAsync(id, Me, request, ct));
 
@@ -43,6 +50,9 @@ public class PermissionSchemesController : ControllerBase
 
     [Audit("space.permissionscheme", AuditTarget.Board, "boardId")]
     [HttpPut("boards/{boardId:guid}/permission-scheme")]
-    public async Task<ActionResult> Assign(Guid boardId, [FromBody] BoardPermissionSchemeRequest request, CancellationToken ct) =>
-        Ok(await _schemes.AssignAsync(boardId, Me, request.PermissionSchemeId, ct));
+    public async Task<ActionResult> Assign(Guid boardId, [FromBody] BoardPermissionSchemeRequest request, CancellationToken ct)
+    {
+        if (request.PermissionSchemeId.HasValue) await _plans.EnsureUserAsync(Me, BillingPlans.Standard, ct);
+        return Ok(await _schemes.AssignAsync(boardId, Me, request.PermissionSchemeId, ct));
+    }
 }

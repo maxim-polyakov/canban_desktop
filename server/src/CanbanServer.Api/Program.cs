@@ -191,6 +191,10 @@ builder.Services.AddScoped<WorkflowSchemeService>();
 builder.Services.AddScoped<IssueVoteService>();
 builder.Services.AddScoped<BoardColumnLayoutService>();
 builder.Services.AddScoped<BillingService>();
+builder.Services.AddScoped<PlanAccessService>();
+builder.Services.AddSingleton<YooKassaClient>();
+builder.Services.AddHttpClient(YooKassaClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHostedService<BillingRenewalService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHttpClient("outbox");
 builder.Services.AddHttpClient(GitHubAppClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(20));
@@ -242,6 +246,11 @@ app.Use(async (context, next) =>
 {
     try { await next(); }
     catch (KeyNotFoundException ex) { context.Response.StatusCode = StatusCodes.Status404NotFound; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }
+    catch (PlanRequiredException ex)
+    {
+        context.Response.StatusCode = StatusCodes.Status402PaymentRequired;
+        await context.Response.WriteAsJsonAsync(new { error = ex.Message, code = "plan_required", requiredPlan = ex.RequiredPlan });
+    }
     catch (UnauthorizedAccessException ex) { context.Response.StatusCode = StatusCodes.Status403Forbidden; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }
     catch (Exception ex) when (ex is ArgumentException or FormatException or InvalidOperationException or System.Text.Json.JsonException)
     { context.Response.StatusCode = StatusCodes.Status400BadRequest; await context.Response.WriteAsJsonAsync(new { error = ex.Message }); }

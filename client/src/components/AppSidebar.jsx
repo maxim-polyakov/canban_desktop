@@ -8,7 +8,7 @@ import { IssueTypeIcon } from './IssueIcons.jsx';
 import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { usePrefs } from '../utils/preferences.js';
 import { PlansFlyoutContent } from '../pages/plans/PlansPages.jsx';
-import { useBilling } from '../utils/billing.js';
+import { planIncludes, useAccessPlan } from '../utils/billing.js';
 import { dashboards as dashboardsApi, spaces as spacesApi } from '../api.js';
 import { DASHBOARDS_CHANGED_EVENT } from '../pages/dashboards/DashboardsPages.jsx';
 import { DEFAULT_FILTERS } from '../utils/issueFilters.js';
@@ -306,8 +306,9 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
   const { t } = useLocalization();
   const { recentBoards, starredBoards, viewedIssues } = useNavHistory();
   const [prefs] = usePrefs();
-  const billing = useBilling();
-  const tryBadge = billing && !billing.hideUpsell ? 'Попробуйте' : undefined;
+  const accessPlan = useAccessPlan();
+  const standardLocked = accessPlan && !planIncludes(accessPlan, 'standard');
+  const premiumLocked = accessPlan && !planIncludes(accessPlan, 'premium');
   const [flyout, setFlyout] = useState(null);
   const [spacesMenu, setSpacesMenu] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -437,13 +438,23 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
       {shown('recommended') && (
         <>
           <div className="app-nav-section">{t('Рекомендации')}</div>
-          {item('/spaces/templates', 'template', 'Шаблоны', { badge: tryBadge })}
+          {item(
+            standardLocked ? '/admin/billing/plans?required=standard&returnTo=%2Fspaces%2Ftemplates' : '/spaces/templates',
+            'template',
+            'Шаблоны',
+            { badge: standardLocked ? 'Попробуйте' : undefined },
+          )}
         </>
       )}
 
       {shown('filters') && <FiltersNav onNavigate={navigate} />}
       {shown('dashboards') && <DashboardsNav onNavigate={navigate} />}
-      {shown('assets') && item('/assets', 'assets', 'Активы', { badge: tryBadge })}
+      {shown('assets') && item(
+        premiumLocked ? '/admin/billing/plans?required=premium&returnTo=%2Fassets' : '/assets',
+        'assets',
+        'Активы',
+        { badge: premiumLocked ? 'Попробуйте' : undefined },
+      )}
       {(shown('teams') || shown('goals') || shown('projects')) && <div className="app-nav-divider" />}
       {shown('teams') && item('/teams', 'teams', 'Команды', { external: true })}
       {shown('goals') && item('/goals', 'goals', 'Цели', { external: true })}

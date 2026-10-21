@@ -73,6 +73,7 @@ public class CanbanDbContext : DbContext
     public DbSet<HomeEntry> HomeEntries => Set<HomeEntry>();
     public DbSet<BillingSubscription> BillingSubscriptions => Set<BillingSubscription>();
     public DbSet<BillingPlanChange> BillingPlanChanges => Set<BillingPlanChange>();
+    public DbSet<BillingPayment> BillingPayments => Set<BillingPayment>();
     public DbSet<IssueTypeDefinition> IssueTypeDefinitions => Set<IssueTypeDefinition>();
     public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
     public DbSet<IssueLayoutObject> IssueLayoutObjects => Set<IssueLayoutObject>();

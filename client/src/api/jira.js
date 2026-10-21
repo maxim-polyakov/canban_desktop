@@ -195,8 +195,11 @@ export const home = {
 
 export const billing = {
   get: () => apiJson('/api/billing'),
+  access: () => apiJson('/api/billing/access'),
   quote: (plan, cycle) => apiJson(`/api/billing/quote${buildQuery({ plan, cycle })}`),
   change: (plan, cycle) => apiJson('/api/billing/plan', json('PUT', { plan, cycle })),
+  payment: (id) => apiJson(`/api/billing/payments/${id}`),
+  autoRenew: (enabled) => apiJson('/api/billing/auto-renew', json('PUT', { enabled })),
 };
 
 export const savedFilters = {

@@ -82,3 +82,14 @@ public class UserGroupMemberConfiguration : IEntityTypeConfiguration<UserGroupMe
         b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public class BoardContributingTeamConfiguration : IEntityTypeConfiguration<BoardContributingTeam>
+{
+    public void Configure(EntityTypeBuilder<BoardContributingTeam> b)
+    {
+        b.HasKey(x => new { x.BoardId, x.TeamId });
+        b.HasIndex(x => x.TeamId);
+        b.HasOne<Board>().WithMany().HasForeignKey(x => x.BoardId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<Team>().WithMany().HasForeignKey(x => x.TeamId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

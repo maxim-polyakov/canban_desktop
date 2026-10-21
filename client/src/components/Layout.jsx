@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from '../i18n/navigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
-import { boards as boardsApi, teams as teamsApi, character as characterApi, notifications as notificationsApi, search as searchApi } from '../api.js';
+import { boards as boardsApi, teams as teamsApi, character as characterApi, contributingTeams, notifications as notificationsApi, search as searchApi } from '../api.js';
 import NavIcon from './NavIcons.jsx';
+import ContributingTeamsDialog, { TeamAvatar } from './ContributingTeamsDialog.jsx';
 import SpaceAvatar, { SpaceAvatarPicker } from './SpaceAvatar.jsx';
 import AppSidebar, { CREATE_SPACE_EVENT, SPACES_CHANGED_EVENT } from './AppSidebar.jsx';
 import CreateSpaceDialog from './CreateSpaceDialog.jsx';
@@ -177,6 +178,16 @@ function SpaceHeader({ board, boardId, tab }) {
   const ref = useRef(null);
   const close = useCallback(() => setMenuOpen(false), []);
   useOutsideClose(ref, menuOpen, close);
+  const [teams, setTeams] = useState([]);
+  const [teamsOpen, setTeamsOpen] = useState(false);
+  const closeTeams = useCallback(() => setTeamsOpen(false), []);
+  useEffect(() => {
+    if (!boardId) return undefined;
+    let alive = true;
+    setTeams([]);
+    contributingTeams.get(boardId).then((res) => { if (alive) setTeams(res?.teams || []); }).catch(() => {});
+    return () => { alive = false; };
+  }, [boardId]);
   const starred = isBoardStarred(boardId);
   const name = board?.name || t('Доска');
   return (
@@ -202,6 +213,18 @@ function SpaceHeader({ board, boardId, tab }) {
           <NavIcon name="star" filled={starred} />
         </button>
         <OnboardingButton board={board} boardId={boardId} />
+        <span className="app-space-teams">
+          <button type="button" className={`app-icon-btn ${teams.length ? 'app-space-teams-btn' : ''}`} onClick={() => setTeamsOpen(true)}
+            aria-label={t('Участвующие команды')} title={teams.length ? teams.map((x) => x.name).join(', ') : t('Привязать участвующие команды')}>
+            {teams.length === 0 ? <NavIcon name="teams" /> : (
+              <span className="app-space-teams-stack">
+                {teams.slice(0, 3).map((team) => <TeamAvatar key={team.id} team={team} size={20} />)}
+                {teams.length > 3 && <span className="app-space-teams-more">+{teams.length - 3}</span>}
+              </span>
+            )}
+          </button>
+        </span>
+        {teamsOpen && <ContributingTeamsDialog boardId={boardId} onClose={closeTeams} onSaved={setTeams} />}
         <div className="app-space-more" ref={ref}>
           <button type="button" className="app-icon-btn" aria-label={t('Настройки раздела')} aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
             <NavIcon name="more" />

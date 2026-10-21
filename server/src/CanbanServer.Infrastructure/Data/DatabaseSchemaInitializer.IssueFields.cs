@@ -35,6 +35,10 @@ public static partial class DatabaseSchemaInitializer
               "GroupId" uuid NOT NULL, "UserId" uuid NOT NULL, "AddedAt" timestamptz NOT NULL DEFAULT now(),
               PRIMARY KEY ("GroupId", "UserId"));
             CREATE INDEX IF NOT EXISTS "IX_UserGroupMembers_UserId" ON "UserGroupMembers"("UserId");
+            CREATE TABLE IF NOT EXISTS "BoardContributingTeams" (
+              "BoardId" uuid NOT NULL, "TeamId" uuid NOT NULL, "AddedAt" timestamptz NOT NULL DEFAULT now(),
+              PRIMARY KEY ("BoardId", "TeamId"));
+            CREATE INDEX IF NOT EXISTS "IX_BoardContributingTeams_TeamId" ON "BoardContributingTeams"("TeamId");
 
             CREATE TABLE IF NOT EXISTS "IssueLayoutObjects" (
               "Id" uuid PRIMARY KEY, "TeamId" uuid NOT NULL, "Kind" varchar(32) NOT NULL, "Name" varchar(100) NOT NULL,
@@ -73,6 +77,8 @@ public static partial class DatabaseSchemaInitializer
             SELECT pg_temp.ensure_fk('"UserGroups"','FK_UserGroups_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"UserGroupMembers"','FK_UserGroupMembers_Group','FOREIGN KEY ("GroupId") REFERENCES "UserGroups"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"UserGroupMembers"','FK_UserGroupMembers_User','FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"BoardContributingTeams"','FK_BoardContributingTeams_Board','FOREIGN KEY ("BoardId") REFERENCES "Boards"("Id") ON DELETE CASCADE');
+            SELECT pg_temp.ensure_fk('"BoardContributingTeams"','FK_BoardContributingTeams_Team','FOREIGN KEY ("TeamId") REFERENCES "Teams"("Id") ON DELETE CASCADE');
             SELECT pg_temp.ensure_fk('"Quests"','FK_Quests_IssueTypeDefinitions_IssueTypeId','FOREIGN KEY ("IssueTypeId") REFERENCES "IssueTypeDefinitions"("Id") ON DELETE SET NULL');
             """, ct);
     }

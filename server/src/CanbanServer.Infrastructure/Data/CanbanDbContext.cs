@@ -79,6 +79,7 @@ public class CanbanDbContext : DbContext
     public DbSet<BoardIssueLayout> BoardIssueLayouts => Set<BoardIssueLayout>();
     public DbSet<UserGroup> UserGroups => Set<UserGroup>();
     public DbSet<UserGroupMember> UserGroupMembers => Set<UserGroupMember>();
+    public DbSet<BoardContributingTeam> BoardContributingTeams => Set<BoardContributingTeam>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
     public DbSet<AuditSetting> AuditSettings => Set<AuditSetting>();
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();

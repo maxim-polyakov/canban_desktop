@@ -185,6 +185,7 @@ builder.Services.AddScoped<IssueFieldService>();
 builder.Services.AddScoped<AuditLogService>();
 builder.Services.AddScoped<ApiTokenService>();
 builder.Services.AddScoped<UserGroupService>();
+builder.Services.AddScoped<ContributingTeamService>();
 builder.Services.AddScoped<IssueLayoutService>();
 builder.Services.AddScoped<WorkflowSchemeService>();
 builder.Services.AddScoped<IssueVoteService>();

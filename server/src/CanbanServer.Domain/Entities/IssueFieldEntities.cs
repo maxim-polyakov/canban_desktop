@@ -83,3 +83,11 @@ public class UserGroupMember
     public Guid UserId { get; set; }
     public DateTime AddedAt { get; set; }
 }
+
+/// <summary>A team that works in a space, shown in the space header like Jira's contributing teams.</summary>
+public class BoardContributingTeam
+{
+    public Guid BoardId { get; set; }
+    public Guid TeamId { get; set; }
+    public DateTime AddedAt { get; set; }
+}

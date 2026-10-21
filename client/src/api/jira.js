@@ -346,6 +346,12 @@ export const userGroups = {
   remove: (id) => remove(`/api/groups/${id}`),
 };
 
+export const contributingTeams = {
+  get: (boardId) => apiJson(`/api/boards/${boardId}/contributing-teams`),
+  search: (boardId, q) => apiJson(`/api/boards/${boardId}/contributing-teams/search${buildQuery({ q })}`),
+  set: (boardId, teamIds) => apiJson(`/api/boards/${boardId}/contributing-teams`, json('PUT', { teamIds })),
+};
+
 export const audit = {
   list: (params) => apiJson(`/api/audit${buildQuery(params)}`),
   settings: (teamId) => apiJson(`/api/audit/settings/${teamId}`),

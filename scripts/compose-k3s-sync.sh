@@ -759,7 +759,7 @@ for row in "${sync_services[@]}"; do
     -p='[{"op":"replace","path":"/spec/template/spec/nodeSelector","value":{"baxic.ru/workload-pool":"main"}}]' \
     >/dev/null
   "${kube[@]}" patch deployment "$deployment" -n "$namespace" --type merge \
-    -p '{"spec":{"template":{"metadata":{"labels":{"baxic.ru/workload-pool":"main"}},"spec":{"imagePullSecrets":[{"name":"ghcr-pull"}],"topologySpreadConstraints":[{"maxSkew":1,"topologyKey":"kubernetes.io/hostname","whenUnsatisfiable":"ScheduleAnyway","labelSelector":{"matchLabels":{"baxic.ru/workload-pool":"main"}}}]}}}}' \
+    -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"baxic.ru/workload-pool\":\"main\"}},\"spec\":{\"imagePullSecrets\":[{\"name\":\"ghcr-pull\"}],\"topologySpreadConstraints\":[{\"maxSkew\":1,\"topologyKey\":\"kubernetes.io/hostname\",\"whenUnsatisfiable\":\"ScheduleAnyway\",\"labelSelector\":{\"matchLabels\":{\"app\":\"${deployment}\"}}}]}}}}" \
     >/dev/null
 
   hostport_patch=$(

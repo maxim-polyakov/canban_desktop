@@ -25,9 +25,12 @@ public sealed class AuditRetentionService : BackgroundService
         {
             try
             {
-                using var scope = _scopes.CreateScope();
-                var removed = await scope.ServiceProvider.GetRequiredService<AuditLogService>().PurgeExpiredAsync(stoppingToken);
-                if (removed > 0) _logger.LogInformation("Removed {Count} expired audit events", removed);
+                await DistributedJobLock.TryRunAsync(_scopes, "audit-retention", async ct =>
+                {
+                    using var scope = _scopes.CreateScope();
+                    var removed = await scope.ServiceProvider.GetRequiredService<AuditLogService>().PurgeExpiredAsync(ct);
+                    if (removed > 0) _logger.LogInformation("Removed {Count} expired audit events", removed);
+                }, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

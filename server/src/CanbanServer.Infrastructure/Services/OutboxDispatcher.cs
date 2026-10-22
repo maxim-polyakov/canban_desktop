@@ -25,7 +25,14 @@ public sealed class OutboxDispatcher : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { await DispatchBatchAsync(stoppingToken); }
+            try
+            {
+                await DistributedJobLock.TryRunAsync(
+                    _scopes,
+                    "outbox-dispatcher",
+                    DispatchBatchAsync,
+                    stoppingToken);
+            }
             catch (Exception ex) { _logger.LogError(ex, "Outbox dispatch batch failed"); }
             await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
         }

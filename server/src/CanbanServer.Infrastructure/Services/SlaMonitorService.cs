@@ -25,9 +25,12 @@ public sealed class SlaMonitorService : BackgroundService
         {
             try
             {
-                using var scope = _scopes.CreateScope();
-                var count = await scope.ServiceProvider.GetRequiredService<ServiceDeskService>().ProcessDueClocksAsync(stoppingToken);
-                if (count > 0) _logger.LogInformation("Processed {Count} SLA clocks", count);
+                await DistributedJobLock.TryRunAsync(_scopes, "sla-monitor", async ct =>
+                {
+                    using var scope = _scopes.CreateScope();
+                    var count = await scope.ServiceProvider.GetRequiredService<ServiceDeskService>().ProcessDueClocksAsync(ct);
+                    if (count > 0) _logger.LogInformation("Processed {Count} SLA clocks", count);
+                }, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

@@ -25,9 +25,12 @@ public sealed class FilterSubscriptionDispatcher : BackgroundService
         {
             try
             {
-                using var scope = _scopes.CreateScope();
-                var count = await scope.ServiceProvider.GetRequiredService<FilterSubscriptionService>().RunDueAsync(stoppingToken);
-                if (count > 0) _logger.LogInformation("Processed {Count} filter subscriptions", count);
+                await DistributedJobLock.TryRunAsync(_scopes, "filter-subscriptions", async ct =>
+                {
+                    using var scope = _scopes.CreateScope();
+                    var count = await scope.ServiceProvider.GetRequiredService<FilterSubscriptionService>().RunDueAsync(ct);
+                    if (count > 0) _logger.LogInformation("Processed {Count} filter subscriptions", count);
+                }, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

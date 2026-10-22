@@ -125,7 +125,12 @@ builder.Services.AddDbContext<CanbanDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-builder.Services.AddSignalR();
+var redisConfig = builder.Configuration["Redis:Configuration"];
+var signalR = builder.Services.AddSignalR();
+if (!string.IsNullOrWhiteSpace(redisConfig))
+{
+    signalR.AddStackExchangeRedis(redisConfig);
+}
 
 builder.Services.AddCors(options =>
 {
@@ -211,7 +216,6 @@ builder.Services.AddSingleton<AiClient>();
 builder.Services.AddScoped<AiService>();
 
 // Redis (IDistributedCache) — подключается, если задан Redis:Configuration
-var redisConfig = builder.Configuration["Redis:Configuration"];
 if (!string.IsNullOrWhiteSpace(redisConfig))
 {
     builder.Services.AddStackExchangeRedisCache(options =>

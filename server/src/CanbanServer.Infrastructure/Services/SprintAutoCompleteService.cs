@@ -26,9 +26,12 @@ public sealed class SprintAutoCompleteService : BackgroundService
         {
             try
             {
-                using var scope = _scopes.CreateScope();
-                var closed = await scope.ServiceProvider.GetRequiredService<ISprintService>().CompleteDueAsync(stoppingToken);
-                if (closed > 0) _logger.LogInformation("Auto-completed {Count} sprints", closed);
+                await DistributedJobLock.TryRunAsync(_scopes, "sprint-auto-complete", async ct =>
+                {
+                    using var scope = _scopes.CreateScope();
+                    var closed = await scope.ServiceProvider.GetRequiredService<ISprintService>().CompleteDueAsync(ct);
+                    if (closed > 0) _logger.LogInformation("Auto-completed {Count} sprints", closed);
+                }, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

@@ -41,7 +41,14 @@ public sealed class StorageQuotaMonitorService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { await CheckAsync(stoppingToken); }
+            try
+            {
+                await DistributedJobLock.TryRunAsync(
+                    _scopes,
+                    "storage-quota-monitor",
+                    CheckAsync,
+                    stoppingToken);
+            }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogError(ex, "Storage quota monitoring failed");

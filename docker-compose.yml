@@ -3,6 +3,8 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    deploy:
+      replicas: 2
     restart: unless-stopped
     ports:
       - "5177:5000"

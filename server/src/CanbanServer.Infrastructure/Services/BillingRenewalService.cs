@@ -25,8 +25,11 @@ public class BillingRenewalService : BackgroundService
         {
             try
             {
-                using var scope = _scopes.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<BillingService>().ProcessRenewalsAsync(stoppingToken);
+                await DistributedJobLock.TryRunAsync(_scopes, "billing-renewal", async ct =>
+                {
+                    using var scope = _scopes.CreateScope();
+                    await scope.ServiceProvider.GetRequiredService<BillingService>().ProcessRenewalsAsync(ct);
+                }, stoppingToken);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {

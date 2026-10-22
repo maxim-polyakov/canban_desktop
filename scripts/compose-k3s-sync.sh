@@ -669,6 +669,20 @@ if [[ "$skip_build" != true && "$dry_run" != true ]]; then
   done
 fi
 
+wait_for_kube_api() {
+  local attempt attempts=${COMPOSE_K3S_API_ATTEMPTS:-5} delay=${COMPOSE_K3S_API_DELAY:-10}
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if "${kube[@]}" get --raw=/readyz --request-timeout=15s >/dev/null 2>&1; then
+      return 0
+    fi
+    log "k3s API not reachable (attempt ${attempt}/${attempts}); retrying in ${delay}s"
+    sleep "$delay"
+  done
+  return 1
+}
+
+wait_for_kube_api || die "k3s API server is unreachable; check the cluster and kubeconfig${kubeconfig:+ ($kubeconfig)}"
+
 local_ips=" $(hostname -I 2>/dev/null || true) "
 matched_services=0
 rolled_out=0
@@ -677,11 +691,13 @@ schema_patched=0
 for row in "${sync_services[@]}"; do
   IFS=$'\t' read -r service source_image replicas explicit_image <<<"$row"
 
-  mapfile -t matches < <(
+  deployments_tsv=$(
     "${kube[@]}" get deployment -A \
       -l "compose.project=${kube_project},compose.service=${service}" \
       -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
-  )
+  ) || die "failed to list Deployments for ${kube_project}/${service}"
+  matches=()
+  [[ -n "$deployments_tsv" ]] && mapfile -t matches <<<"$deployments_tsv"
   if ((${#matches[@]} == 0)); then
     log "skipping $service: no matching Deployment"
     continue

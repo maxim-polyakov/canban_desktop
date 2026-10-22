@@ -146,6 +146,10 @@
   z-index: 40;
 }
 
+.layout-header.is-profile-menu-open {
+  z-index: 1010;
+}
+
 .layout-header-left,
 .layout-header-right {
   display: flex;

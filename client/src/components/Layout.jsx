@@ -445,7 +445,7 @@ export default function Layout() {
 
   return (
     <div className={`layout-shell ${sidebarCollapsed ? 'layout-sidebar-collapsed' : ''} ${panel ? 'layout-has-panel' : ''}`}>
-      <header className="layout-header">
+      <header className={`layout-header ${menu === 'profile' ? 'is-profile-menu-open' : ''}`}>
         <div className="layout-header-left">
           <button type="button" className="app-icon-btn" aria-label={t('Боковая панель')} title={t('Боковая панель')} onClick={toggleSidebar}>
             <NavIcon name="sidebar" />

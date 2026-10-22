@@ -468,6 +468,37 @@ fi
 if [[ -n "$kubeconfig" && -r "$kubeconfig" ]]; then
   kube+=(--kubeconfig "$kubeconfig")
 fi
+kube_raw=("${kube[@]}")
+
+# The k3s API server occasionally drops connections mid-deploy (restarts,
+# leader changes). Retry kubectl calls that fail with transport errors instead
+# of aborting a half-applied rollout; real API errors still fail immediately.
+kube_retry() {
+  local attempt attempts=${COMPOSE_K3S_API_ATTEMPTS:-5} delay=${COMPOSE_K3S_API_DELAY:-10}
+  local stderr_file status=0 stdin_data= use_stdin=false arg
+  for arg in "$@"; do
+    [[ "$arg" == - ]] && use_stdin=true
+  done
+  [[ "$use_stdin" == true ]] && stdin_data=$(cat)
+  stderr_file=$(mktemp)
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if [[ "$use_stdin" == true ]]; then
+      "${kube_raw[@]}" "$@" 2>"$stderr_file" <<<"$stdin_data" && status=0 || status=$?
+    else
+      "${kube_raw[@]}" "$@" 2>"$stderr_file" && status=0 || status=$?
+    fi
+    if ((status == 0)) || ((attempt == attempts)) ||
+      ! grep -qiE 'connection refused|connection reset|i/o timeout|TLS handshake timeout|unexpected EOF|http2: client connection lost|ServiceUnavailable|the server is currently unable|Unable to connect to the server' "$stderr_file"; then
+      break
+    fi
+    log "kubectl $1 failed with a transient API error (attempt ${attempt}/${attempts}); retrying in ${delay}s" >&2
+    sleep "$delay"
+  done
+  cat "$stderr_file" >&2
+  rm -f "$stderr_file"
+  return "$status"
+}
+kube=(kube_retry)
 k3s_bin=$(command -v k3s)
 k3s_ctr=("$k3s_bin" ctr)
 if ! "$k3s_bin" ctr -n k8s.io images ls >/dev/null 2>&1; then
@@ -672,7 +703,7 @@ fi
 wait_for_kube_api() {
   local attempt attempts=${COMPOSE_K3S_API_ATTEMPTS:-5} delay=${COMPOSE_K3S_API_DELAY:-10}
   for ((attempt = 1; attempt <= attempts; attempt++)); do
-    if "${kube[@]}" get --raw=/readyz --request-timeout=15s >/dev/null 2>&1; then
+    if "${kube_raw[@]}" get --raw=/readyz --request-timeout=15s >/dev/null 2>&1; then
       return 0
     fi
     log "k3s API not reachable (attempt ${attempt}/${attempts}); retrying in ${delay}s"

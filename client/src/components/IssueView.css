@@ -167,6 +167,12 @@
   color: var(--danger);
 }
 
+.iv-menu-divider {
+  height: 1px;
+  margin: 0.25rem 0;
+  background: var(--border);
+}
+
 .iv-watch-panel {
   display: flex;
   flex-direction: column;

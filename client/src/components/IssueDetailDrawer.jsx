@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Link } from '../i18n/navigation.jsx';
+import { Link, useNavigate } from '../i18n/navigation.jsx';
 import {
-  clone as cloneApi, components as componentsApi, history as historyApi,
+  boards, clone as cloneApi, components as componentsApi, history as historyApi,
   integrations, questHierarchy, questLinks, quests, releases as releasesApi,
-  sprints as sprintsApi, workflows, worklogs,
+  sprints as sprintsApi, votes as votesApi, workflows, worklogs,
 } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
@@ -42,6 +42,35 @@ const COMMENT_STARTERS = ['Кто работает над этим...?', 'Мож
 const ACTIVITY_TABS = [['all', 'Все'], ['comments', 'Комментарии'], ['history', 'История'], ['worklog', 'Журнал работ']];
 
 const isTyping = (target) => !!target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable);
+const xmlEscape = (value) => String(value ?? '').replace(/[<>&'"]/g, (char) => ({
+  '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;',
+}[char]));
+const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+export const issueExportContent = (quest, format) => {
+  const fields = [
+    ['Key', quest.issueKey],
+    ['Title', quest.title],
+    ['Description', richTextToPlainText(quest.descriptionDocument || quest.description || '')],
+    ['Priority', quest.priority],
+    ['Labels', quest.labels],
+    ['Story points', quest.storyPoints],
+  ];
+  if (format === 'csv') return `\uFEFF${fields.map(([key, value]) => `${csvCell(key)},${csvCell(value)}`).join('\r\n')}`;
+  if (format === 'xml') return `<?xml version="1.0" encoding="UTF-8"?>\n<issue>${fields.map(([key, value]) => `\n  <field name="${xmlEscape(key)}">${xmlEscape(value)}</field>`).join('')}\n</issue>`;
+  return `<!doctype html><html><meta charset="utf-8"><body><h1>${xmlEscape(quest.issueKey)} — ${xmlEscape(quest.title)}</h1>${fields.map(([key, value]) => `<p><strong>${xmlEscape(key)}:</strong> ${xmlEscape(value)}</p>`).join('')}</body></html>`;
+};
+
+const downloadIssue = (quest, format) => {
+  const types = { csv: 'text/csv;charset=utf-8', doc: 'application/msword', xml: 'application/xml;charset=utf-8' };
+  const blob = new Blob([issueExportContent(quest, format)], { type: types[format] });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${quest.issueKey || 'issue'}.${format}`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
 
 function RichTextPreview({ value, currentUserId }) {
   const blocks = parseRichText(value);
@@ -84,6 +113,7 @@ function Row({ label, children }) {
  */
 export default function IssueDetailDrawer({ questId, members = [], columns = [], onClose, onChanged, canDelete = true, variant = 'modal' }) {
   const panel = variant === 'panel';
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { locale, t } = useLocalization();
   const billing = useBilling();
@@ -304,6 +334,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
         payload.storyPointsSet = true;
         payload.storyPoints = s.storyPoints === '' ? null : Math.max(0, Math.min(100, parseInt(s.storyPoints, 10) || 0));
       }
+      if (patch.flagged !== undefined) payload.flagged = patch.flagged;
       if (patch.parentQuestId !== undefined) {
         payload.parentQuestId = patch.parentQuestId;
         payload.parentQuestIdSet = true;
@@ -573,6 +604,49 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     } catch (e) { setAuxError(e.message); }
   };
 
+  const handleToggleFlag = async () => {
+    setMenu(null);
+    await save({ flagged: !quest.flagged });
+  };
+
+  const handleVote = async () => {
+    setMenu(null);
+    try {
+      const state = await votesApi.get(questId);
+      if (!state.hasVoted) await votesApi.vote(questId);
+      else await votesApi.unvote(questId);
+      loadQuest();
+    } catch (e) { setAuxError(t(e.message || 'Не удалось сохранить голос.')); }
+  };
+
+  const handleChooseParent = async () => {
+    setMenu(null);
+    const key = window.prompt(t('Введите ключ родительской задачи'), hierarchy?.parent?.issueKey || '');
+    if (key === null) return;
+    if (!key.trim()) {
+      await save({ parentQuestId: null });
+      return;
+    }
+    try {
+      const parent = await quests.resolveKey(key.trim().toUpperCase());
+      if (!parent?.id) throw new Error(t('Задача не найдена.'));
+      await save({ parentQuestId: parent.id });
+    } catch (e) { setAuxError(t(e.message || 'Не удалось сохранить задачу.')); }
+  };
+
+  const handleArchive = async () => {
+    setMenu(null);
+    if (!window.confirm(t('Архивировать задачу ${key}?', { key: quest.issueKey }))) return;
+    try {
+      const board = await boards.getById(quest.boardId);
+      const archive = (board?.columns || []).find((column) => column.kind === 5);
+      if (!archive) throw new Error(t('В этом пространстве нет архива.'));
+      await quests.move({ questId, targetColumnId: archive.id, newOrder: (archive.quests || []).length });
+      onChanged?.();
+      onClose?.();
+    } catch (e) { setAuxError(t(e.message || 'Не удалось архивировать задачу.')); }
+  };
+
   const toggle = (name) => setMenu((current) => (current === name ? null : name));
   const formatDate = (value) => (value ? new Date(value).toLocaleString(locale) : '');
   const currentStatus = quest ? columns.find((c) => c.id === quest.columnId) : null;
@@ -709,8 +783,21 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                 <button type="button" className="iv-icon-btn" aria-label={t('Действия')} title={t('Действия')} onClick={() => toggle('more')}>⋯</button>
                 <Menu open={menu === 'more'} onClose={() => setMenu(null)} align="right" label={t('Действия')}>
                   <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setActivityTab('worklog'); }}>{t('Записать время')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={handleToggleFlag}>{quest.flagged ? t('Убрать флажок') : t('Добавить флажок')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={handleVote}>{t('Добавить или убрать голос')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={handleChooseParent}>{t('Добавить или изменить родителя')}</button>
+                  <div className="iv-menu-divider" role="separator" />
                   <button type="button" role="menuitem" className="iv-menu-item" onClick={handleClone}>{t('Клонировать')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={() => setMenu('status')}>{t('Переместить')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={handleArchive}>{t('Архивировать')}</button>
                   {canDelete && <button type="button" role="menuitem" className="iv-menu-item is-danger" onClick={handleDelete}>{t('Удалить')}</button>}
+                  <div className="iv-menu-divider" role="separator" />
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); window.setTimeout(() => window.print(), 0); }}>{t('Печать')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); downloadIssue(quest, 'csv'); }}>{t('Экспортировать в Excel')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); downloadIssue(quest, 'doc'); }}>{t('Экспорт в Word')}</button>
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); downloadIssue(quest, 'xml'); }}>{t('Экспорт в XML')}</button>
+                  <div className="iv-menu-divider" role="separator" />
+                  <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); navigate(`/board/${quest.boardId}/settings`); }}>{t('Настроить')}</button>
                 </Menu>
               </span>
             )}

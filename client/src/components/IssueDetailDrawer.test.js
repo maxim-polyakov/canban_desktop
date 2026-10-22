@@ -1,12 +1,13 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import IssueDetailDrawer from './IssueDetailDrawer.jsx';
+import IssueDetailDrawer, { issueExportContent } from './IssueDetailDrawer.jsx';
 
 jest.mock('../i18n/LocalizationContext.jsx', () => ({
   useLocalization: () => ({ t: (s) => s, locale: 'ru', language: 'ru' }),
 }));
 jest.mock('../i18n/navigation.jsx', () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
+  useNavigate: () => jest.fn(),
 }));
 jest.mock('../context/AuthContext.jsx', () => ({ useAuth: () => ({ user: { id: 'u1', displayName: 'Max' } }) }));
 jest.mock('./IssueIcons.jsx', () => ({ IssueTypeIcon: () => <i />, PriorityIcon: () => <i /> }));
@@ -107,6 +108,18 @@ test('looks like the Jira issue view and saves fields as soon as they change', a
 
   await change(container.querySelector('input[aria-label="Дата начала"]'), '2026-11-02');
   expect(mockCalls[1][2]).toMatchObject({ startDate: '2026-11-02T00:00:00Z', startDateSet: true, dueDate: null, dueDateSet: true });
+});
+
+test('exports issue data to spreadsheet and XML-safe formats', () => {
+  expect(issueExportContent({ issueKey: 'KAN-1', title: 'A, "B"' }, 'csv')).toContain('"A, ""B"""');
+  expect(issueExportContent({ issueKey: 'KAN-1', title: 'A & B' }, 'xml')).toContain('A &amp; B');
+});
+
+test('shows working issue actions in the overflow menu', async () => {
+  await render();
+  await click(container.querySelector('button[aria-label="Действия"]'));
+  ['Добавить флажок', 'Добавить или убрать голос', 'Клонировать', 'Переместить', 'Архивировать', 'Печать', 'Экспортировать в Excel', 'Экспорт в Word', 'Экспорт в XML', 'Настроить']
+    .forEach((label) => expect(button(label)).toBeTruthy());
 });
 
 test('status button moves the issue and the comment box saves comments', async () => {

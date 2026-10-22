@@ -2,6 +2,12 @@ name: Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      skip_build:
+        description: Reuse images already built on the deploy host
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -78,12 +84,13 @@ jobs:
           GHCR_USERNAME: ${{ github.actor }}
           COMPOSE_K3S_REGISTRY_PREFIX: ghcr.io/${{ github.repository }}
           COMPOSE_K3S_REGISTRY_TAG: ${{ github.sha }}
+          DEPLOY_SKIP_BUILD: ${{ inputs.skip_build }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: DEPLOY_PATH,GHCR_TOKEN,GHCR_USERNAME,COMPOSE_K3S_REGISTRY_PREFIX,COMPOSE_K3S_REGISTRY_TAG
+          envs: DEPLOY_PATH,GHCR_TOKEN,GHCR_USERNAME,COMPOSE_K3S_REGISTRY_PREFIX,COMPOSE_K3S_REGISTRY_TAG,DEPLOY_SKIP_BUILD
           script_stop: true
           command_timeout: 60m
           script: |
@@ -100,6 +107,8 @@ jobs:
             export TMPDIR=/tmp
             export COMPOSE_K3S_LOCK_WAIT="${COMPOSE_K3S_LOCK_WAIT:-300}"
             export COMPOSE_K3S_CLEAR_ORPHAN_LOCK=1
-            stdbuf -oL -eL bash "$DEPLOY_PATH/scripts/compose-k3s-sync.sh" \
-              --project-dir "$DEPLOY_PATH" \
-              --env-file client/.env
+            sync_args=(--project-dir "$DEPLOY_PATH" --env-file client/.env)
+            if [[ "${DEPLOY_SKIP_BUILD:-false}" == "true" ]]; then
+              sync_args+=(--skip-build)
+            fi
+            stdbuf -oL -eL bash "$DEPLOY_PATH/scripts/compose-k3s-sync.sh" "${sync_args[@]}"

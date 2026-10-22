@@ -44,6 +44,9 @@ export const matchesBacklogQuery = (quest, query) => {
   return !q || String(quest.title ?? '').toLowerCase().includes(q) || String(quest.issueKey ?? '').toLowerCase().includes(q);
 };
 
+export const touchesActiveSprint = (sprints, sourceId, targetId) =>
+  sprints.some((sprint) => sprint.status === 1 && (sprint.id === sourceId || sprint.id === targetId));
+
 function usePopover() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -279,6 +282,7 @@ export default function BacklogPage() {
   const [startingSprint, setStartingSprint] = useState(null);
   const [editingSprint, setEditingSprint] = useState(null);
   const [splitting, setSplitting] = useState(null);
+  const [pendingSprintMove, setPendingSprintMove] = useState(null);
   const [collapsed, setCollapsed] = useState([]);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -472,6 +476,12 @@ export default function BacklogPage() {
     const quest = allQuests.find((q) => q.id === dragData.questId);
     const target = overData.type === 'sprint' ? overData.sprintId : null;
     if (!quest || (quest.sprintId ?? null) === target) return;
+    const sourceSprint = sprintList.find((sprint) => sprint.id === quest.sprintId);
+    const targetSprint = sprintList.find((sprint) => sprint.id === target);
+    if (touchesActiveSprint(sprintList, quest.sprintId, target)) {
+      setPendingSprintMove({ quest, target, sourceSprint, targetSprint });
+      return;
+    }
     moveQuestToSprint(quest, target);
   };
 
@@ -626,6 +636,38 @@ export default function BacklogPage() {
       </DndContext>
 
       {toast && <div className="backlog-toast" role="status">{toast}</div>}
+
+      {pendingSprintMove && (
+        <div className="app-modal-backdrop" onMouseDown={(e) => {
+          if (e.target === e.currentTarget) setPendingSprintMove(null);
+        }}>
+          <div className="app-modal" role="dialog" aria-modal="true" aria-labelledby="sprint-move-title">
+            <div className="app-modal-header">
+              <h2 id="sprint-move-title">{t('Перемещение задачи')}</h2>
+              <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={() => setPendingSprintMove(null)}>×</button>
+            </div>
+            <div className="app-modal-body">
+              <p>{t('Этим действием будет затронут активный спринт.')}</p>
+              <p>
+                <strong>{pendingSprintMove.quest.issueKey}</strong>
+                {' '}
+                {t('будет перемещена из ${source} в ${target}.', {
+                  source: pendingSprintMove.sourceSprint?.name ?? t('бэклог'),
+                  target: pendingSprintMove.targetSprint?.name ?? t('бэклог'),
+                })}
+              </p>
+            </div>
+            <div className="app-modal-footer">
+              <button type="button" className="app-btn app-btn-subtle" onClick={() => setPendingSprintMove(null)}>{t('Отмена')}</button>
+              <button type="button" className="app-btn app-btn-primary" onClick={() => {
+                const { quest, target } = pendingSprintMove;
+                setPendingSprintMove(null);
+                moveQuestToSprint(quest, target);
+              }}>{t('Переместить')}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {startingSprint && (
         <StartSprintDialog

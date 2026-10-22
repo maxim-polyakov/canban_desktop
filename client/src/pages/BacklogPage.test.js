@@ -1,4 +1,10 @@
-import { issueCountLabel, matchesBacklogQuery, pointsByCategory, statusCategory } from './BacklogPage.jsx';
+import {
+  issueCountLabel,
+  matchesBacklogQuery,
+  pointsByCategory,
+  statusCategory,
+  touchesActiveSprint,
+} from './BacklogPage.jsx';
 
 const t = (text, params) => String(text).replace(/\$\{(\w+)\}/g, (_, key) => String(params?.[key] ?? ''));
 
@@ -25,4 +31,14 @@ test('searches the backlog by summary and key', () => {
   expect(matchesBacklogQuery(quest, 'отжиг')).toBe(true);
   expect(matchesBacklogQuery(quest, 'scrum-4')).toBe(true);
   expect(matchesBacklogQuery(quest, 'SCRUM-5')).toBe(false);
+});
+
+test('requires confirmation when a move enters or leaves an active sprint', () => {
+  const sprints = [
+    { id: 'active', status: 1 },
+    { id: 'future', status: 0 },
+  ];
+  expect(touchesActiveSprint(sprints, null, 'active')).toBe(true);
+  expect(touchesActiveSprint(sprints, 'active', null)).toBe(true);
+  expect(touchesActiveSprint(sprints, null, 'future')).toBe(false);
 });

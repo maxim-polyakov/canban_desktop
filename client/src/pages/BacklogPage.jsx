@@ -386,6 +386,27 @@ export default function BacklogPage() {
     } catch (e) { report(e, 'Не удалось сохранить задачу.'); }
   };
 
+  const moveQuestToSprint = async (quest, sprintId) => {
+    setBacklogQuests((current) => {
+      const remaining = current.filter((item) => item.id !== quest.id);
+      return sprintId ? remaining : [{ ...quest, sprintId: null }, ...remaining];
+    });
+    setSprintQuests((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).map(([id, list]) => [id, list.filter((item) => item.id !== quest.id)]),
+      );
+      if (sprintId) next[sprintId] = [{ ...quest, sprintId }, ...(next[sprintId] ?? [])];
+      return next;
+    });
+    try {
+      await quests.update(quest.id, { sprintId, sprintIdSet: true });
+      await refresh();
+    } catch (e) {
+      report(e, 'Не удалось переместить задачу.');
+      await refresh();
+    }
+  };
+
   const moveColumn = async (quest, columnId) => {
     try {
       await quests.move({ questId: quest.id, targetColumnId: columnId, newOrder: 0 });
@@ -451,7 +472,7 @@ export default function BacklogPage() {
     const quest = allQuests.find((q) => q.id === dragData.questId);
     const target = overData.type === 'sprint' ? overData.sprintId : null;
     if (!quest || (quest.sprintId ?? null) === target) return;
-    updateQuest(quest.id, { sprintId: target, sprintIdSet: true });
+    moveQuestToSprint(quest, target);
   };
 
   const toggleSelected = (id, checked) => setSelectedIds((current) => (checked ? [...new Set([...current, id])] : current.filter((value) => value !== id)));

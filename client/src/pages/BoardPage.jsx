@@ -26,6 +26,17 @@ const EMPTY_FILTERS = { assigneeIds: [], types: [], priorities: [], labels: [] }
 const groupKey = (boardId) => `board-group:${boardId}`;
 export const isBoardViewReady = (boardId, boardLoadedFor, sprintsLoaded, sprintsLoadedFor) =>
   boardLoadedFor === boardId && sprintsLoaded && sprintsLoadedFor === boardId;
+export const moveActiveSprintQuest = (issues, questId, targetColumnId, newOrder) => {
+  const moved = issues.find((issue) => issue.id === questId);
+  if (!moved) return issues;
+  const remaining = issues.filter((issue) => issue.id !== questId);
+  const targetIssues = remaining.filter((issue) => issue.columnId === targetColumnId);
+  targetIssues.splice(Math.min(newOrder, targetIssues.length), 0, { ...moved, columnId: targetColumnId });
+  return [
+    ...remaining.filter((issue) => issue.columnId !== targetColumnId),
+    ...targetIssues,
+  ];
+};
 const PRIORITY_FILTER_OPTIONS = [
   { value: '', label: 'Все приоритеты' },
   { value: '4', label: 'Высший' },
@@ -175,7 +186,8 @@ export default function BoardPage() {
       const active = list.filter((sprint) => sprint.status === 1);
       const activeIds = new Set(active.map((sprint) => String(sprint.id).toLowerCase()));
       const allIssues = active.length ? await quests.filter(boardId) : [];
-      if (seq !== sprintLoadSeqRef.current) return;
+      // Do not let an older refresh undo an optimistic card move.
+      if (seq !== sprintLoadSeqRef.current || pendingMovesRef.current > 0) return;
       setBoardSprints(list);
       setActiveSprintQuests((Array.isArray(allIssues) ? allIssues : [])
         .filter((issue) => activeIds.has(String(issue.sprintId).toLowerCase())));
@@ -231,6 +243,7 @@ export default function BoardPage() {
     }
 
     setBoard((current) => current && { ...current, columns: moveQuestInColumns(current.columns, questIdMoved, targetColumnId, newOrder) });
+    setActiveSprintQuests((current) => moveActiveSprintQuest(current, questIdMoved, targetColumnId, newOrder));
     pendingMovesRef.current += 1;
     try {
       if (sameColumn) {

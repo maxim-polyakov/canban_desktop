@@ -54,6 +54,10 @@ jest.mock('../api.js', () => {
     worklogs: { get: ok([]) },
     history: { get: ok([]) },
     integrations: { getDevelopment: ok(null) },
+    spaceContent: {
+      listDocs: () => { mockCalls.push(['listDocs']); return Promise.resolve([]); },
+      createDoc: (boardId, data) => { mockCalls.push(['createDoc', boardId, data]); return Promise.resolve({ id: 'doc1', ...data }); },
+    },
     sprints: { getByBoard: ok([]) },
     components: { getByBoard: ok([]) },
     releases: { getByBoard: ok([]) },
@@ -120,6 +124,32 @@ test('shows working issue actions in the overflow menu', async () => {
   await click(container.querySelector('button[aria-label="Действия"]'));
   ['Добавить флажок', 'Добавить или убрать голос', 'Клонировать', 'Переместить', 'Архивировать', 'Печать', 'Экспортировать в Excel', 'Экспорт в Word', 'Экспорт в XML', 'Настроить']
     .forEach((label) => expect(button(label)).toBeTruthy());
+});
+
+test('offers Jira-style add actions and a working apps menu', async () => {
+  await render();
+
+  await click(container.querySelector('button[aria-label="Добавить"]'));
+  ['Создать подзадачу', 'Связать задачу', 'Добавить вложение']
+    .forEach((label) => expect(button(label)).toBeTruthy());
+
+  await click(container.querySelector('button[aria-label="Приложения"]'));
+  const appsLink = [...container.querySelectorAll('a')].find((link) => link.textContent.trim() === 'Добавить приложения');
+  expect(appsLink?.getAttribute('href')).toBe('/board/b1/integrations');
+});
+
+test('offers the Confluence project plan template', async () => {
+  await render();
+  expect(container.textContent).toContain('Контент Confluence');
+  expect(container.textContent).toContain('План проекта');
+
+  await click(button('Попробовать шаблон'));
+  expect(mockCalls).toContainEqual(['listDocs']);
+  expect(mockCalls.find((call) => call[0] === 'createDoc')).toMatchObject([
+    'createDoc',
+    'b1',
+    { title: 'План проекта', parentId: null },
+  ]);
 });
 
 test('status button moves the issue and the comment box saves comments', async () => {

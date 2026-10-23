@@ -3,7 +3,7 @@ import { Link, useNavigate } from '../i18n/navigation.jsx';
 import {
   boards, clone as cloneApi, components as componentsApi, history as historyApi,
   integrations, questHierarchy, questLinks, quests, releases as releasesApi,
-  sprints as sprintsApi, votes as votesApi, workflows, worklogs,
+  spaceContent, sprints as sprintsApi, votes as votesApi, workflows, worklogs,
 } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useLocalization } from '../i18n/LocalizationContext.jsx';
@@ -40,6 +40,28 @@ const PRIORITY_OPTIONS = [
 ];
 const COMMENT_STARTERS = ['Кто работает над этим...?', 'Можно ли узнать подробнее...?', 'Обновление статуса...'];
 const ACTIVITY_TABS = [['all', 'Все'], ['comments', 'Комментарии'], ['history', 'История'], ['worklog', 'Журнал работ']];
+const PROJECT_PLAN_TEMPLATE = `# План проекта
+
+## Обзор
+Опишите назначение проекта и ожидаемый результат.
+
+## Цели
+- [ ] Цель 1
+- [ ] Цель 2
+
+## Объём работ
+Опишите, что входит и не входит в проект.
+
+## Этапы
+1. Подготовка
+2. Реализация
+3. Запуск
+
+## Риски
+Перечислите основные риски и способы их снижения.
+
+## Участники
+Укажите владельца проекта и ответственных.`;
 
 const isTyping = (target) => !!target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable);
 const xmlEscape = (value) => String(value ?? '').replace(/[<>&'"]/g, (char) => ({
@@ -195,6 +217,7 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [attachmentUploading, setAttachmentUploading] = useState(false);
   const [deletingAttachmentId, setDeletingAttachmentId] = useState(null);
   const [attachmentError, setAttachmentError] = useState('');
+  const [projectPlanCreating, setProjectPlanCreating] = useState(false);
   const attachmentInputRef = useRef(null);
 
   const questIdRef = useRef(questId);
@@ -505,6 +528,26 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       setAttachmentError(e.message || 'Не удалось удалить файл.');
     } finally {
       setDeletingAttachmentId(null);
+    }
+  };
+
+  const handleProjectPlanTemplate = async () => {
+    if (!quest?.boardId || projectPlanCreating) return;
+    setProjectPlanCreating(true);
+    setAuxError('');
+    try {
+      const docs = await spaceContent.listDocs(quest.boardId);
+      const existing = (Array.isArray(docs) ? docs : []).find((doc) => doc.title?.trim().toLowerCase() === 'план проекта');
+      const doc = existing || await spaceContent.createDoc(quest.boardId, {
+        title: 'План проекта',
+        content: PROJECT_PLAN_TEMPLATE,
+        parentId: null,
+      });
+      navigate(`/board/${quest.boardId}/docs/${doc.id}${existing ? '' : '?edit=1'}`);
+    } catch (e) {
+      setAuxError(e.message || 'Не удалось создать план проекта.');
+    } finally {
+      setProjectPlanCreating(false);
     }
   };
 
@@ -828,11 +871,18 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
               />
               <div className="iv-quick-actions">
                 <span className="iv-anchor">
+                  <button type="button" className="iv-square-btn" aria-label={t('Приложения')} title={t('Приложения')} onClick={() => toggle('apps')}>⋯</button>
+                  <Menu open={menu === 'apps'} onClose={() => setMenu(null)} label={t('Приложения')}>
+                    <Link to={`/board/${quest.boardId}/integrations`} role="menuitem" className="iv-menu-item" onClick={() => setMenu(null)}>{t('Добавить приложения')}</Link>
+                  </Menu>
+                </span>
+                <span className="iv-anchor">
                   <button type="button" className="iv-square-btn" aria-label={t('Добавить')} title={t('Добавить')} onClick={() => toggle('add')}>+</button>
                   <Menu open={menu === 'add'} onClose={() => setMenu(null)} label={t('Добавить')}>
-                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); attachmentInputRef.current?.click(); }}>{t('Вложение')}</button>
-                    {issueType !== 4 && <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingChild(true); }}>{issueType === 0 ? t('Дочерняя задача') : t('Подзадача')}</button>}
-                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingLink(true); }}>{t('Связанная задача')}</button>
+                    {issueType !== 4 && <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingChild(true); }}>{issueType === 0 ? t('Создать дочернюю задачу') : t('Создать подзадачу')}</button>}
+                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingLink(true); }}>{t('Связать задачу')}</button>
+                    <div className="iv-menu-divider" role="separator" />
+                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); attachmentInputRef.current?.click(); }}>{t('Добавить вложение')}</button>
                   </Menu>
                 </span>
                 <input ref={attachmentInputRef} type="file" className="issue-drawer-file-input" onChange={handleUploadAttachment} />
@@ -1031,6 +1081,25 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                   </Menu>
                 </span>
               </div>
+
+              <section className="iv-confluence">
+                <div className="iv-confluence-head">
+                  <h3>{t('Контент Confluence')} <span title={t('Документы раздела')} aria-label={t('Документы раздела')}>ⓘ</span></h3>
+                  <span className="iv-anchor">
+                    <button type="button" className="iv-icon-btn" aria-label={t('Действия контента')} title={t('Действия контента')} onClick={() => toggle('content')}>⋯</button>
+                    <Menu open={menu === 'content'} onClose={() => setMenu(null)} align="right" label={t('Контент Confluence')}>
+                      <Link to={`/board/${quest.boardId}/docs`} role="menuitem" className="iv-menu-item" onClick={() => setMenu(null)}>{t('Открыть документы')}</Link>
+                      <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); handleProjectPlanTemplate(); }}>{t('Создать план проекта')}</button>
+                    </Menu>
+                  </span>
+                </div>
+                <div className="iv-confluence-item">
+                  <Link to={`/board/${quest.boardId}/docs`}><span aria-hidden="true">▣</span>{t('План проекта')}</Link>
+                  <button type="button" onClick={handleProjectPlanTemplate} disabled={projectPlanCreating}>
+                    {projectPlanCreating ? '…' : t('Попробовать шаблон')}
+                  </button>
+                </div>
+              </section>
 
               <details className="iv-panel" open>
                 <summary>{t('Сведения')}</summary>

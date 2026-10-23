@@ -200,9 +200,11 @@ function SpaceHeader({ board, boardId, tab }) {
       <div className="app-space-breadcrumbs"><Link to="/spaces">{t('Разделы')}</Link></div>
       <div className="app-space-title-row">
         <span className="app-space-avatar">
-          <button type="button" className="app-space-avatar-btn" onClick={() => setPickerOpen((v) => !v)} aria-label={t('Изменить аватар')} title={t('Изменить аватар')}>
-            <SpaceAvatar id={boardId} name={name || t('Доска')} avatarUrl={board?.avatarUrl} size={24} />
-          </button>
+          {name && (
+            <button type="button" className="app-space-avatar-btn" onClick={() => setPickerOpen((v) => !v)} aria-label={t('Изменить аватар')} title={t('Изменить аватар')}>
+              <SpaceAvatar id={boardId} name={name} avatarUrl={board?.avatarUrl} size={24} />
+            </button>
+          )}
           {pickerOpen && (
             <SpaceAvatarPicker boardId={boardId} value={board?.avatarUrl} onClose={closePicker}
               onChange={() => { setPickerOpen(false); window.dispatchEvent(new CustomEvent(SPACES_CHANGED_EVENT)); }} />

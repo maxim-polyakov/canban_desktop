@@ -11,7 +11,7 @@ public sealed class PlanRequiredException : Exception
     public string RequiredPlan { get; }
 }
 
-/// <summary>Effective plans: a team gets the plan of its owner; personal feature access uses the user's own subscription.</summary>
+/// <summary>Effective plans: a team gets the plan of its owner; a user gets the best plan that covers one of their seats.</summary>
 public class PlanAccessService
 {
     /// <summary>Paid features stay on for a few days after the period ends while the renewal is retried.</summary>
@@ -33,6 +33,12 @@ public class PlanAccessService
         return paidUntil.Value + Grace >= now ? id : BillingPlans.Free;
     }
 
+    public static string BestAvailablePlan(IEnumerable<string> plans)
+        => plans
+            .Select(plan => BillingPlans.Find(plan).Id)
+            .OrderByDescending(BillingPlans.Rank)
+            .FirstOrDefault() ?? BillingPlans.Free;
+
     public async Task<string> PlanOfOwnerAsync(Guid? ownerId, CancellationToken ct)
     {
         if (ownerId == null) return BillingPlans.Free;
@@ -50,7 +56,32 @@ public class PlanAccessService
     }
 
     public async Task<string> PlanForUserAsync(Guid userId, CancellationToken ct)
-        => await PlanOfOwnerAsync(userId, ct);
+    {
+        var ownerIds = await _db.Teams.AsNoTracking()
+            .Where(team => team.OwnerId.HasValue
+                && (team.OwnerId == userId || team.Members.Any(member => member.UserId == userId)))
+            .Select(team => team.OwnerId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+        ownerIds.Add(userId);
+        ownerIds = ownerIds.Distinct().ToList();
+
+        var enterpriseEmails = _config["Billing:EnterpriseEmails"];
+        var coveredOwners = await _db.Users.AsNoTracking()
+            .Where(user => ownerIds.Contains(user.Id))
+            .Select(user => new { user.Id, user.Email })
+            .ToListAsync(ct);
+        if (coveredOwners.Any(owner => BillingPlans.IsListed(enterpriseEmails, owner.Email)))
+            return BillingPlans.Enterprise;
+
+        var now = DateTime.UtcNow;
+        var subscriptions = await _db.BillingSubscriptions.AsNoTracking()
+            .Where(subscription => ownerIds.Contains(subscription.UserId))
+            .Select(subscription => new { subscription.Plan, subscription.PaidUntil })
+            .ToListAsync(ct);
+        return BestAvailablePlan(subscriptions.Select(subscription =>
+            Effective(subscription.Plan, subscription.PaidUntil, now)));
+    }
 
     public async Task EnsureUserAsync(Guid userId, string minPlan, CancellationToken ct)
     {

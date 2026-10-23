@@ -60,6 +60,23 @@ public class BillingTests
     }
 
     [Fact]
+    public void TeamMemberGetsBestPlanCoveringTheirSeat()
+    {
+        Assert.Equal(BillingPlans.Premium, PlanAccessService.BestAvailablePlan(new[]
+        {
+            BillingPlans.Free,
+            BillingPlans.Standard,
+            BillingPlans.Premium,
+        }));
+        Assert.Equal(BillingPlans.Standard, PlanAccessService.BestAvailablePlan(new[]
+        {
+            BillingPlans.Standard,
+            BillingPlans.Free,
+        }));
+        Assert.Equal(BillingPlans.Free, PlanAccessService.BestAvailablePlan(Array.Empty<string>()));
+    }
+
+    [Fact]
     public void ParsesYooKassaPayment()
     {
         var p = YooKassaClient.Parse("""

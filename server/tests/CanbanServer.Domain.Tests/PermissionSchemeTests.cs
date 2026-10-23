@@ -81,6 +81,21 @@ public class PermissionSchemeTests
     }
 
     [Fact]
+    public void Reporter_has_full_access_within_own_issue()
+    {
+        var reporter = Guid.NewGuid();
+        var scheme = Only(JiraPermissions.Create);
+        var scope = Scope("member", scheme, reporter);
+        var quest = new Quest { ReporterId = reporter };
+
+        foreach (var permission in JiraPermissions.All.Where(permission => permission.IssueScoped))
+            Assert.True(scope.Has(permission.Key, quest), permission.Key);
+
+        Assert.False(scope.Has(JiraPermissions.Create, quest));
+        Assert.False(Scope("member", scheme).Has(JiraPermissions.CreateAttachments, quest));
+    }
+
+    [Fact]
     public void Edit_through_scheme_raises_the_level_of_viewers()
     {
         var data = PermissionSchemeService.Default();

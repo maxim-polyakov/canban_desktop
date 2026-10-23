@@ -45,15 +45,15 @@ public class QuestAttachmentService : IQuestAttachmentService
         Guid userId,
         CancellationToken ct = default)
     {
-        var teamId = await _db.Columns
+        var board = await _db.Columns
             .AsNoTracking()
             .Where(c => c.Id == columnId)
-            .Select(c => (Guid?)c.Board.TeamId)
+            .Select(c => new { c.BoardId })
             .FirstOrDefaultAsync(ct);
-        if (!teamId.HasValue)
+        if (board == null)
             return QuestAttachmentOperationStatus.NotFound;
 
-        return await GetTeamAccessStatusAsync(teamId.Value, userId, ct);
+        return await GetBoardAccessStatusAsync(board.BoardId, userId, ct);
     }
 
     public async Task<(QuestAttachmentOperationStatus Status, List<QuestAttachmentDto> Items)> GetByQuestAsync(
@@ -213,33 +213,24 @@ public class QuestAttachmentService : IQuestAttachmentService
         var quest = await _db.Quests
             .AsNoTracking()
             .Where(q => q.Id == questId)
-            .Select(q => new { TeamId = q.Board.TeamId })
+            .Select(q => new { q.BoardId, TeamId = q.Board.TeamId })
             .FirstOrDefaultAsync(ct);
         if (quest == null)
             return (QuestAttachmentOperationStatus.NotFound, null);
 
-        var status = await GetTeamAccessStatusAsync(quest.TeamId, userId, ct);
+        var status = await GetBoardAccessStatusAsync(quest.BoardId, userId, ct);
         return (status, quest.TeamId);
     }
 
-    private async Task<QuestAttachmentOperationStatus> GetTeamAccessStatusAsync(
-        Guid teamId,
+    private async Task<QuestAttachmentOperationStatus> GetBoardAccessStatusAsync(
+        Guid boardId,
         Guid userId,
         CancellationToken ct)
     {
-        var isMember = await _db.TeamMembers
-            .AsNoTracking()
-            .AnyAsync(m => m.TeamId == teamId && m.UserId == userId, ct);
-        if (!isMember)
-        {
-            var isOwner = await _db.Teams
-                .AsNoTracking()
-                .AnyAsync(t => t.Id == teamId && t.OwnerId == userId, ct);
-            if (!isOwner)
-                return QuestAttachmentOperationStatus.Forbidden;
-        }
-
-        return QuestAttachmentOperationStatus.Success;
+        var scope = await _permissions.ScopeAsync(boardId, userId, ct);
+        return scope?.Has(JiraPermissions.Browse) == true
+            ? QuestAttachmentOperationStatus.Success
+            : QuestAttachmentOperationStatus.Forbidden;
     }
 
     private static QuestAttachmentDto Map(QuestAttachment attachment) => new(

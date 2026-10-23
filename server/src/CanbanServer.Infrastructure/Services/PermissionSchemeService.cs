@@ -90,8 +90,12 @@ public sealed class PermissionScope
     public PermissionSchemeData Scheme { get; init; } = new();
     public HashSet<Guid> Groups { get; init; } = new();
 
-    public bool Has(string key, Guid? reporterId = null, IReadOnlyCollection<Guid>? assigneeIds = null) =>
-        PermissionSchemeService.Grants(Scheme, key, Role, Groups, UserId, reporterId, assigneeIds);
+    public bool Has(string key, Guid? reporterId = null, IReadOnlyCollection<Guid>? assigneeIds = null)
+    {
+        if (Role != null && reporterId == UserId && JiraPermissions.Find(key)?.IssueScoped == true)
+            return true;
+        return PermissionSchemeService.Grants(Scheme, key, Role, Groups, UserId, reporterId, assigneeIds);
+    }
 
     public bool Has(string key, Quest quest) =>
         Has(key, quest.ReporterId, quest.Assignees.Select(a => a.UserId).Append(quest.AssigneeId ?? Guid.Empty).Where(id => id != Guid.Empty).ToList());

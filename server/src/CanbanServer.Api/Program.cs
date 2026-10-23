@@ -241,11 +241,8 @@ using (var scope = app.Services.CreateScope())
     await SeedData.EnsureSkillsAsync(db);
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseForwardedHeaders();
 app.UseCors();

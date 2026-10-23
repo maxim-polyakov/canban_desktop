@@ -127,6 +127,23 @@ test('shows working issue actions in the overflow menu', async () => {
     .forEach((label) => expect(button(label)).toBeTruthy());
 });
 
+test('asks for an optional comment before flagging an issue', async () => {
+  await render();
+  await click(container.querySelector('button[aria-label="Действия"]'));
+  await click(button('Добавить флажок'));
+
+  expect(container.querySelector('[role="dialog"][aria-label="Установка флажка"]')).toBeTruthy();
+  expect(mockCalls.some(([name]) => name === 'update')).toBe(false);
+  const reason = container.querySelector('textarea[aria-label="Причина установки флажка"]');
+  expect(reason.placeholder).toContain('Необязательно');
+  await change(reason, 'Нужно проверить перед релизом');
+  await click(button('Подтвердить'));
+
+  expect(mockCalls.find(([name]) => name === 'update')?.[2].flagged).toBe(true);
+  expect(mockCalls.find(([name]) => name === 'comment')?.[2]).toBe('Нужно проверить перед релизом');
+  expect(container.querySelector('[role="dialog"][aria-label="Установка флажка"]')).toBeFalsy();
+});
+
 test('offers Jira-style add actions and a working apps menu', async () => {
   await render();
 

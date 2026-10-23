@@ -200,6 +200,10 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [menu, setMenu] = useState(null);
   const [addMenuQuery, setAddMenuQuery] = useState('');
   const [videoRecommendationVisible, setVideoRecommendationVisible] = useState(true);
+  const [flagDialogOpen, setFlagDialogOpen] = useState(false);
+  const [flagComment, setFlagComment] = useState('');
+  const [flagSaving, setFlagSaving] = useState(false);
+  const [flagError, setFlagError] = useState('');
   const [activityTab, setActivityTab] = useState('comments');
   const [commentFocused, setCommentFocused] = useState(false);
   const commentRef = useRef(null);
@@ -370,9 +374,11 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
       if (patch.parentQuestId !== undefined) loadHierarchy();
       historyApi.get(questId).then((value) => setHistoryItems(value?.items || value || [])).catch(() => {});
       onChanged?.();
+      return true;
     } catch (e) {
       setAuxError(t(e.message || 'Не удалось сохранить задачу.'));
       loadQuest();
+      return false;
     } finally {
       setSaving(false);
     }
@@ -673,7 +679,38 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
 
   const handleToggleFlag = async () => {
     setMenu(null);
-    await save({ flagged: !quest.flagged });
+    if (quest.flagged) {
+      await save({ flagged: false });
+      return;
+    }
+    setFlagComment('');
+    setFlagError('');
+    setFlagDialogOpen(true);
+  };
+
+  const handleConfirmFlag = async (event) => {
+    event.preventDefault();
+    if (flagSaving) return;
+    setFlagSaving(true);
+    setFlagError('');
+    const flagged = await save({ flagged: true });
+    if (!flagged) {
+      setFlagError(t('Не удалось добавить флажок.'));
+      setFlagSaving(false);
+      return;
+    }
+    try {
+      if (flagComment.trim()) {
+        const comment = await quests.addComment(questId, flagComment.trim());
+        if (comment) setComments((current) => [...current, comment]);
+      }
+      setFlagDialogOpen(false);
+      setFlagComment('');
+    } catch (e) {
+      setFlagError(t(e.message || 'Флажок добавлен, но комментарий сохранить не удалось.'));
+    } finally {
+      setFlagSaving(false);
+    }
   };
 
   const handleVote = async () => {
@@ -1349,6 +1386,45 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
           </div>
         )}
       </div>
+      {flagDialogOpen && (
+        <div className="app-modal-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !flagSaving) setFlagDialogOpen(false);
+        }}>
+          <form className="app-modal iv-flag-modal" role="dialog" aria-modal="true" aria-label={t('Установка флажка')} onSubmit={handleConfirmFlag}>
+            <div className="app-modal-header">
+              <h2><NavIcon name="flag" size={18} />{t('Установка флажка')}</h2>
+              <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={() => setFlagDialogOpen(false)} disabled={flagSaving}>
+                <NavIcon name="close" />
+              </button>
+            </div>
+            <div className="app-modal-body">
+              <div className="iv-flag-issue">
+                <span>{t('Задача')}</span>
+                <IssueTypeIcon issueType={issueType} typeId={issueTypeId} size={16} />
+                <strong>{quest?.issueKey}</strong>
+                <span>{quest?.title}</span>
+              </div>
+              <label className="app-field">
+                <textarea
+                  autoFocus
+                  rows={5}
+                  maxLength={5000}
+                  value={flagComment}
+                  onChange={(event) => setFlagComment(event.target.value)}
+                  placeholder={t('Необязательно: сообщите команде, почему задача отмечена флажком')}
+                  aria-label={t('Причина установки флажка')}
+                  disabled={flagSaving}
+                />
+              </label>
+              {flagError && <p className="app-modal-error" role="alert">{flagError}</p>}
+            </div>
+            <div className="app-modal-footer">
+              <button type="button" className="app-btn app-btn-subtle" onClick={() => setFlagDialogOpen(false)} disabled={flagSaving}>{t('Отмена')}</button>
+              <button type="submit" className="app-btn app-btn-primary" disabled={flagSaving}>{flagSaving ? '…' : t('Подтвердить')}</button>
+            </div>
+          </form>
+        </div>
+      )}
       {pendingTransition && quest && (
         <TransitionScreenDialog
           issue={quest}

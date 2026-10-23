@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,6 +12,7 @@ using CanbanServer.Infrastructure.Services;
 using CanbanServer.Infrastructure.Hubs;
 using Microsoft.EntityFrameworkCore;
 using DotNetEnv;
+using StackExchange.Redis;
 
 // Загружаем .env из папки с API (если файл есть) — переменные переопределяют appsettings
 Env.TraversePath().Load();
@@ -134,6 +136,13 @@ var redisConfig = builder.Configuration["Redis:Configuration"];
 var signalR = builder.Services.AddSignalR();
 if (!string.IsNullOrWhiteSpace(redisConfig))
 {
+    var redisOptions = ConfigurationOptions.Parse(redisConfig);
+    redisOptions.AbortOnConnectFail = false;
+    var redis = ConnectionMultiplexer.Connect(redisOptions);
+    builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
+    builder.Services.AddDataProtection()
+        .SetApplicationName("Kanban")
+        .PersistKeysToStackExchangeRedis(redis, "Kanban-DataProtection-Keys");
     signalR.AddStackExchangeRedis(redisConfig);
 }
 

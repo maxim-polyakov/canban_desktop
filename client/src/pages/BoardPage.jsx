@@ -16,7 +16,9 @@ import { useBoardIssueConfig } from '../utils/issueConfig.js';
 import { issueWorkflow, needsTransitionDialog, transitionsTo } from '../utils/workflow.js';
 import TransitionScreenDialog from '../components/TransitionScreenDialog.jsx';
 import ColumnConfigDialog from '../components/ColumnConfigDialog.jsx';
-import { activeSprintIds, buildBoardColumns, isScrumBoard, resolveLayoutDrop } from '../utils/boardColumnLayout.js';
+import {
+  activeSprintIds, buildBoardColumns, isScrumBoard, resolveLayoutDrop, SPRINT_ASSIGNMENT_CHANGED_EVENT,
+} from '../utils/boardColumnLayout.js';
 import './BoardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -26,6 +28,16 @@ const EMPTY_FILTERS = { assigneeIds: [], types: [], priorities: [], labels: [] }
 const groupKey = (boardId) => `board-group:${boardId}`;
 export const isBoardViewReady = (boardId, boardLoadedFor, sprintsLoaded, sprintsLoadedFor) =>
   boardLoadedFor === boardId && sprintsLoaded && sprintsLoadedFor === boardId;
+export const loadActiveSprintIssues = async (boardId, sprints, filter = quests.filter) => {
+  const active = (sprints || []).filter((sprint) => sprint.status === 1);
+  if (!active.length) return [];
+  const groups = await Promise.all(active.map((sprint) => filter(boardId, { sprintId: sprint.id })));
+  const byId = new Map();
+  groups.flat().forEach((issue) => {
+    if (issue?.id) byId.set(issue.id, issue);
+  });
+  return [...byId.values()];
+};
 export const moveActiveSprintQuest = (issues, questId, targetColumnId, newOrder) => {
   const moved = issues.find((issue) => issue.id === questId);
   if (!moved) return issues;
@@ -183,14 +195,11 @@ export default function BoardPage() {
     try {
       const result = await sprintsApi.getByBoard(boardId);
       const list = Array.isArray(result) ? result : [];
-      const active = list.filter((sprint) => sprint.status === 1);
-      const activeIds = new Set(active.map((sprint) => String(sprint.id).toLowerCase()));
-      const allIssues = active.length ? await quests.filter(boardId) : [];
+      const allIssues = await loadActiveSprintIssues(boardId, list);
       // Do not let an older refresh undo an optimistic card move.
       if (seq !== sprintLoadSeqRef.current || pendingMovesRef.current > 0) return;
       setBoardSprints(list);
-      setActiveSprintQuests((Array.isArray(allIssues) ? allIssues : [])
-        .filter((issue) => activeIds.has(String(issue.sprintId).toLowerCase())));
+      setActiveSprintQuests(allIssues);
     } catch {
       if (seq !== sprintLoadSeqRef.current) return;
     } finally {
@@ -206,6 +215,14 @@ export default function BoardPage() {
     setSprintsLoaded(false);
     loadSprints();
   }, [loadSprints]);
+
+  useEffect(() => {
+    const refreshSprint = (event) => {
+      if (!event.detail?.boardId || event.detail.boardId === boardId) loadSprints();
+    };
+    window.addEventListener(SPRINT_ASSIGNMENT_CHANGED_EVENT, refreshSprint);
+    return () => window.removeEventListener(SPRINT_ASSIGNMENT_CHANGED_EVENT, refreshSprint);
+  }, [boardId, loadSprints]);
 
   const refreshBoard = useCallback(
     () => Promise.all([loadBoard(), loadSprints()]),

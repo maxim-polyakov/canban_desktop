@@ -1,6 +1,8 @@
 import { spaceFeatures } from './spaceFeatures.js';
 import { BASE_TYPES } from './issueConfig.js';
 
+export const SPRINT_ASSIGNMENT_CHANGED_EVENT = 'canban:sprint-assignment-changed';
+
 /** Issue types whose workflow uses the status; without shared workflows every type uses every status. */
 export function statusIssueTypes(statusId, config) {
   const all = [

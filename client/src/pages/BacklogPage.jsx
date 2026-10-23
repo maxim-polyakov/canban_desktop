@@ -13,6 +13,7 @@ import SplitIssueDialog from '../components/SplitIssueDialog.jsx';
 import QuickCreateIssue from '../components/QuickCreateIssue.jsx';
 import NavIcon from '../components/NavIcons.jsx';
 import { matchesBoardFilters } from '../utils/boardLanes.js';
+import { SPRINT_ASSIGNMENT_CHANGED_EVENT } from '../utils/boardColumnLayout.js';
 import { useBoardIssueConfig } from '../utils/issueConfig.js';
 import './BacklogPage.css';
 
@@ -408,8 +409,18 @@ export default function BacklogPage() {
       return next;
     });
     try {
-      await quests.update(quest.id, { sprintId, sprintIdSet: true });
+      const updated = await quests.update(quest.id, { sprintId, sprintIdSet: true });
+      const assignedId = updated?.sprintId ?? null;
+      if (String(assignedId ?? '').toLowerCase() !== String(sprintId ?? '').toLowerCase()) {
+        throw new Error('Сервер не подтвердил перемещение задачи в спринт.');
+      }
+      window.dispatchEvent(new CustomEvent(SPRINT_ASSIGNMENT_CHANGED_EVENT, {
+        detail: { boardId, questId: quest.id, sprintId },
+      }));
       await refresh();
+      if (sprintList.some((sprint) => sprint.id === sprintId && sprint.status === 1)) {
+        setToast(t('Задача ${key} добавлена в активный спринт и доступна на доске.', { key: quest.issueKey }));
+      }
     } catch (e) {
       report(e, 'Не удалось переместить задачу.');
       await refresh();

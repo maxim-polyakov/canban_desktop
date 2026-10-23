@@ -30,7 +30,7 @@ const Check = ({ on }) => <span className="iam-check" aria-hidden="true">{on ? '
  * Jira's issue "⋯" menu from the backlog: move, copy link/key, flag, assignee, priority,
  * parent, story points, split and delete. Submenus fly out on hover and open on click.
  */
-export default function IssueActionsMenu({ quest, boardId, sprints = [], members = [], loadEpics, onMove, onUpdate, onSplit, onDelete, onNotify }) {
+export default function IssueActionsMenu({ quest, boardId, sprints = [], members = [], loadEpics, onMove, onUpdate, onFlag, onSplit, onDelete, onNotify }) {
   const { t } = useLocalization();
   const [open, setOpen] = useState(false);
   const [sub, setSub] = useState(null);
@@ -135,7 +135,11 @@ export default function IssueActionsMenu({ quest, boardId, sprints = [], members
           {plain('link', t('Копировать ссылку'), () => copy(issueLink(boardId, quest.id), 'Ссылка скопирована'))}
           {plain('key', t('Копировать ключ'), () => copy(quest.issueKey, 'Ключ скопирован'))}
           <div className="iam-sep" role="separator" />
-          {plain('flag', quest.flagged ? t('Убрать флажок') : t('Добавить флажок'), () => onUpdate({ flagged: !quest.flagged }))}
+          {plain(
+            'flag',
+            quest.flagged ? t('Убрать флажок') : t('Добавить флажок'),
+            () => (quest.flagged || !onFlag ? onUpdate({ flagged: !quest.flagged }) : onFlag(quest)),
+          )}
           {parentItem('assignee', t('Исполнитель'))}
           {parentItem('priority', t('Приоритет'))}
           {!isEpic && parentItem('parent', t('Родительский элемент'))}

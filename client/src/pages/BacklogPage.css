@@ -1,3 +1,42 @@
+.bl-flag-modal {
+  width: min(26rem, 100%);
+}
+
+.bl-flag-modal .app-modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.bl-flag-modal .app-modal-header h2 svg {
+  color: #e5493a;
+}
+
+.bl-flag-issue {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.bl-flag-issue strong,
+.bl-flag-issue span:last-child {
+  color: var(--text);
+}
+
+.bl-flag-issue span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bl-flag-modal textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
 .backlog-page {
   padding: 0.75rem 1rem 2rem;
   transition: padding-right 0.15s;

@@ -80,6 +80,13 @@ test('updates flag, assignee, priority, parent and story points', async () => {
   expect(h.onUpdate).toHaveBeenLastCalledWith({ storyPoints: 5, storyPointsSet: true });
 });
 
+test('opens the flag dialog callback when provided', async () => {
+  const onFlag = jest.fn();
+  await renderMenu({ onFlag });
+  await click(item('Добавить флажок'));
+  expect(onFlag).toHaveBeenCalledWith(quest);
+});
+
 test('copies the key and reports failures', async () => {
   const writeText = jest.fn().mockResolvedValue();
   Object.assign(navigator, { clipboard: { writeText } });

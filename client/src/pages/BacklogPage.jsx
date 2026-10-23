@@ -11,6 +11,7 @@ import IssueActionsMenu from '../components/IssueActionsMenu.jsx';
 import BoardToolbar from '../components/BoardToolbar.jsx';
 import SplitIssueDialog from '../components/SplitIssueDialog.jsx';
 import QuickCreateIssue from '../components/QuickCreateIssue.jsx';
+import NavIcon from '../components/NavIcons.jsx';
 import { matchesBoardFilters } from '../utils/boardLanes.js';
 import { useBoardIssueConfig } from '../utils/issueConfig.js';
 import './BacklogPage.css';
@@ -282,6 +283,10 @@ export default function BacklogPage() {
   const [startingSprint, setStartingSprint] = useState(null);
   const [editingSprint, setEditingSprint] = useState(null);
   const [splitting, setSplitting] = useState(null);
+  const [flagging, setFlagging] = useState(null);
+  const [flagComment, setFlagComment] = useState('');
+  const [flagSaving, setFlagSaving] = useState(false);
+  const [flagError, setFlagError] = useState('');
   const [pendingSprintMove, setPendingSprintMove] = useState(null);
   const [collapsed, setCollapsed] = useState([]);
   const [query, setQuery] = useState('');
@@ -446,6 +451,30 @@ export default function BacklogPage() {
 
   const loadEpics = useCallback(() => Promise.resolve(epics), [epics]);
 
+  const openFlagDialog = (quest) => {
+    setFlagging(quest);
+    setFlagComment('');
+    setFlagError('');
+  };
+
+  const confirmFlag = async (event) => {
+    event.preventDefault();
+    if (!flagging || flagSaving) return;
+    setFlagSaving(true);
+    setFlagError('');
+    try {
+      await quests.update(flagging.id, { flagged: true });
+      if (flagComment.trim()) await quests.addComment(flagging.id, flagComment.trim());
+      setFlagging(null);
+      setFlagComment('');
+      await refresh();
+    } catch (e) {
+      setFlagError(t(e?.message || 'Не удалось добавить флажок.'));
+    } finally {
+      setFlagSaving(false);
+    }
+  };
+
   const renderActions = (quest) => (
     <IssueActionsMenu
       quest={quest}
@@ -455,6 +484,7 @@ export default function BacklogPage() {
       loadEpics={loadEpics}
       onMove={(sprintId) => quests.update(quest.id, { sprintId, sprintIdSet: true }).then(refresh)}
       onUpdate={(patch) => quests.update(quest.id, patch).then(refresh)}
+      onFlag={openFlagDialog}
       onSplit={() => setSplitting(quest)}
       onDelete={() => deleteQuest(quest)}
       onNotify={setToast}
@@ -666,6 +696,46 @@ export default function BacklogPage() {
               }}>{t('Переместить')}</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {flagging && (
+        <div className="app-modal-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !flagSaving) setFlagging(null);
+        }}>
+          <form className="app-modal bl-flag-modal" role="dialog" aria-modal="true" aria-label={t('Установка флажка')} onSubmit={confirmFlag}>
+            <div className="app-modal-header">
+              <h2><NavIcon name="flag" size={18} />{t('Установка флажка')}</h2>
+              <button type="button" className="app-icon-btn" aria-label={t('Закрыть')} onClick={() => setFlagging(null)} disabled={flagSaving}>
+                <NavIcon name="close" />
+              </button>
+            </div>
+            <div className="app-modal-body">
+              <div className="bl-flag-issue">
+                <span>{t('Задача')}</span>
+                <IssueTypeIcon issueType={flagging.issueType} typeId={flagging.issueTypeId} size={16} />
+                <strong>{flagging.issueKey}</strong>
+                <span>{flagging.title}</span>
+              </div>
+              <label className="app-field">
+                <textarea
+                  autoFocus
+                  rows={5}
+                  maxLength={5000}
+                  value={flagComment}
+                  onChange={(event) => setFlagComment(event.target.value)}
+                  placeholder={t('Необязательно: сообщите команде, почему задача отмечена флажком')}
+                  aria-label={t('Причина установки флажка')}
+                  disabled={flagSaving}
+                />
+              </label>
+              {flagError && <p className="app-modal-error" role="alert">{flagError}</p>}
+            </div>
+            <div className="app-modal-footer">
+              <button type="button" className="app-btn app-btn-subtle" onClick={() => setFlagging(null)} disabled={flagSaving}>{t('Отмена')}</button>
+              <button type="submit" className="app-btn app-btn-primary" disabled={flagSaving}>{flagSaving ? '…' : t('Подтвердить')}</button>
+            </div>
+          </form>
         </div>
       )}
 

@@ -25,6 +25,7 @@ import MentionTextarea, { MentionText } from './MentionTextarea.jsx';
 import { parseRichText, richTextToPlainText, serializeRichText } from '../utils/richText.js';
 import { rememberIssue } from '../utils/navHistory.js';
 import { planIncludes, useBilling } from '../utils/billing.js';
+import NavIcon from './NavIcons.jsx';
 import './IssueDetailDrawer.css';
 import './IssueView.css';
 
@@ -110,12 +111,12 @@ function formatFileSize(sizeBytes) {
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
 }
 
-function Menu({ open, onClose, children, align = 'left', label }) {
+function Menu({ open, onClose, children, align = 'left', label, className = '' }) {
   if (!open) return null;
   return (
     <>
       <div className="iv-menu-backdrop" onMouseDown={onClose} />
-      <div className={`iv-menu iv-menu-${align}`} role="menu" aria-label={label}>{children}</div>
+      <div className={`iv-menu iv-menu-${align} ${className}`.trim()} role="menu" aria-label={label}>{children}</div>
     </>
   );
 }
@@ -197,6 +198,8 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
   const [parentKey, setParentKey] = useState('');
   const [auxError, setAuxError] = useState('');
   const [menu, setMenu] = useState(null);
+  const [addMenuQuery, setAddMenuQuery] = useState('');
+  const [videoRecommendationVisible, setVideoRecommendationVisible] = useState(true);
   const [activityTab, setActivityTab] = useState('comments');
   const [commentFocused, setCommentFocused] = useState(false);
   const commentRef = useRef(null);
@@ -373,6 +376,27 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
     } finally {
       setSaving(false);
     }
+  };
+
+  const matchesAddMenu = (label) => label.toLocaleLowerCase().includes(addMenuQuery.trim().toLocaleLowerCase());
+
+  const addWebLink = async () => {
+    setMenu(null);
+    const rawUrl = window.prompt(t('Введите адрес веб-страницы'));
+    if (!rawUrl) return;
+    let url;
+    try {
+      url = new URL(rawUrl);
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('invalid protocol');
+    } catch {
+      setAuxError(t('Введите корректную ссылку, начинающуюся с http:// или https://.'));
+      return;
+    }
+    const linkText = window.prompt(t('Введите текст ссылки'), url.hostname) || url.hostname;
+    const trimmedDescription = description.trim();
+    const nextDescription = `${trimmedDescription}${trimmedDescription ? '\n\n' : ''}[${linkText}](${url.href})`;
+    setDescription(nextDescription);
+    await save({ description: nextDescription });
   };
 
   const chooseIssueType = (value) => {
@@ -877,12 +901,75 @@ export default function IssueDetailDrawer({ questId, members = [], columns = [],
                   </Menu>
                 </span>
                 <span className="iv-anchor">
-                  <button type="button" className="iv-square-btn" aria-label={t('Добавить')} title={t('Добавить')} onClick={() => toggle('add')}>+</button>
-                  <Menu open={menu === 'add'} onClose={() => setMenu(null)} label={t('Добавить')}>
-                    {issueType !== 4 && <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingChild(true); }}>{issueType === 0 ? t('Создать дочернюю задачу') : t('Создать подзадачу')}</button>}
-                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingLink(true); }}>{t('Связать задачу')}</button>
-                    <div className="iv-menu-divider" role="separator" />
-                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); attachmentInputRef.current?.click(); }}>{t('Добавить вложение')}</button>
+                  <button
+                    type="button"
+                    className="iv-square-btn"
+                    aria-label={t('Добавить')}
+                    title={t('Добавить')}
+                    onClick={() => {
+                      setAddMenuQuery('');
+                      toggle('add');
+                    }}
+                  >+</button>
+                  <Menu open={menu === 'add'} onClose={() => setMenu(null)} label={t('Добавить')} className="iv-add-menu">
+                    <label className="iv-add-menu-search">
+                      <NavIcon name="search" size={16} />
+                      <input
+                        autoFocus
+                        value={addMenuQuery}
+                        onChange={(event) => setAddMenuQuery(event.target.value)}
+                        placeholder={t('Поиск пункта меню')}
+                        aria-label={t('Поиск пункта меню')}
+                      />
+                    </label>
+                    {issueType !== 4 && matchesAddMenu(issueType === 0 ? 'Создать дочернюю задачу' : 'Создать подзадачу') && (
+                      <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingChild(true); }}>
+                        <NavIcon name="subtask" size={18} />
+                        <span>{issueType === 0 ? t('Создать дочернюю задачу') : t('Создать подзадачу')}</span>
+                        <kbd>⇧ C</kbd>
+                      </button>
+                    )}
+                    {matchesAddMenu('Связать задачу') && (
+                      <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); setAddingLink(true); }}>
+                        <NavIcon name="link" size={18} />
+                        <span>{t('Связать задачу')}</span>
+                        <kbd>⇧ K</kbd>
+                      </button>
+                    )}
+                    {(matchesAddMenu('Добавить вложение') || matchesAddMenu('Добавить ссылку на веб-страницу')) && <div className="iv-menu-divider" role="separator" />}
+                    {matchesAddMenu('Добавить вложение') && (
+                      <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setMenu(null); attachmentInputRef.current?.click(); }}>
+                        <NavIcon name="attachment" size={18} />
+                        <span>{t('Добавить вложение')}</span>
+                      </button>
+                    )}
+                    {matchesAddMenu('Добавить ссылку на веб-страницу') && (
+                      <button type="button" role="menuitem" className="iv-menu-item" onClick={addWebLink}>
+                        <NavIcon name="globe" size={18} />
+                        <span>{t('Добавить ссылку на веб-страницу')}</span>
+                      </button>
+                    )}
+                    {videoRecommendationVisible && matchesAddMenu('Рекомендации Видео') && (
+                      <>
+                        <div className="iv-menu-divider" role="separator" />
+                        <div className="iv-add-menu-heading">{t('Рекомендации')}</div>
+                        <div className="iv-add-menu-recommendation">
+                          <NavIcon name="video" size={18} />
+                          <span>{t('Видео')}</span>
+                          <button
+                            type="button"
+                            className="iv-add-menu-install"
+                            onClick={() => navigate(`/board/${quest.boardId}/integrations`)}
+                          >{t('Добавить')}</button>
+                          <button
+                            type="button"
+                            className="iv-add-menu-dismiss"
+                            aria-label={t('Скрыть рекомендацию Видео')}
+                            onClick={() => setVideoRecommendationVisible(false)}
+                          >×</button>
+                        </div>
+                      </>
+                    )}
                   </Menu>
                 </span>
                 <input ref={attachmentInputRef} type="file" className="issue-drawer-file-input" onChange={handleUploadAttachment} />

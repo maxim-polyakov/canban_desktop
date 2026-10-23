@@ -87,6 +87,7 @@ const change = async (el, value) => {
   await flush();
 };
 const button = (text) => [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === text);
+const menuButton = (text) => [...container.querySelectorAll('.iv-menu-item')].find((item) => item.querySelector('span')?.textContent.trim() === text);
 const columns = [{ id: 'c1', title: 'To Do', kind: 0, quests: [] }, { id: 'c2', title: 'Done', kind: 3, quests: [] }];
 
 const render = async () => {
@@ -130,12 +131,34 @@ test('offers Jira-style add actions and a working apps menu', async () => {
   await render();
 
   await click(container.querySelector('button[aria-label="Добавить"]'));
-  ['Создать подзадачу', 'Связать задачу', 'Добавить вложение']
-    .forEach((label) => expect(button(label)).toBeTruthy());
+  expect(container.querySelector('input[aria-label="Поиск пункта меню"]')).toBeTruthy();
+  ['Создать подзадачу', 'Связать задачу', 'Добавить вложение', 'Добавить ссылку на веб-страницу']
+    .forEach((label) => expect(menuButton(label)).toBeTruthy());
+  expect(container.textContent).toContain('Рекомендации');
+  expect(container.textContent).toContain('Видео');
+  expect(button('Добавить')).toBeTruthy();
+  expect(container.querySelector('button[aria-label="Скрыть рекомендацию Видео"]')).toBeTruthy();
+
+  await change(container.querySelector('input[aria-label="Поиск пункта меню"]'), 'веб-страницу');
+  expect(menuButton('Добавить ссылку на веб-страницу')).toBeTruthy();
+  expect(menuButton('Связать задачу')).toBeFalsy();
 
   await click(container.querySelector('button[aria-label="Приложения"]'));
   const appsLink = [...container.querySelectorAll('a')].find((link) => link.textContent.trim() === 'Добавить приложения');
   expect(appsLink?.getAttribute('href')).toBe('/board/b1/integrations');
+});
+
+test('adds a web page link to the issue description', async () => {
+  const prompt = jest.spyOn(window, 'prompt')
+    .mockReturnValueOnce('https://example.com/docs')
+    .mockReturnValueOnce('Документация');
+  await render();
+
+  await click(container.querySelector('button[aria-label="Добавить"]'));
+  await click(menuButton('Добавить ссылку на веб-страницу'));
+
+  expect(mockCalls.find(([name]) => name === 'update')?.[2].description).toBe('[Документация](https://example.com/docs)');
+  prompt.mockRestore();
 });
 
 test('offers the Confluence project plan template', async () => {

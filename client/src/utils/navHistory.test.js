@@ -1,5 +1,5 @@
 import {
-  getRecentBoards, getStarredBoards, getViewedIssues, isBoardStarred,
+  getCachedBoard, getRecentBoards, getStarredBoards, getViewedIssues, isBoardStarred,
   rememberBoard, rememberIssue, toggleStarredBoard,
 } from './navHistory.js';
 
@@ -20,6 +20,17 @@ test('starring toggles a board on and off', () => {
   toggleStarredBoard({ id: 'b1', name: 'One' });
   expect(isBoardStarred('b1')).toBe(false);
   expect(getStarredBoards()).toEqual([]);
+});
+
+test('returns board metadata immediately from navigation cache', () => {
+  rememberBoard({ id: 'b1', name: 'My Software Team', features: 'board,backlog', avatarUrl: '/avatar.png' });
+  expect(getCachedBoard('b1')).toEqual(expect.objectContaining({
+    id: 'b1',
+    name: 'My Software Team',
+    features: 'board,backlog',
+    avatarUrl: '/avatar.png',
+  }));
+  expect(getCachedBoard('missing')).toBeNull();
 });
 
 test('viewed issues keep the latest view first and ignore items without id', () => {

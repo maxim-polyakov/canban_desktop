@@ -41,6 +41,11 @@ function toggle(kind, item) {
 
 export const getRecentBoards = () => read('recentBoards');
 export const getStarredBoards = () => read('starredBoards');
+export const getCachedBoard = (boardId) => (
+  getRecentBoards().find((board) => board.id === boardId)
+  || getStarredBoards().find((board) => board.id === boardId)
+  || null
+);
 export const getViewedIssues = () => read('viewedIssues');
 export const getStarredFilters = () => read('starredFilters');
 export const getRecentDashboards = () => read('recentDashboards');

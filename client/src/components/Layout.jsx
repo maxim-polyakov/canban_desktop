@@ -23,7 +23,7 @@ import HelpPanel from './HelpPanel.jsx';
 import CreateIssueDialog from './CreateIssueDialog.jsx';
 import { ProfileMenu, SettingsMenu } from './HeaderMenus.jsx';
 import { IssueTypeIcon } from './IssueIcons.jsx';
-import { isBoardStarred, rememberBoard, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
+import { getCachedBoard, isBoardStarred, rememberBoard, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { ALL_TAB_KEYS, BOARD_CHANGED_EVENT, firstSpacePath, spaceTabs, startOnboarding } from '../utils/spaceFeatures.js';
 import OnboardingButton from './SpaceOnboarding.jsx';
 import { loadIssueCatalog } from '../utils/issueConfig.js';
@@ -194,21 +194,23 @@ function SpaceHeader({ board, boardId, tab }) {
     return () => { alive = false; };
   }, [boardId]);
   const starred = isBoardStarred(boardId);
-  const name = board?.name || t('Доска');
+  const name = board?.name || '';
   return (
     <div className="app-space-header">
       <div className="app-space-breadcrumbs"><Link to="/spaces">{t('Разделы')}</Link></div>
       <div className="app-space-title-row">
         <span className="app-space-avatar">
           <button type="button" className="app-space-avatar-btn" onClick={() => setPickerOpen((v) => !v)} aria-label={t('Изменить аватар')} title={t('Изменить аватар')}>
-            <SpaceAvatar id={boardId} name={name} avatarUrl={board?.avatarUrl} size={24} />
+            <SpaceAvatar id={boardId} name={name || t('Доска')} avatarUrl={board?.avatarUrl} size={24} />
           </button>
           {pickerOpen && (
             <SpaceAvatarPicker boardId={boardId} value={board?.avatarUrl} onClose={closePicker}
               onChange={() => { setPickerOpen(false); window.dispatchEvent(new CustomEvent(SPACES_CHANGED_EVENT)); }} />
           )}
         </span>
-        <h1 className="app-space-title" title={name}>{name}</h1>
+        <h1 className={`app-space-title ${name ? '' : 'is-loading'}`} title={name}>
+          {name || <span className="app-space-title-skeleton" aria-label={t('Загрузка...')} />}
+        </h1>
         <span className="app-space-teams">
           <button type="button" className={`app-icon-btn app-space-team-trigger ${teams.length ? 'has-teams' : ''}`} onClick={() => setTeamsOpen(true)}
             aria-label={t('Участвующие команды')} title={teams.length ? teams.map((x) => x.name).join(', ') : t('Привязать участвующие команды')}>
@@ -280,7 +282,6 @@ export default function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.localStorage.getItem('canban.nav.collapsed') === '1');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [teamsWithBoards, setTeamsWithBoards] = useState([]);
-  const [teamsLoaded, setTeamsLoaded] = useState(false);
   const [character, setCharacter] = useState(null);
   const [panel, setPanel] = useState(null);
   const [menu, setMenu] = useState(null);
@@ -304,8 +305,7 @@ export default function Layout() {
   const loadTeams = useCallback(() => {
     teamsApi.getMyTeamsWithBoards()
       .then((list) => setTeamsWithBoards(normalizeTeams(list)))
-      .catch(() => setTeamsWithBoards([]))
-      .finally(() => setTeamsLoaded(true));
+      .catch(() => setTeamsWithBoards([]));
   }, []);
 
   useEffect(() => {
@@ -335,16 +335,17 @@ export default function Layout() {
   const boardsById = useMemo(() => new Map(allBoards.map((b) => [b.id, b])), [allBoards]);
   const [outsideBoard, setOutsideBoard] = useState(null);
   const memberBoard = boardId ? boardsById.get(boardId) : null;
-  const activeBoard = memberBoard || (outsideBoard?.id === boardId ? outsideBoard : null);
+  const cachedBoard = useMemo(() => (boardId ? getCachedBoard(boardId) : null), [boardId]);
+  const activeBoard = memberBoard || (outsideBoard?.id === boardId ? outsideBoard : null) || cachedBoard;
 
   useEffect(() => {
-    if (!boardId || memberBoard || !teamsLoaded) return undefined;
+    if (!boardId || memberBoard) return undefined;
     let alive = true;
     boardsApi.getById(boardId)
       .then((b) => { if (alive && b) setOutsideBoard({ id: b.id, name: b.name, keyPrefix: b.keyPrefix, template: b.template, access: b.access, features: b.features, avatarUrl: b.avatarUrl }); })
       .catch(() => {});
     return () => { alive = false; };
-  }, [boardId, memberBoard, teamsLoaded]);
+  }, [boardId, memberBoard]);
 
   useEffect(() => {
     const onBoardChanged = (e) => {
@@ -361,7 +362,16 @@ export default function Layout() {
   }, []);
 
   useEffect(() => {
-    if (activeBoard) rememberBoard({ id: activeBoard.id, name: activeBoard.name, teamName: activeBoard.teamName });
+    if (activeBoard) rememberBoard({
+      id: activeBoard.id,
+      name: activeBoard.name,
+      teamName: activeBoard.teamName,
+      keyPrefix: activeBoard.keyPrefix,
+      template: activeBoard.template,
+      access: activeBoard.access,
+      features: activeBoard.features,
+      avatarUrl: activeBoard.avatarUrl,
+    });
   }, [activeBoard]);
 
   useEffect(() => {

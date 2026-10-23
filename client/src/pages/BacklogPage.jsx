@@ -551,7 +551,22 @@ export default function BacklogPage() {
     return <input className="bl-check" type="checkbox" checked={all} disabled={list.length === 0} aria-label={label} onChange={(e) => toggleSection(list, e.target.checked)} />;
   };
 
-  if (loading) return <div className="page">{t('Загрузка бэклога...')}</div>;
+  if (loading) {
+    return (
+      <div className="page backlog-page bl-loading" role="status" aria-live="polite">
+        <div className="bl-loading-title">
+          <span className="bl-loading-spinner" aria-hidden="true" />
+          <strong>{t('Загрузка бэклога...')}</strong>
+        </div>
+        {[0, 1].map((section) => (
+          <section className="bl-loading-section" key={section} aria-hidden="true">
+            <div className="bl-loading-line is-heading" />
+            {[0, 1, 2].map((row) => <div className="bl-loading-line" key={row} />)}
+          </section>
+        ))}
+      </div>
+    );
+  }
   if (error) return <div className="page">{t('Ошибка')}: {error}</div>;
 
   const sprintRows = sprintList.map((sprint) => ({ sprint, all: sprintQuests[sprint.id] ?? [], shown: visible(sprintQuests[sprint.id] ?? []) }));

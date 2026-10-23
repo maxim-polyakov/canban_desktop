@@ -42,6 +42,61 @@
   transition: padding-right 0.15s;
 }
 
+.bl-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bl-loading-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2rem;
+  color: var(--text);
+}
+
+.bl-loading-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: bl-loading-spin 0.8s linear infinite;
+}
+
+.bl-loading-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.bl-loading-line {
+  height: 2rem;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--surface-subtle, #f1f2f4) 25%, var(--hover) 50%, var(--surface-subtle, #f1f2f4) 75%);
+  background-size: 200% 100%;
+  animation: bl-loading-shimmer 1.25s ease-in-out infinite;
+}
+
+.bl-loading-line.is-heading {
+  width: 35%;
+  height: 1.25rem;
+  margin-bottom: 0.2rem;
+}
+
+@keyframes bl-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bl-loading-shimmer {
+  to { background-position: -200% 0; }
+}
+
 .backlog-page.has-issue-panel {
   padding-right: calc(var(--issue-panel-width, 440px) + 1rem);
 }

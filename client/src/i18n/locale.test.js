@@ -42,6 +42,8 @@ describe('client localization', () => {
   test('contains the exact Misa locale set and representative RU/EN copy', () => {
     expect(LANGUAGES).toHaveLength(76);
     expect(createTranslator('ru')('Вход')).toBe('Вход');
+    expect(createTranslator('ru')('Убрать флажок')).toBe('Убрать флажок');
+    expect(createTranslator('ru')('Добавить флажок')).toBe('Добавить флажок');
     expect(createTranslator('en')('Вход')).toBe('Sign in');
     expect(createTranslator('en')('Мои команды и доски')).toBe('My teams and boards');
   });

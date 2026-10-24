@@ -178,7 +178,12 @@ export const teams = {
   create: (data) => apiJson('/api/teams', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiJson(`/api/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (teamId) => api(`/api/teams/${teamId}`, { method: 'DELETE' }).then((r) => r.ok),
-  addMember: (teamId, userId) => api(`/api/teams/${teamId}/members/${userId}`, { method: 'POST' }).then((r) => r.ok),
+  addMember: async (teamId, userId, role = 'Member') => {
+    const res = await api(`/api/teams/${teamId}/members/${userId}?role=${encodeURIComponent(role)}`, { method: 'POST' });
+    if (res.ok) return { ok: true };
+    const text = await res.text();
+    return { ok: false, error: text || 'Не удалось добавить пользователя.' };
+  },
   removeMember: async (teamId, userId) => {
     const r = await api(`/api/teams/${teamId}/members/${userId}`, { method: 'DELETE' });
     return r.ok ? true : { ok: false, status: r.status };

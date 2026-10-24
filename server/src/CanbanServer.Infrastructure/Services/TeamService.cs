@@ -144,8 +144,14 @@ public class TeamService : ITeamService
         return string.IsNullOrWhiteSpace(value) ? "KAN" : value;
     }
 
-    public async Task<bool> AddMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default)
+    public async Task<bool?> AddMemberAsync(Guid teamId, Guid userId, Guid? requestedByUserId, CancellationToken ct = default)
     {
+        if (!requestedByUserId.HasValue) return null;
+        var canManage = await _db.Teams.AsNoTracking().AnyAsync(t => t.Id == teamId && t.OwnerId == requestedByUserId.Value, ct)
+            || await _db.TeamMembers.AsNoTracking().AnyAsync(
+                member => member.TeamId == teamId && member.UserId == requestedByUserId.Value && member.Role == TeamRole.Admin,
+                ct);
+        if (!canManage) return null;
         if (await _db.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == userId, ct)) return false;
         await _plans.EnsureSeatAsync(teamId, userId, ct);
         _db.TeamMembers.Add(new TeamMember

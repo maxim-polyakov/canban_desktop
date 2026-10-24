@@ -4,7 +4,7 @@ import { users as usersApi } from '../api.js';
 import NavIcon from './NavIcons.jsx';
 import './PeoplePicker.css';
 
-/** Pick site users by display name; emails are never shown. `value` is a list of { id, displayName, avatarUrl }. */
+/** Pick existing site users by display name or email. `value` is a list of { id, displayName, avatarUrl }. */
 export default function PeoplePicker({ id, value, onChange, excludeIds = [], autoFocus = false, disabled = false, placeholder }) {
   const { t } = useLocalization();
   const [people, setPeople] = useState([]);
@@ -17,7 +17,9 @@ export default function PeoplePicker({ id, value, onChange, excludeIds = [], aut
   const needle = query.trim().toLowerCase();
   const pickedIds = value.map((p) => p.id);
   const suggestions = needle
-    ? people.filter((p) => !pickedIds.includes(p.id) && !excludeIds.includes(p.id) && (p.displayName || '').toLowerCase().includes(needle)).slice(0, 8)
+    ? people.filter((p) => !pickedIds.includes(p.id)
+      && !excludeIds.includes(p.id)
+      && `${p.displayName || ''} ${p.email || ''}`.toLowerCase().includes(needle)).slice(0, 8)
     : [];
   const pick = (person) => {
     onChange([...value, { id: person.id, displayName: person.displayName, avatarUrl: person.avatarUrl }]);
@@ -59,7 +61,7 @@ export default function PeoplePicker({ id, value, onChange, excludeIds = [], aut
             <li key={p.id} role="option" aria-selected="false">
               <button type="button" onClick={() => pick(p)}>
                 {p.avatarUrl ? <img src={p.avatarUrl} alt="" /> : <span className="invite-avatar">{(p.displayName || '?').slice(0, 1).toUpperCase()}</span>}
-                {p.displayName}
+                <span>{p.displayName}{p.email && <small>{p.email}</small>}</span>
               </button>
             </li>
           ))}

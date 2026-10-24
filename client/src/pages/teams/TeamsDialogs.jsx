@@ -15,6 +15,12 @@ export const KUDOS_KINDS = [
 ];
 
 export const kudosKindMeta = (kind) => KUDOS_KINDS.find(([k]) => k === kind) || KUDOS_KINDS[0];
+export const TEAM_ROLE_OPTIONS = [
+  ['Admin', 'Администратор'],
+  ['Lead', 'Руководитель'],
+  ['Member', 'Участник'],
+  ['Viewer', 'Наблюдатель'],
+];
 
 function Modal({ title, onClose, onSubmit, children, footer }) {
   const { t } = useLocalization();
@@ -164,13 +170,14 @@ export function CreateTeamDialog({ open, onClose, onCreated }) {
 export function InvitePeopleDialog({ open, teams, defaultTeamId, onClose, onDone }) {
   const { t } = useLocalization();
   const [teamId, setTeamId] = useState('');
+  const [role, setRole] = useState('Member');
   const [picked, setPicked] = useState([]);
   const [memberIds, setMemberIds] = useState([]);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
   useEffect(() => {
     if (!open) return;
-    setTeamId(defaultTeamId || teams[0]?.id || ''); setPicked([]); setResult(null);
+    setTeamId(defaultTeamId || teams[0]?.id || ''); setRole('Member'); setPicked([]); setResult(null);
   }, [open, defaultTeamId, teams]);
   useEffect(() => {
     if (!open || !teamId) return;
@@ -185,40 +192,59 @@ export function InvitePeopleDialog({ open, teams, defaultTeamId, onClose, onDone
     const sent = [];
     const failed = [];
     for (const person of picked) {
-      const r = await teamsApi.inviteUser(teamId, person.id);
+      const r = await teamsApi.addMember(teamId, person.id, role);
       if (r.ok) sent.push(person.displayName); else failed.push(`${person.displayName}: ${r.error}`);
     }
     setSaving(false);
     setResult({ sent, failed });
-    if (sent.length) { setPicked([]); onDone?.(); }
+    if (sent.length) {
+      setPicked([]);
+      onDone?.();
+      if (failed.length === 0) onClose();
+    }
   };
 
   return (
     <Modal
-      title={t('Добавить пользователей')}
+      title={t('Добавить людей в Канбан')}
       onClose={onClose}
       onSubmit={submit}
       footer={<>
-        <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Закрыть')}</button>
-        <button type="submit" className="app-btn app-btn-primary" disabled={saving || !teamId || picked.length === 0}>{saving ? '…' : t('Пригласить')}</button>
+        <button type="button" className="app-btn app-btn-subtle" onClick={onClose}>{t('Отмена')}</button>
+        <button type="submit" className="app-btn app-btn-primary" disabled={saving || !teamId || picked.length === 0}>{saving ? '…' : t('Добавить')}</button>
       </>}
     >
       {teams.length === 0 ? <p className="app-modal-hint">{t('Сначала создайте команду, чтобы приглашать в неё людей.')}</p> : (
         <>
+          <div className="app-field">
+            <label htmlFor="invite-people-search">{t('Имена или адреса электронной почты')} <span className="app-required">*</span></label>
+            <PeoplePicker
+              id="invite-people-search"
+              value={picked}
+              onChange={setPicked}
+              excludeIds={memberIds}
+              autoFocus
+              disabled={saving}
+              placeholder={t('например, Мария, maria@company.com')}
+            />
+            <span className="app-modal-hint">{t('Выполните поиск по имени или адресу электронной почты.')}</span>
+          </div>
           <label className="app-field">
-            <span>{t('Команда')} <span className="app-required">*</span></span>
+            <span>{t('Выберите команду')} <span className="app-required">*</span></span>
             <select value={teamId} onChange={(e) => setTeamId(e.target.value)}>
               {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
             </select>
           </label>
-          <div className="app-field">
-            <label htmlFor="invite-people-search">{t('Пользователи')} <span className="app-required">*</span></label>
-            <PeoplePicker id="invite-people-search" value={picked} onChange={setPicked} excludeIds={memberIds} autoFocus disabled={saving} />
-          </div>
-          <p className="app-modal-hint">{t('Пользователь получит приглашение и появится в команде после его принятия.')}</p>
+          <label className="app-field">
+            <span>{t('Выберите роль')}</span>
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              {TEAM_ROLE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}
+            </select>
+          </label>
+          <p className="app-modal-hint">{t('Пользователи будут сразу добавлены в выбранную команду с указанной ролью.')}</p>
         </>
       )}
-      {result?.sent.length > 0 && <p className="app-modal-success">{t('Приглашения отправлены')}: {result.sent.join(', ')}</p>}
+      {result?.sent.length > 0 && <p className="app-modal-success">{t('Пользователи добавлены')}: {result.sent.join(', ')}</p>}
       {result?.failed.length > 0 && <p className="app-modal-error" role="alert">{result.failed.join('; ')}</p>}
     </Modal>
   );

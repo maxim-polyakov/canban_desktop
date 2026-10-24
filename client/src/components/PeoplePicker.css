@@ -8,5 +8,7 @@
 .invite-options { margin: 4px 0 0; padding: 4px 0; list-style: none; max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-overlay); box-shadow: var(--overlay-shadow); }
 .invite-options button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border: 0; background: transparent; color: var(--text); font-size: 0.9rem; text-align: start; cursor: pointer; }
 .invite-options button:hover { background: var(--nav-hover); }
+.invite-options button > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.invite-options button small { color: var(--text-subtle); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
 .invite-options img, .invite-avatar { width: 24px; height: 24px; border-radius: 50%; flex: none; object-fit: cover; }
 .invite-avatar { display: inline-flex; align-items: center; justify-content: center; background: var(--nav-pressed, #dfe1e6); font-size: 0.75rem; font-weight: 600; }

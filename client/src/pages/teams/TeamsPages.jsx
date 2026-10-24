@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from '../../i18n/navigation.jsx';
 import { useLocalization } from '../../i18n/LocalizationContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { kudos as kudosApi, people as peopleApi, teams as teamsApi, users as usersApi } from '../../api.js';
+import { kudos as kudosApi, people as peopleApi, teams as teamsApi } from '../../api.js';
 import NavIcon from '../../components/NavIcons.jsx';
 import SpaceAvatar from '../../components/SpaceAvatar.jsx';
 import { timeAgo } from '../../utils/timeAgo.js';
@@ -48,6 +48,17 @@ export function Avatar({ url, name, size = 32 }) {
   return url
     ? <img src={url} alt="" className="teams-avatar" style={{ width: size, height: size }} />
     : <span className="teams-avatar teams-avatar-placeholder" style={{ width: size, height: size, fontSize: size * 0.4 }}>{(name || '?').charAt(0).toUpperCase()}</span>;
+}
+
+export function buildPeopleDirectory(user, colleagues) {
+  const self = user ? [{
+    id: user.id,
+    displayName: user.displayName || user.email,
+    avatarUrl: user.avatarUrl,
+    email: user.email,
+    sharedTeams: 0,
+  }] : [];
+  return [...self, ...(Array.isArray(colleagues) ? colleagues : []).filter((person) => person.id !== user?.id)];
 }
 
 function PersonCard({ person, onKudos }) {
@@ -362,7 +373,11 @@ export function TeamPage() {
               {(members || []).map((m) => (
                 <tr key={m.userId}>
                   <td><Link to={`/people/${m.userId}`} className="settings-table-person"><Avatar url={m.avatarUrl} name={m.displayName} size={24} />{m.displayName}</Link></td>
-                  <td className="hide-mobile"><span className={`settings-lozenge ${m.role === 'Owner' ? 'is-info' : ''}`}>{t(m.role === 'Owner' ? 'Владелец' : 'Участник')}</span></td>
+                  <td className="hide-mobile">
+                    <span className={`settings-lozenge ${m.userId === team.ownerId || m.role === 'Admin' ? 'is-info' : ''}`}>
+                      {t(m.userId === team.ownerId ? 'Владелец' : m.role === 'Admin' ? 'Администратор' : m.role === 'Lead' ? 'Руководитель' : m.role === 'Viewer' ? 'Наблюдатель' : 'Участник')}
+                    </span>
+                  </td>
                   <td className="hide-mobile">{new Date(m.joinedAt).toLocaleDateString(locale)}</td>
                   <td className="is-narrow">
                     <div className="settings-actions">
@@ -387,7 +402,13 @@ export function TeamPage() {
         </div>
       </section>
 
-      <InvitePeopleDialog open={inviteOpen} teams={[team]} defaultTeamId={team.id} onClose={() => setInviteOpen(false)} onDone={() => setMessage(t('Приглашения отправлены'))} />
+      <InvitePeopleDialog
+        open={inviteOpen}
+        teams={[team]}
+        defaultTeamId={team.id}
+        onClose={() => setInviteOpen(false)}
+        onDone={() => { setMessage(t('Пользователи добавлены')); load(); }}
+      />
       <SendKudosDialog
         open={Boolean(kudosFor)}
         defaultUserId={kudosFor?.userId}
@@ -411,9 +432,12 @@ export function PeoplePage() {
   const [kudosFor, setKudosFor] = useState(null);
   const [notice, setNotice] = useState('');
 
-  useEffect(() => {
-    usersApi.getAll().then((data) => setList(Array.isArray(data) ? data : [])).catch(() => setList([]));
-  }, []);
+  const loadDirectory = useCallback(() => {
+    peopleApi.workWith()
+      .then((data) => setList(buildPeopleDirectory(user, data)))
+      .catch(() => setList(buildPeopleDirectory(user, [])));
+  }, [user]);
+  useEffect(() => { loadDirectory(); }, [loadDirectory]);
   useEffect(() => { localStorage.setItem('canban:people-view', view); }, [view]);
 
   const rows = useMemo(() => {
@@ -474,7 +498,12 @@ export function PeoplePage() {
       )}
       {list && rows.length === 0 && <p className="settings-empty">{t('Никого не найдено.')}</p>}
       {!list && <p className="settings-empty">{t('Загрузка...')}</p>}
-      <InvitePeopleDialog open={inviteOpen} teams={teams || []} onClose={() => setInviteOpen(false)} />
+      <InvitePeopleDialog
+        open={inviteOpen}
+        teams={teams || []}
+        onClose={() => setInviteOpen(false)}
+        onDone={() => { setNotice(t('Пользователи добавлены')); loadDirectory(); }}
+      />
       <SendKudosDialog open={Boolean(kudosFor)} defaultUserId={kudosFor?.id} currentUserId={user?.id} onClose={() => setKudosFor(null)} onSent={(sent) => { setKudosFor(null); setNotice(`${t('Похвала отправлена')}: ${sent.toName}`); }} />
     </div>
   );

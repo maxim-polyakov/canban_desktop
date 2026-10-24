@@ -10,7 +10,8 @@ public interface ITeamService
     Task<List<TeamMemberDto>> GetMembersAsync(Guid teamId, CancellationToken ct = default);
     Task<TeamDto> CreateAsync(CreateTeamRequest request, Guid ownerId, CancellationToken ct = default);
     Task<TeamDto?> UpdateAsync(Guid id, UpdateTeamRequest request, CancellationToken ct = default);
-    Task<bool> AddMemberAsync(Guid teamId, Guid userId, CancellationToken ct = default);
+    /// <returns>true — добавлен, false — уже в команде, null — нет прав на управление командой</returns>
+    Task<bool?> AddMemberAsync(Guid teamId, Guid userId, Guid? requestedByUserId, CancellationToken ct = default);
     /// <returns>true — роль изменена, false — нет прав (только создатель или админ команды), null — участник не найден</returns>
     Task<bool?> SetMemberRoleAsync(Guid teamId, Guid userId, TeamRole role, Guid? requestedByUserId, CancellationToken ct = default);
     /// <summary>Отправить приглашение в команду по email. Создаёт запись приглашения; пользователь подтверждает сам.</summary>

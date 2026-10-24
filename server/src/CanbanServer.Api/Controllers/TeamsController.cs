@@ -61,7 +61,9 @@ public class TeamsController : ControllerBase
     [HttpPost("{teamId:guid}/members/{userId:guid}")]
     public async Task<ActionResult> AddMember(Guid teamId, Guid userId, [FromQuery] TeamRole? role, CancellationToken ct)
     {
-        var added = await _teamService.AddMemberAsync(teamId, userId, ct);
+        var added = await _teamService.AddMemberAsync(teamId, userId, User.GetUserId(), ct);
+        if (added == null) return Forbid();
+        if (added == false) return BadRequest("Пользователь уже состоит в команде.");
         if (role.HasValue)
         {
             var result = await _teamService.SetMemberRoleAsync(teamId, userId, role.Value, User.GetUserId(), ct);
@@ -69,7 +71,7 @@ public class TeamsController : ControllerBase
             if (result == false) return Forbid();
             return NoContent();
         }
-        return added ? NoContent() : BadRequest();
+        return NoContent();
     }
 
     [Audit("member.role", AuditTarget.Team, "teamId", ObjectType = "user", ObjectKey = "userId")]

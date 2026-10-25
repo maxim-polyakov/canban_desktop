@@ -34,8 +34,14 @@ test('returns board metadata immediately from navigation cache', () => {
 });
 
 test('keeps a recently visited public board that is not in the member board list', () => {
-  const history = [{ id: 'public', name: 'Open board', access: 'public' }];
-  expect(resolveBoardHistory(history, [{ id: 'member', name: 'Member board' }])).toEqual(history);
+  const openHistory = [{ id: 'public', name: 'Open board', access: 'open' }];
+  expect(resolveBoardHistory(openHistory, [{ id: 'member', name: 'Member board' }])).toEqual(openHistory);
+});
+
+test('hides a cached private board unless it is still in the accessible board list', () => {
+  const privateBoard = { id: 'private', name: 'Private board', access: 'private' };
+  expect(resolveBoardHistory([privateBoard], [])).toEqual([]);
+  expect(resolveBoardHistory([privateBoard], [privateBoard])).toEqual([privateBoard]);
 });
 
 test('uses current member-board metadata without changing recent order', () => {

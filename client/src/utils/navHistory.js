@@ -61,7 +61,12 @@ export function resolveBoardHistory(history, availableBoards) {
     : new Map((availableBoards || []).map((board) => [board.id, board]));
   return (history || [])
     .filter((board) => board?.id)
-    .map((board) => ({ ...board, ...(byId.get(board.id) || {}) }));
+    .map((board) => {
+      const available = byId.get(board.id);
+      if (available) return { ...board, ...available };
+      return board.access === 'open' || board.access === 'limited' ? board : null;
+    })
+    .filter(Boolean);
 }
 
 export function isBoardStarred(boardId) {

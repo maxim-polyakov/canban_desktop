@@ -5,7 +5,7 @@ import { myWork, teams as teamsApi } from '../api.js';
 import { IssueTypeIcon, getIssueTypeMeta } from '../components/IssueIcons.jsx';
 import SpaceAvatar from '../components/SpaceAvatar.jsx';
 import NavIcon from '../components/NavIcons.jsx';
-import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
+import { resolveBoardHistory, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { groupByDay, timeAgo } from '../utils/timeAgo.js';
 import './ForYouPage.css';
 
@@ -74,8 +74,7 @@ export default function ForYouPage() {
 
   const allBoards = useMemo(() => teams.flatMap(({ team, boards }) => boards.map((b) => ({ ...b, teamName: team.name }))), [teams]);
   const recommendedSpaces = useMemo(() => {
-    const byId = new Map(allBoards.map((b) => [b.id, b]));
-    const ordered = [...recentBoards.map((b) => byId.get(b.id)).filter(Boolean), ...allBoards];
+    const ordered = [...resolveBoardHistory(recentBoards, allBoards), ...allBoards];
     return [...new Map(ordered.map((b) => [b.id, b])).values()].slice(0, 4);
   }, [allBoards, recentBoards]);
 

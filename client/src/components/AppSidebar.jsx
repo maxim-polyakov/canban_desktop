@@ -5,7 +5,7 @@ import { useLocalization } from '../i18n/LocalizationContext.jsx';
 import NavIcon from './NavIcons.jsx';
 import SpaceAvatar from './SpaceAvatar.jsx';
 import { IssueTypeIcon } from './IssueIcons.jsx';
-import { toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
+import { resolveBoardHistory, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
 import { usePrefs } from '../utils/preferences.js';
 import { PlansFlyoutContent } from '../pages/plans/PlansPages.jsx';
 import { planIncludes, useAccessPlan } from '../utils/billing.js';
@@ -322,12 +322,12 @@ export default function AppSidebar({ teamsWithBoards, activeBoardId, pathname, o
   const allBoards = teamsWithBoards.flatMap(({ team, boards }) => boards.map((b) => ({ ...b, teamName: team.name, teamId: team.id })));
   const boardById = new Map(allBoards.map((b) => [b.id, b]));
   const starredIds = new Set(starredBoards.map((b) => b.id));
-  const recent = recentBoards.map((b) => boardById.get(b.id)).filter(Boolean);
+  const recent = resolveBoardHistory(recentBoards, boardById);
   const recentRow = (entry, showTeam) => (
     <BoardRow key={entry.id} board={entry} active={entry.id === activeBoardId} starred={starredIds.has(entry.id)} onNavigate={navigate} showTeam={showTeam} />
   );
   const sidebarRecent = (recent.length ? recent : allBoards).slice(0, 4);
-  const starred = starredBoards.map((b) => boardById.get(b.id)).filter(Boolean);
+  const starred = resolveBoardHistory(starredBoards, boardById);
 
   const toggleFlyout = (name) => setFlyout((current) => (current === name ? null : name));
   const closeFlyout = () => setFlyout(null);

@@ -23,7 +23,9 @@ import HelpPanel from './HelpPanel.jsx';
 import CreateIssueDialog from './CreateIssueDialog.jsx';
 import { ProfileMenu, SettingsMenu } from './HeaderMenus.jsx';
 import { IssueTypeIcon } from './IssueIcons.jsx';
-import { getCachedBoard, isBoardStarred, rememberBoard, toggleStarredBoard, useNavHistory } from '../utils/navHistory.js';
+import {
+  getCachedBoard, isBoardStarred, rememberBoard, resolveBoardHistory, toggleStarredBoard, useNavHistory,
+} from '../utils/navHistory.js';
 import { ALL_TAB_KEYS, BOARD_CHANGED_EVENT, firstSpacePath, spaceTabs, startOnboarding } from '../utils/spaceFeatures.js';
 import OnboardingButton from './SpaceOnboarding.jsx';
 import { loadIssueCatalog } from '../utils/issueConfig.js';
@@ -105,7 +107,7 @@ function GlobalSearch({ inputRef, boardsById, onDone }) {
   const needle = text.trim().toLowerCase();
   const matches = (value) => !needle || String(value || '').toLowerCase().includes(needle);
   const issues = viewedIssues.filter((x) => matches(x.title) || matches(x.issueKey)).slice(0, 6);
-  const spaces = recentBoards.map((b) => boardsById.get(b.id)).filter(Boolean).filter((b) => matches(b.name)).slice(0, 3);
+  const spaces = resolveBoardHistory(recentBoards, boardsById).filter((b) => matches(b.name)).slice(0, 3);
 
   const go = (path) => { setOpen(false); setText(''); inputRef.current?.blur(); onDone?.(); navigate(path); };
 

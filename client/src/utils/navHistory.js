@@ -55,6 +55,15 @@ export const rememberIssue = (issue) => pushFront('viewedIssues', issue);
 export const rememberDashboard = (dashboard) => pushFront('recentDashboards', dashboard);
 export const forgetDashboard = (id) => write('recentDashboards', read('recentDashboards').filter((x) => x.id !== id));
 
+export function resolveBoardHistory(history, availableBoards) {
+  const byId = availableBoards instanceof Map
+    ? availableBoards
+    : new Map((availableBoards || []).map((board) => [board.id, board]));
+  return (history || [])
+    .filter((board) => board?.id)
+    .map((board) => ({ ...board, ...(byId.get(board.id) || {}) }));
+}
+
 export function isBoardStarred(boardId) {
   return read('starredBoards').some((x) => x.id === boardId);
 }

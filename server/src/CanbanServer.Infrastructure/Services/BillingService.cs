@@ -246,7 +246,12 @@ public class BillingService
         {
             var created = await _yookassa.CreatePaymentAsync(new YooKassaPaymentRequest(
                 amount, Description(target, cycle, usage.Users), payment.Id.ToString(),
-                new Dictionary<string, string> { ["paymentId"] = payment.Id.ToString(), ["userId"] = userId.ToString() },
+                new Dictionary<string, string>
+                {
+                    ["paymentId"] = payment.Id.ToString(),
+                    ["userId"] = userId.ToString(),
+                    ["customerEmail"] = email,
+                },
                 $"{AppUrl()}/admin/billing/payment?id={payment.Id}", null, _yookassa.RecurringEnabled, email), ct);
             payment.ProviderPaymentId = created.Id;
             payment.ConfirmationUrl = created.ConfirmationUrl;
@@ -407,7 +412,12 @@ public class BillingService
         {
             var created = await _yookassa.CreatePaymentAsync(new YooKassaPaymentRequest(
                 payment.Amount, "Продление: " + Description(plan, s.Cycle, users), payment.Id.ToString(),
-                new Dictionary<string, string> { ["paymentId"] = payment.Id.ToString(), ["userId"] = s.UserId.ToString() },
+                new Dictionary<string, string>
+                {
+                    ["paymentId"] = payment.Id.ToString(),
+                    ["userId"] = s.UserId.ToString(),
+                    ["customerEmail"] = email,
+                },
                 null, s.PaymentMethodId, false, email), ct);
             payment.ProviderPaymentId = created.Id;
             await _db.SaveChangesAsync(ct);

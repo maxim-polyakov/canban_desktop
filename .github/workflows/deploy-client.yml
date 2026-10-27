@@ -1,0 +1,65 @@
+name: Deploy Client
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create client environment
+        env:
+          CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
+        run: printf '%s\n' "$CLIENT_ENV" > client/.env
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish client
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: client
+          push: true
+          tags: ghcr.io/${{ github.repository }}/client:${{ github.sha }}
+          cache-from: type=gha,scope=canban-client
+          cache-to: type=gha,mode=max,scope=canban-client
+
+      - name: Roll out client
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          CLIENT_IMAGE: ghcr.io/${{ github.repository }}/client@${{ steps.build.outputs.digest }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: CLIENT_IMAGE
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            kubectl -n canban-desktop set image \
+              deployment/canban-desktop-client \
+              canban-desktop-client="$CLIENT_IMAGE"
+            kubectl -n canban-desktop rollout status \
+              deployment/canban-desktop-client --timeout=5m

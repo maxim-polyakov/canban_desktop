@@ -3,7 +3,12 @@ import {
   rememberBoard, rememberIssue, resolveBoardHistory, toggleStarredBoard,
 } from './navHistory.js';
 
-beforeEach(() => window.localStorage.clear());
+const setUser = (id) => window.localStorage.setItem('user', JSON.stringify({ id }));
+
+beforeEach(() => {
+  window.localStorage.clear();
+  setUser('u1');
+});
 
 test('recent boards are most-recent-first without duplicates and capped', () => {
   for (let i = 0; i < 12; i += 1) rememberBoard({ id: `b${i}`, name: `Board ${i}` });
@@ -20,6 +25,27 @@ test('starring toggles a board on and off', () => {
   toggleStarredBoard({ id: 'b1', name: 'One' });
   expect(isBoardStarred('b1')).toBe(false);
   expect(getStarredBoards()).toEqual([]);
+});
+
+test('starred boards are isolated between accounts in the same browser', () => {
+  toggleStarredBoard({ id: 'b1', name: 'One' });
+  expect(isBoardStarred('b1')).toBe(true);
+
+  setUser('u2');
+  expect(isBoardStarred('b1')).toBe(false);
+  toggleStarredBoard({ id: 'b2', name: 'Two' });
+
+  setUser('u1');
+  expect(getStarredBoards().map((board) => board.id)).toEqual(['b1']);
+});
+
+test('legacy shared history is assigned once to the active account', () => {
+  window.localStorage.setItem('canban.nav.starredBoards', JSON.stringify([{ id: 'b1', name: 'One' }]));
+  expect(isBoardStarred('b1')).toBe(true);
+  expect(window.localStorage.getItem('canban.nav.starredBoards')).toBeNull();
+
+  setUser('u2');
+  expect(isBoardStarred('b1')).toBe(false);
 });
 
 test('returns board metadata immediately from navigation cache', () => {
@@ -65,6 +91,6 @@ test('viewed issues keep the latest view first and ignore items without id', () 
 });
 
 test('corrupted storage falls back to an empty list', () => {
-  window.localStorage.setItem('canban.nav.recentBoards', '{oops');
+  window.localStorage.setItem('canban.nav.recentBoards.u1', '{oops');
   expect(getRecentBoards()).toEqual([]);
 });

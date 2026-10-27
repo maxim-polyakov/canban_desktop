@@ -10,9 +10,37 @@ const KEYS = {
 const LIMITS = { recentBoards: 10, starredBoards: 50, viewedIssues: 50, starredFilters: 50, recentDashboards: 10 };
 const EVENT = 'canban-nav-history';
 
+function currentUserId() {
+  try {
+    const user = JSON.parse(window.localStorage.getItem('user') || 'null');
+    return user?.id ? String(user.id) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storageKey(kind) {
+  const userId = currentUserId();
+  if (!userId) return null;
+  const key = `${KEYS[kind]}.${userId}`;
+
+  // Assign pre-upgrade browser history to the account that is active during
+  // the upgrade. Removing the shared key prevents it leaking to another user.
+  if (window.localStorage.getItem(key) === null) {
+    const legacy = window.localStorage.getItem(KEYS[kind]);
+    if (legacy !== null) {
+      window.localStorage.setItem(key, legacy);
+      window.localStorage.removeItem(KEYS[kind]);
+    }
+  }
+  return key;
+}
+
 function read(kind) {
   try {
-    const value = JSON.parse(window.localStorage.getItem(KEYS[kind]) || '[]');
+    const key = storageKey(kind);
+    if (!key) return [];
+    const value = JSON.parse(window.localStorage.getItem(key) || '[]');
     return Array.isArray(value) ? value : [];
   } catch {
     return [];
@@ -21,7 +49,9 @@ function read(kind) {
 
 function write(kind, list) {
   try {
-    window.localStorage.setItem(KEYS[kind], JSON.stringify(list.slice(0, LIMITS[kind])));
+    const key = storageKey(kind);
+    if (!key) return;
+    window.localStorage.setItem(key, JSON.stringify(list.slice(0, LIMITS[kind])));
   } catch {
     // Storage may be full or disabled (private mode); history is best-effort.
   }
@@ -82,7 +112,12 @@ export function useNavHistory() {
   const [, setVersion] = useState(0);
   useEffect(() => {
     const bump = () => setVersion((v) => v + 1);
-    const onStorage = (e) => { if (Object.values(KEYS).includes(e.key)) bump(); };
+    const onStorage = (e) => {
+      if (
+        e.key === 'user'
+        || Object.values(KEYS).some((key) => e.key === key || e.key?.startsWith(`${key}.`))
+      ) bump();
+    };
     window.addEventListener(EVENT, bump);
     window.addEventListener('storage', onStorage);
     return () => {
